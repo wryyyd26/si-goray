@@ -2,9 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Event extends Model
 {
-    //
+    use HasFactory, HasUuids;
+
+    protected $keyType = 'string';
+    public $incrementing = false;
+
+    const UPDATED_AT = null;
+
+    protected $fillable = [
+        'nama_event',
+        'deskripsi',
+        'status',
+    ];
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(EventSchedule::class);
+    }
 }
