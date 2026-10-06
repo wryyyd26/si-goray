@@ -19,6 +19,7 @@ class Event extends Model
     protected $fillable = [
         'nama_event',
         'deskripsi',
+        'gambar',
         'status',
     ];
 
