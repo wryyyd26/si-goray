@@ -15,8 +15,6 @@ class Identity extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'user_id',
         'nik_enc',
@@ -27,7 +25,9 @@ class Identity extends Model
         'divalidasi_at',
     ];
 
-    // PII tidak boleh bocor lewat response JSON (PRD §8.2)
+    /**
+     * PII tidak boleh bocor melalui response JSON.
+     */
     protected $hidden = [
         'nik_enc',
         'nik_hash',
@@ -35,23 +35,28 @@ class Identity extends Model
     ];
 
     protected $casts = [
-        // Laravel mengenkripsi saat simpan dan mendekripsi saat baca secara otomatis.
-        // Jadi $identity->nik_enc mengembalikan NIK asli, sedangkan di database tersimpan terenkripsi.
-        // PENTING: jangan ganti APP_KEY setelah ada data, karena data lama tidak bisa dibuka lagi.
+        /*
+         * Laravel mengenkripsi data saat disimpan
+         * dan mendekripsinya saat dibaca.
+         */
         'nik_enc' => 'encrypted',
         'tanggal_lahir_enc' => 'encrypted',
+
         'status_warga_kota' => 'boolean',
         'divalidasi_at' => 'datetime',
     ];
 
-    // nik_hash diisi oleh service, bukan model:
-    // hash_hmac('sha256', $nik, <secret khusus>)  -> 64 karakter, cocok dengan VARCHAR(64)
-
+    /**
+     * Relasi ke user pemilik identity.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Satu identity dapat digunakan oleh beberapa booking.
+     */
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);

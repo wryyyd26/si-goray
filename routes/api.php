@@ -11,3 +11,5 @@ Route::get('/test', function () {
 });
 
 Route::post('/bookings', [BookingController::class, 'store']);
+
+Route::get('/bookings/history', [BookingController::class, 'history']);

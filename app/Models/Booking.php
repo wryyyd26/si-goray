@@ -74,9 +74,9 @@ class Booking extends Model
 
     // Seluruh QR termasuk yang sudah INVALID/SUDAH_DIPAKAI (rantai regenerasi, BR-7)
     public function qrTickets(): HasMany
-    {
-        return $this->hasMany(QrTicket::class);
-    }
+	{
+    	return $this->hasMany(QrTicket::class);
+	}
 
     // QR yang sedang berlaku: maksimal 1 (dijaga uq_qr_aktif_per_booking, BR-5)
     public function activeQrTicket(): HasOne
