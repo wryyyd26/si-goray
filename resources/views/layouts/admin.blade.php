@@ -89,9 +89,10 @@
                 </div>
 
                 {{-- Tiket Reguler --}}
-                <a href="#" class="menu-item">
+                <a href="{{ route('admin.reguler.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.reguler.*') ? 'active' : '' }}">
                     <span class="material-symbols-rounded">
-                        local_activity
+                        confirmation_number
                     </span>
                     <span>Tiket Reguler</span>
                 </a>
@@ -105,7 +106,8 @@
                 </a>
 
                 {{-- Kelola Pesanan --}}
-                <a href="#" class="menu-item">
+                <a href="{{ route('admin.pemesanan.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.pemesanan.*') ? 'active' : '' }}">
                     <span class="material-symbols-rounded">
                         receipt_long
                     </span>
@@ -113,7 +115,8 @@
                 </a>
 
                 {{-- Kelola Pembayaran --}}
-                <a href="#" class="menu-item">
+                <a href="{{ route('admin.payment.pembayaran') }}"
+                    class="menu-item {{ request()->routeIs('admin.pembayaran.*') ? 'active' : '' }}">
                     <span class="material-symbols-rounded">
                         credit_card
                     </span>
