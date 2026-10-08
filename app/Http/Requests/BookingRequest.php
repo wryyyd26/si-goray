@@ -53,17 +53,6 @@ class BookingRequest extends FormRequest
                 'prohibited_if:jenis_booking,REGULER',
                 'exists:event_schedules,id',
             ],
-
-            'tariff_id' => [
-                'required',
-                'uuid',
-                'exists:tariff_reference,id',
-            ],
-
-            'retribusi_diperlukan' => [
-                'required',
-                'boolean',
-            ],
         ];
     }
 }
