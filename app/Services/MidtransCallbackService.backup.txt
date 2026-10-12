@@ -1,0 +1,132 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\PaymentGatewayCallback;
+use App\Models\PaymentTransaction;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+use RuntimeException;
+
+class MidtransCallbackService
+{
+    public function receive(array $payload): array
+    {
+        // Pastikan field utama dikirim Midtrans.
+        $required = [
+            'order_id',
+            'status_code',
+            'gross_amount',
+            'transaction_status',
+            'signature_key',
+        ];
+
+        foreach ($required as $field) {
+            if (!isset($payload[$field]) ||
+                !is_string($payload[$field]) ||
+                $payload[$field] === '') {
+                throw new InvalidArgumentException(
+                    "Field {$field} tidak valid."
+                );
+            }
+        }
+
+        // Ambil Server Key dari konfigurasi backend.
+        $serverKey = config('midtrans.server_key');
+
+        if (!is_string($serverKey) || $serverKey === '') {
+            throw new RuntimeException(
+                'Konfigurasi Midtrans belum tersedia.'
+            );
+        }
+
+        // Verifikasi signature resmi Midtrans.
+        $expectedSignature = hash(
+            'sha512',
+            $payload['order_id']
+            . $payload['status_code']
+            . $payload['gross_amount']
+            . $serverKey
+        );
+
+        if (!hash_equals(
+            $expectedSignature,
+            $payload['signature_key']
+        )) {
+            throw new InvalidArgumentException(
+                'Signature Midtrans tidak valid.'
+            );
+        }
+
+        // Hanya proses order yang dikenal SI-GORAY.
+        return DB::transaction(function () use ($payload) {
+
+            $transaction = PaymentTransaction::where(
+                'kode_bayar',
+                $payload['order_id']
+            )
+                ->lockForUpdate()
+                ->first();
+
+            if (!$transaction) {
+                throw new InvalidArgumentException(
+                    'Transaksi pembayaran tidak ditemukan.'
+                );
+            }
+
+            // Periksa format dan nominal pembayaran.
+            $grossAmount = $payload['gross_amount'];
+
+            if (!preg_match(
+                '/^\d+(\.\d{1,2})?$/',
+                $grossAmount
+            )) {
+                throw new InvalidArgumentException(
+                    'Format nominal Midtrans tidak valid.'
+                );
+            }
+
+            $nominalGateway = number_format(
+                (float) $grossAmount,
+                2,
+                '.',
+                ''
+            );
+
+            $nominalDatabase = number_format(
+                (float) $transaction->nominal,
+                2,
+                '.',
+                ''
+            );
+
+            if ($nominalGateway !== $nominalDatabase) {
+                throw new InvalidArgumentException(
+                    'Nominal pembayaran tidak sesuai.'
+                );
+            }
+
+            // Catat notifikasi yang sudah lolos validasi.
+            $callback = PaymentGatewayCallback::create([
+                'transaction_id' => $transaction->id,
+                'status_callback' =>
+                    $payload['transaction_status'],
+                'signature_valid' => true,
+                'raw_payload' => $payload,
+                'received_at' => now(),
+            ]);
+
+            // Tahap pertama: belum mengubah status.
+            return [
+                'callback_id' => $callback->id,
+                'transaction_id' => $transaction->id,
+                'status_midtrans' =>
+                    $payload['transaction_status'],
+                'status_pembayaran' =>
+                    $transaction->status_pembayaran,
+                'message' =>
+                    'Callback terverifikasi dan tercatat.',
+            ];
+        });
+    }
+}

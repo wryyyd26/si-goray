@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\BookingController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PaymentCallbackController;
 
 Route::get('/test', function () {
     return response()->json([
@@ -9,6 +11,16 @@ Route::get('/test', function () {
         'message' => 'API SI-GORAY aktif.',
     ]);
 });
+
+Route::middleware('auth:sanctum')->post(
+    '/bookings/{booking}/payment',
+    [PaymentController::class, 'store']
+);
+
+Route::post(
+    '/payments/callback',
+    [PaymentCallbackController::class, 'receive']
+);
 
 Route::post('/bookings', [BookingController::class, 'store']);
 

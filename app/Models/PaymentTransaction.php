@@ -26,11 +26,13 @@ class PaymentTransaction extends Model
         'jumlah_retry',
         'referensi_gateway',
         'expired_at',
+	'snap_token',
     ];
 
     protected $casts = [
         'nominal' => 'decimal:2',
         'expired_at' => 'datetime',
+	'snap_token' => 'encrypted',
     ];
 
     public function booking(): BelongsTo
@@ -40,6 +42,9 @@ class PaymentTransaction extends Model
 
     public function callbacks(): HasMany
     {
-        return $this->hasMany(PaymentGatewayCallback::class, 'transaction_id');
+        return $this->hasMany(
+            PaymentGatewayCallback::class,
+            'transaction_id'
+        );
     }
 }
