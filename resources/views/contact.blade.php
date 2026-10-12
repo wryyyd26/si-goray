@@ -66,67 +66,108 @@
                     </div>
                 </div>
 
-                <!-- Form Pesan -->
-                <div class="contact-form-card">
-                    <h2>Kirim Pesan</h2>
-                    <p>
-                        Isi formulir berikut dan sampaikan pesanmu kepada kami.
-                    </p>
+<!-- Form Pesan -->
+<div class="contact-form-card">
+    <h2>Kirim Pesan</h2>
+    <p>
+        Isi formulir berikut dan sampaikan pesanmu kepada kami.
+    </p>
 
-                    <form action="#" method="POST" class="contact-form">
-                        @csrf
+    <form action="#" method="POST" class="contact-form">
+        @csrf
 
-                        <div class="form-group">
-                            <label for="name">Nama Lengkap</label>
-                            <input
-                                type="text"
-                                id="name"
-                                name="name"
-                                placeholder="Masukkan nama lengkap"
-                                required
-                            >
-                        </div>
+        <div class="form-group">
+            <label for="name">Nama Lengkap</label>
+            <input
+                type="text"
+                id="name"
+                name="name"
+                placeholder="Masukkan nama lengkap"
+                value="{{ old('name') }}"
+                required
+            >
+        </div>
 
-                        <div class="form-group">
-                            <label for="email">Alamat Email</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                placeholder="nama@email.com"
-                                required
-                            >
-                        </div>
+        <div class="form-group">
+            <label for="email">Alamat Email</label>
+            <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="nama@email.com"
+                value="{{ old('email') }}"
+                required
+            >
+        </div>
 
-                        <div class="form-group">
-                            <label for="subject">Subjek</label>
-                            <input
-                                type="text"
-                                id="subject"
-                                name="subject"
-                                placeholder="Masukkan subjek pesan"
-                                required
-                            >
-                        </div>
+        <!-- Nomor WhatsApp -->
+        <div class="form-group">
+            <label for="whatsapp">Nomor WhatsApp</label>
+            <input
+                type="tel"
+                id="whatsapp"
+                name="whatsapp"
+                placeholder="Contoh: 081234567890"
+                value="{{ old('whatsapp') }}"
+                pattern="[0-9+]{10,15}"
+                title="Masukkan nomor WhatsApp yang valid"
+                required
+            >
+        </div>
 
-                        <div class="form-group">
-                            <label for="message">Pesan</label>
-                            <textarea
-                                id="message"
-                                name="message"
-                                rows="5"
-                                placeholder="Tuliskan pesanmu di sini..."
-                                required
-                            ></textarea>
-                        </div>
+        <!-- Kategori -->
+        <div class="form-group">
+            <label for="category">Kategori</label>
+            <select
+                id="category"
+                name="category"
+                required
+            >
+                <option value="" disabled
+                    {{ old('category') ? '' : 'selected' }}>
+                    Pilih kategori pesan
+                </option>
 
-                        <button type="submit" class="contact-submit">
-                            Kirim Pesan
-                        </button>
-                    </form>
-                </div>
+                <option value="feedback"
+                    {{ old('category') == 'feedback' ? 'selected' : '' }}>
+                    Feedback
+                </option>
 
-            </div>
+                <option value="reservasi"
+                    {{ old('category') == 'reservasi' ? 'selected' : '' }}>
+                    Reservasi
+                </option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="subject">Subjek</label>
+            <input
+                type="text"
+                id="subject"
+                name="subject"
+                placeholder="Masukkan subjek pesan"
+                value="{{ old('subject') }}"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="message">Pesan</label>
+            <textarea
+                id="message"
+                name="message"
+                rows="5"
+                placeholder="Tuliskan pesanmu di sini..."
+                required
+            >{{ old('message') }}</textarea>
+        </div>
+
+        <button type="submit" class="contact-submit">
+            Kirim Pesan
+        </button>
+    </form>
+</div>
         </section>
     </main>
 @endsection

@@ -199,45 +199,555 @@
 <!-- ========================================== -->
 <!-- KODE POP-UP MODAL (Letakkan di bawah section) -->
 <!-- ========================================== -->
+<!-- ========================================== -->
+<!-- MODAL VALIDASI NIK -->
+<!-- ========================================== -->
+<!-- ========================================== -->
+<!-- MODAL VALIDASI NIK -->
+<!-- ========================================== -->
+
 <div class="modal-overlay" id="modal-nik">
+
     <div class="modal-box">
+
+        <!-- Tombol Close -->
+        <button
+            type="button"
+            class="modal-close"
+            id="close-nik"
+            aria-label="Tutup">
+            &times;
+        </button>
+
         <h3>Aktivasi NIK</h3>
-        <p>Apakah Anda Termasuk NIK Warga Kota Mojokerto?</p>
+
+        <p>
+            Apakah Anda termasuk NIK Warga Kota Mojokerto?
+        </p>
 
         <div class="modal-buttons">
-            <button class="btn-yes" id="btn-yes">Iya</button>
-            <button class="btn-no" id="btn-no">Tidak</button>
+
+            <button
+                type="button"
+                class="btn-yes"
+                id="btn-yes">
+                Iya
+            </button>
+
+            <button
+                type="button"
+                class="btn-no"
+                id="btn-no">
+                Tidak
+            </button>
+
         </div>
+
     </div>
+
 </div>
 
+<!-- ========================================== -->
+<!-- FORM WARGA KOTA MOJOKERTO -->
+<!-- ========================================== -->
+
+<div class="modal-overlay" id="modal-warga">
+
+    <div class="modal-box form-box">
+
+    <button
+    type="button"
+    class="modal-close"
+    id="close-warga"
+    aria-label="Tutup">
+    &times;
+</button>
+
+        <h3>Reservasi Warga Kota Mojokerto</h3>
+
+        <p>
+            Silakan isi data kegiatan Anda.
+        </p>
+
+        <form>
+
+            <!-- Nama Kegiatan -->
+            <div class="form-group">
+
+                <label for="nama_kegiatan_warga">
+                    Nama Kegiatan
+                </label>
+
+                <input
+                    type="text"
+                    id="nama_kegiatan_warga"
+                    name="nama_kegiatan"
+                    placeholder="Contoh: Latihan Futsal"
+                    required>
+
+            </div>
+
+
+            <!-- Tanggal -->
+            <div class="form-group">
+
+                <label for="tanggal_warga">
+                    Hari & Tanggal
+                </label>
+
+                <input
+                    type="date"
+                    id="tanggal_warga"
+                    name="tanggal"
+                    required>
+
+            </div>
+
+
+            <!-- Waktu -->
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="waktu_mulai_warga">
+                        Dari Jam
+                    </label>
+
+                    <input
+                        type="time"
+                        id="waktu_mulai_warga"
+                        name="waktu_mulai"
+                        required>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="waktu_selesai_warga">
+                        Sampai Jam
+                    </label>
+
+                    <input
+                        type="time"
+                        id="waktu_selesai_warga"
+                        name="waktu_selesai"
+                        required>
+
+                </div>
+
+            </div>
+
+
+            <!-- NIK -->
+            <div class="form-group">
+
+                <label for="nik_warga">
+                    NIK
+                </label>
+
+                <input
+                    type="text"
+                    id="nik_warga"
+                    name="nik"
+                    maxlength="16"
+                    inputmode="numeric"
+                    placeholder="Masukkan NIK"
+                    required>
+
+            </div>
+
+
+            <!-- Nama -->
+            <div class="form-group">
+
+                <label for="nama_warga">
+                    Nama Lengkap
+                </label>
+
+                <input
+                    type="text"
+                    id="nama_warga"
+                    name="nama"
+                    placeholder="Masukkan nama lengkap"
+                    required>
+
+            </div>
+
+
+            <!-- Alamat -->
+            <div class="form-group">
+
+                <label for="alamat_warga">
+                    Alamat
+                </label>
+
+                <textarea
+                    id="alamat_warga"
+                    name="alamat"
+                    placeholder="Masukkan alamat"
+                    required></textarea>
+
+            </div>
+
+
+            <!-- Button -->
+            <div class="modal-buttons">
+
+                <button
+                    type="button"
+                    class="btn-no"
+                    id="back-warga">
+                    Kembali
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-yes">
+                    Lanjutkan
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================== -->
+<!-- FORM NON-WARGA KOTA MOJOKERTO -->
+<!-- ========================================== -->
+
+<div class="modal-overlay" id="modal-non-warga">
+
+    <div class="modal-box form-box">
+
+        <button
+            type="button"
+            class="modal-close"
+            id="close-non-warga"
+            aria-label="Tutup">
+            &times;
+        </button>
+
+        <h3>Reservasi Non-Warga</h3>
+
+        <p>
+            Silakan isi data kegiatan Anda.
+        </p>
+
+        <form>
+
+            <!-- Nama Kegiatan -->
+            <div class="form-group">
+
+                <label for="nama_kegiatan_non_warga">
+                    Nama Kegiatan
+                </label>
+
+                <input
+                    type="text"
+                    id="nama_kegiatan_non_warga"
+                    name="nama_kegiatan"
+                    placeholder="Contoh: Turnamen Futsal"
+                    required>
+
+            </div>
+
+
+            <!-- Tanggal -->
+            <div class="form-group">
+
+                <label for="tanggal_non_warga">
+                    Hari & Tanggal
+                </label>
+
+                <input
+                    type="date"
+                    id="tanggal_non_warga"
+                    name="tanggal"
+                    required>
+
+            </div>
+
+
+            <!-- Waktu -->
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="waktu_mulai_non_warga">
+                        Dari Jam
+                    </label>
+
+                    <input
+                        type="time"
+                        id="waktu_mulai_non_warga"
+                        name="waktu_mulai"
+                        required>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="waktu_selesai_non_warga">
+                        Sampai Jam
+                    </label>
+
+                    <input
+                        type="time"
+                        id="waktu_selesai_non_warga"
+                        name="waktu_selesai"
+                        required>
+
+                </div>
+
+            </div>
+
+
+            <!-- NIK -->
+            <div class="form-group">
+
+                <label for="nik_non_warga">
+                    NIK
+                </label>
+
+                <input
+                    type="text"
+                    id="nik_non_warga"
+                    name="nik"
+                    maxlength="16"
+                    inputmode="numeric"
+                    placeholder="Masukkan NIK"
+                    required>
+
+            </div>
+
+
+            <!-- Nama -->
+            <div class="form-group">
+
+                <label for="nama_non_warga">
+                    Nama Lengkap
+                </label>
+
+                <input
+                    type="text"
+                    id="nama_non_warga"
+                    name="nama"
+                    placeholder="Masukkan nama lengkap"
+                    required>
+
+            </div>
+
+
+            <!-- Asal -->
+            <div class="form-group">
+
+                <label for="asal">
+                    Kota/Kabupaten Asal
+                </label>
+
+                <input
+                    type="text"
+                    id="asal"
+                    name="asal"
+                    placeholder="Contoh: Kabupaten Mojokerto"
+                    required>
+
+            </div>
+
+
+            <!-- Button -->
+            <div class="modal-buttons">
+
+                <button
+                    type="button"
+                    class="btn-no"
+                    id="back-non-warga">
+                    Kembali
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-yes">
+                    Lanjutkan
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- ========================================== -->
+<!-- JAVASCRIPT VALIDASI -->
+<!-- ========================================== -->
+
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const btnActivity = document.getElementById('btn-activity');
-        const modalNik = document.getElementById('modal-nik');
-        const btnYes = document.getElementById('btn-yes');
-        const btnNo = document.getElementById('btn-no');
 
-        // Membuka Pop-up saat tombol diklik
-        if (btnActivity) {
-            btnActivity.addEventListener('click', function(event) {
-                event.preventDefault(); // Mencegah halaman melompat ke atas
-                modalNik.classList.add('show');
-            });
-        }
+document.addEventListener("DOMContentLoaded", function () {
 
-        // Fungsi untuk menutup Pop-up
-        function closeModal() {
-            modalNik.classList.remove('show');
+    // Tombol Activity Reguler
+    const btnActivity = document.getElementById("btn-activity");
 
-            // Opsional: Anda bisa menambahkan logika lanjutan di sini nanti, 
-            // misalnya mengarahkan pengguna (redirect) jika mereka klik "Iya"
-        }
 
-        // Menutup pop-up ketika tombol Iya atau Tidak ditekan
-        if (btnYes) btnYes.addEventListener('click', closeModal);
-        if (btnNo) btnNo.addEventListener('click', closeModal);
+    // Modal
+    const modalNik = document.getElementById("modal-nik");
+    const modalWarga = document.getElementById("modal-warga");
+    const modalNonWarga = document.getElementById("modal-non-warga");
+
+
+    // Tombol validasi
+    const btnYes = document.getElementById("btn-yes");
+    const btnNo = document.getElementById("btn-no");
+
+
+    // Tombol kembali
+    const backWarga = document.getElementById("back-warga");
+    const backNonWarga = document.getElementById("back-non-warga");
+
+    //close modal
+    const closeNik = document.getElementById("close-nik");
+const closeWarga = document.getElementById("close-warga");
+const closeNonWarga = document.getElementById("close-non-warga");
+
+
+    // ==========================================
+    // ACTIVITY REGULER
+    // ==========================================
+
+    if (btnActivity) {
+
+        btnActivity.addEventListener("click", function (event) {
+
+            event.preventDefault();
+
+            modalNik.classList.add("show");
+
+        });
+
+    }
+
+    // ==========================================
+// CLOSE MODAL NIK
+// ==========================================
+
+if (closeNik) {
+
+    closeNik.addEventListener("click", function () {
+
+        modalNik.classList.remove("show");
+
     });
+
+}
+
+
+// ==========================================
+// CLOSE FORM WARGA
+// ==========================================
+
+if (closeWarga) {
+
+    closeWarga.addEventListener("click", function () {
+
+        modalWarga.classList.remove("show");
+
+    });
+
+}
+
+
+// ==========================================
+// CLOSE FORM NON-WARGA
+// ==========================================
+
+if (closeNonWarga) {
+
+    closeNonWarga.addEventListener("click", function () {
+
+        modalNonWarga.classList.remove("show");
+
+    });
+
+}
+
+    // ==========================================
+    // IYA → FORM WARGA
+    // ==========================================
+
+    if (btnYes) {
+
+        btnYes.addEventListener("click", function () {
+
+            modalNik.classList.remove("show");
+
+            modalWarga.classList.add("show");
+
+        });
+
+    }
+
+
+    // ==========================================
+    // TIDAK → FORM NON-WARGA
+    // ==========================================
+
+    if (btnNo) {
+
+        btnNo.addEventListener("click", function () {
+
+            modalNik.classList.remove("show");
+
+            modalNonWarga.classList.add("show");
+
+        });
+
+    }
+
+
+    // ==========================================
+    // KEMBALI FORM WARGA
+    // ==========================================
+
+    if (backWarga) {
+
+        backWarga.addEventListener("click", function () {
+
+            modalWarga.classList.remove("show");
+
+            modalNik.classList.add("show");
+
+        });
+
+    }
+
+
+    // ==========================================
+    // KEMBALI FORM NON-WARGA
+    // ==========================================
+
+    if (backNonWarga) {
+
+        backNonWarga.addEventListener("click", function () {
+
+            modalNonWarga.classList.remove("show");
+
+            modalNik.classList.add("show");
+
+        });
+
+    }
+
+});
+
 </script>
 
 @endsection
