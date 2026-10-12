@@ -1,4 +1,6 @@
-/* ===== SIDEBAR ===== */
+/* =====================================================
+   SIDEBAR
+===================================================== */
 const sidebar = document.getElementById("sidebar");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const sidebarClose = document.getElementById("sidebarClose");
@@ -25,7 +27,9 @@ if (sidebarOverlay) {
     });
 }
 
-/* ===== DARK MODE & CHARTS INITIALIZATION ===== */
+/* =====================================================
+   DARK MODE & CHARTS INITIALIZATION
+===================================================== */
 const themeToggle = document.getElementById("themeToggle");
 const themeIcon = document.getElementById("themeIcon");
 let lineChart, donutChart;
@@ -190,3 +194,147 @@ if (themeToggle) {
         updateChartsTheme();
     });
 }
+
+/* =====================================================
+   REGULAR / SLOT HARIAN MODAL
+===================================================== */
+
+const regularModal = document.getElementById("regularModal");
+const regularModalForm = document.getElementById("regularModalForm");
+const regularModalDate = document.getElementById("regularModalDate");
+const regularQuota = document.getElementById("regularQuota");
+const regularUsedInfo = document.getElementById("regularUsedInfo");
+
+const statusActive = document.getElementById("statusActive");
+const statusInactive = document.getElementById("statusInactive");
+
+function openRegularModal(button) {
+    if (!regularModal) return;
+
+    const date = button.dataset.date;
+    const dateLabel = button.dataset.dateLabel;
+    const quota = button.dataset.quota;
+    const used = button.dataset.used;
+    const status = button.dataset.status;
+
+    /*
+     * Isi data ke modal
+     */
+
+    regularModalDate.textContent = dateLabel;
+
+    regularQuota.value = quota;
+
+    regularUsedInfo.textContent = `Sudah terpakai: ${Number(used).toLocaleString("id-ID")} pengguna`;
+
+    /*
+     * Tentukan status
+     */
+
+    if (status === "active") {
+        statusActive.checked = true;
+    } else {
+        statusInactive.checked = true;
+    }
+
+    /*
+     * Tentukan action form
+     */
+
+    regularModalForm.action = `/admin/reguler/${date}`;
+
+    /*
+     * Tampilkan modal
+     */
+
+    regularModal.classList.add("show");
+
+    regularModal.setAttribute("aria-hidden", "false");
+
+    /*
+     * Lock body
+     */
+
+    document.body.style.overflow = "hidden";
+
+    /*
+     * Fokus input
+     */
+
+    setTimeout(() => {
+        regularQuota.focus();
+
+        regularQuota.select();
+    }, 100);
+}
+
+function closeRegularModal() {
+    if (!regularModal) return;
+
+    regularModal.classList.remove("show");
+
+    regularModal.setAttribute("aria-hidden", "true");
+
+    document.body.style.overflow = "";
+}
+
+/*
+ * Tombol + / -
+ */
+
+function changeRegularQuota(amount) {
+    if (!regularQuota) return;
+
+    let current = parseInt(regularQuota.value) || 0;
+
+    current += amount;
+
+    if (current < 1) {
+        current = 1;
+    }
+
+    regularQuota.value = current;
+}
+
+/*
+ * ESC untuk menutup modal
+ */
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+        closeRegularModal();
+    }
+});
+
+
+// SEARCH USER
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const searchInput = document.getElementById('userSearch');
+    const tableBody = document.getElementById('userTableBody');
+
+    if (!searchInput || !tableBody) {
+        return;
+    }
+
+    searchInput.addEventListener('input', function () {
+
+        const keyword = this.value.toLowerCase().trim();
+        const rows = tableBody.querySelectorAll('tr');
+
+        rows.forEach(function (row) {
+
+            const text = row.textContent.toLowerCase();
+
+            if (text.includes(keyword)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+
+        });
+
+    });
+
+});
