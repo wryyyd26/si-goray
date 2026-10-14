@@ -8,6 +8,7 @@ Route::get('/', function () {
     
 });
 
+
 Route::get('/events', function () {
     $events = [
         [
@@ -94,3 +95,4 @@ Route::get('/about', function () {
 Route::get('/contact', function () {
     return view('contact');
 });
+
