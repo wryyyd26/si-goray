@@ -6,6 +6,7 @@ use App\Models\AccessLog;
 use App\Models\PetugasGerbang;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use App\Models\Booking;
 
 class GateAccessService
 {
@@ -94,6 +95,39 @@ class GateAccessService
         ) {
 
             $qrTicket = $hasilValidasi['qr_ticket'];
+
+            
+/*
+ * Kunci booking terlebih dahulu.
+ * Urutan locking: Booking -> QrTicket.
+ */
+$booking = Booking::query()
+    ->lockForUpdate()
+    ->find($qrTicket->booking_id);
+
+/*
+ * Periksa ulang status booking.
+ * Jangan mengandalkan hasil validasi sebelum transaksi.
+ */
+if (!$booking || $booking->status_booking !== 'CONFIRMED') {
+
+    AccessLog::create([
+        'qr_ticket_id' => $qrTicket->id,
+        'petugas_id' => $petugas->id,
+        'waktu_scan' => now(),
+        'hasil_validasi' => 'GAGAL',
+        'catatan' => 'Booking tidak lagi CONFIRMED.',
+    ]);
+
+    return [
+        'success' => false,
+        'hasil' => 'GAGAL',
+        'reason' => 'BOOKING_BELUM_CONFIRMED',
+        'message' => 'Booking tidak valid untuk akses.',
+        'qr_ticket' => $qrTicket,
+    ];
+}
+
 
             /*
              * Lock QR untuk mencegah dua petugas
@@ -228,8 +262,11 @@ class GateAccessService
             'PETUGAS_TIDAK_AKTIF'
                 => 'Petugas gerbang tidak aktif.',
 
+                'BOOKING_BELUM_CONFIRMED'
+    => 'Booking belum dikonfirmasi atau sudah dibatalkan.',
+
             default
-                => 'QR tidak dapat divalidasi.',
+                => 'QR tidak dapat di Validasi .',
         };
     }
 }

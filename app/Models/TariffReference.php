@@ -16,7 +16,6 @@ class TariffReference extends Model
 
     public $timestamps = false;
 
-    // Nama tabel aslinya singular
     protected $table = 'tariff_reference';
 
     protected $fillable = [

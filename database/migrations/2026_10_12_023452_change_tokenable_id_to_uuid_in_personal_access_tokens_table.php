@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -16,7 +15,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Tidak otomatis dikembalikan ke BIGINT,
+        // Tidak otomatis dikembalikan ke BIGINT
         // karena UUID yang tersimpan bisa kehilangan data.
     }
 };

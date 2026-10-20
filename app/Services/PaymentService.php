@@ -7,12 +7,17 @@ use App\Models\PaymentTransaction;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Midtrans\Config;
-use Midtrans\Snap;
 use RuntimeException;
 use Throwable;
 
 class PaymentService
 {
+    
+    public function __construct(
+        private MidtransSnapGateway $gateway
+    ) {
+    }
+
     public function createPayment(string $bookingId): array
     {
         /*
@@ -108,19 +113,25 @@ class PaymentService
             }
 
             /*
-             * Maksimal 3 transaksi dalam 24 jam.
+             * * BR-4: Maksimal 3 kali retry dalam 24 jam.
+ *
+ * 1 pembayaran awal + 3 retry = 4 transaksi.
+ * Transaksi PENDING sudah diperiksa sebelumnya,
+ * sehingga retry hanya dilakukan ketika tidak
+ * ada transaksi yang masih PENDING.
+
              */
             $jumlahPercobaan = PaymentTransaction::where(
-                'booking_id',
-                $booking->id
-            )
-                ->where('created_at', '>=', now()->subHours(24))
-                ->count();
+    'booking_id',
+    $booking->id
+)
+    ->where('created_at', '>=', now()->subHours(24))
+    ->count();
 
-            if ($jumlahPercobaan >= 3) {
-                throw new InvalidArgumentException(
-                    'Batas 3 percobaan pembayaran dalam 24 jam telah tercapai.'
-                );
+    if ($jumlahPercobaan >= 4) {
+    throw new InvalidArgumentException(
+        'Batas maksimal 3 kali retry pembayaran dalam 24 jam telah tercapai.'
+    );
             }
 
             /*
@@ -184,7 +195,7 @@ class PaymentService
             ->format('Y-m-d H:i:s O');
 
         try {
-            $snapToken = Snap::getSnapToken([
+            $snapToken = $this->gateway->createToken([
                 'transaction_details' => [
                     'order_id' => $payment->kode_bayar,
                     'gross_amount' => (int) $payment->nominal,

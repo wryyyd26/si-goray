@@ -8,28 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('event_schedules', function (Blueprint $table) {
+        Schema::create('events', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->foreignUuid('event_id')
-                ->constrained('events')
-                ->cascadeOnDelete();
+            $table->string('nama_event');
 
-            $table->date('tanggal');
+            $table->text('deskripsi')->nullable();
 
-            $table->time('jam_mulai');
+            $table->string('status')->default('AKTIF');
 
-            $table->time('jam_selesai');
-
-            $table->unsignedInteger('kapasitas');
-
-            $table->unsignedInteger('kuota_terpakai')
-                ->default(0);
+            $table->timestamp('created_at')->nullable();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('event_schedules');
+        Schema::dropIfExists('events');
     }
 };
