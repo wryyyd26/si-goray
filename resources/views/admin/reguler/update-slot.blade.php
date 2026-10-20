@@ -10,14 +10,7 @@
         {{-- HEADER --}}
         <div class="regular-page-header">
             <div>
-                <div class="regular-breadcrumb">
-                    Kelola Kuota Reguler
-                    <span class="material-symbols-rounded">chevron_right</span>
-                    Atur Kuota
-                </div>
-
-                <h1>Atur Kuota Harian</h1>
-
+                <h1>Atur Kuota Reguler</h1>
                 <p>
                     Atur kapasitas kunjungan reguler untuk tanggal yang dipilih.
                 </p>
@@ -324,40 +317,52 @@
                 <div class="dashboard-card regular-info-card">
 
                     <div class="regular-info-header">
-                        <span class="material-symbols-rounded">
-                            analytics
-                        </span>
+                        <div class="regular-info-heading-icon">
+                            <span class="material-symbols-rounded">analytics</span>
+                        </div>
 
-                        <h3>Ringkasan</h3>
+                        <div class="regular-info-heading-text">
+                            <h3>Ringkasan Kuota</h3>
+                            <p>Informasi penggunaan kuota harian</p>
+                        </div>
                     </div>
-
 
                     <div class="regular-info-date">
-                        <span>
-                            {{ \Carbon\Carbon::parse($slot['date'])->translatedFormat('d F Y') }}
-                        </span>
-                    </div>
+                        <div class="regular-info-date-icon">
+                            <span class="material-symbols-rounded">calendar_month</span>
+                        </div>
 
+                        <div>
+                            <span class="regular-info-date-label">Tanggal operasional</span>
+                            <strong>
+                                {{ \Carbon\Carbon::parse($slot['date'])->translatedFormat('d F Y') }}
+                            </strong>
+                        </div>
+                    </div>
 
                     <div class="regular-info-list">
 
                         <div class="regular-info-row">
-                            <span>Kuota</span>
-                            <strong>
-                                {{ number_format($slot['quota']) }}
-                            </strong>
+                            <div class="regular-info-label">
+                                <span class="regular-info-dot quota-dot"></span>
+                                <span>Kuota tersedia</span>
+                            </div>
+                            <strong>{{ number_format($slot['quota']) }}</strong>
                         </div>
 
                         <div class="regular-info-row">
-                            <span>Terpakai</span>
-                            <strong>
-                                {{ number_format($slot['used']) }}
-                            </strong>
+                            <div class="regular-info-label">
+                                <span class="regular-info-dot used-dot"></span>
+                                <span>Kuota terpakai</span>
+                            </div>
+                            <strong>{{ number_format($slot['used']) }}</strong>
                         </div>
 
-                        <div class="regular-info-row">
-                            <span>Sisa</span>
-
+                        <div class="regular-info-row regular-info-row-remaining">
+                            <div class="regular-info-label">
+                                <span class="regular-info-dot remaining-dot"></span>
+                                <span>Sisa kuota</span>
+                            </div>
                             <strong>
                                 {{ number_format(max($slot['quota'] - $slot['used'], 0)) }}
                             </strong>
@@ -365,8 +370,6 @@
 
                     </div>
 
-
-                    {{-- PROGRESS --}}
                     @php
                         $percentage = $slot['quota'] > 0 ? min(($slot['used'] / $slot['quota']) * 100, 100) : 0;
                     @endphp
@@ -374,19 +377,30 @@
                     <div class="regular-info-progress">
 
                         <div class="regular-info-progress-header">
-                            <span>Penggunaan Kuota</span>
-                            <strong>
-                                {{ number_format($percentage, 0) }}%
-                            </strong>
+                            <div>
+                                <span class="regular-info-progress-title">Penggunaan kuota</span>
+                                <span class="regular-info-progress-subtitle">
+                                    {{ number_format($slot['used']) }} dari {{ number_format($slot['quota']) }} kuota
+                                </span>
+                            </div>
+
+                            <strong>{{ number_format($percentage, 0) }}%</strong>
                         </div>
 
-                        <div class="regular-progress">
+                        <div class="regular-progress" role="progressbar" aria-label="Penggunaan kuota" aria-valuemin="0"
+                            aria-valuemax="100" aria-valuenow="{{ (int) round($percentage) }}">
                             <div class="regular-progress-bar" style="width: {{ $percentage }}%"></div>
+                        </div>
+
+                        <div class="regular-info-progress-footer">
+                            <span>0%</span>
+                            <span>100%</span>
                         </div>
 
                     </div>
 
                 </div>
+
 
 
                 {{-- INFORMATION --}}

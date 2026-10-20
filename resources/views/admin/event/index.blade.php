@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Kelola Event')
+@section('title', 'Tiket Event')
+@section('page', 'Tiket Event')
 
 @section('content')
     <div class="event-page">
@@ -8,7 +9,6 @@
         {{-- Header --}}
         <div class="event-page-header">
             <div>
-                <span class="event-eyebrow">MANAJEMEN EVENT</span>
                 <h1>Kelola Event</h1>
                 <p>Kelola informasi, jadwal, dan tarif tiket event GOR.</p>
             </div>
@@ -54,16 +54,50 @@
             </div>
         </div>
 
-        {{-- Ringkasan --}}
-        <div class="event-summary-card">
-            <div>
-                <h2>Total Event</h2>
-                <strong>{{ $totalEvents }}</strong>
-                <p>Event dalam data preview</p>
+        {{-- Ringkasan Statistik Event --}}
+        <div class="event-summary-grid">
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Total Event</h2>
+                    <strong>{{ $totalEvents }}</strong>
+                    <p>Seluruh event terdaftar</p>
+                </div>
+                <div class="event-summary-icon summary-icon-red">
+                    <span class="material-symbols-rounded">event</span>
+                </div>
             </div>
 
-            <div class="event-summary-icon">
-                <span class="material-symbols-rounded">event</span>
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Event Aktif</h2>
+                    <strong> {{ $totalActiveEvents }} </strong>
+                    <p>Event berstatus aktif</p>
+                </div>
+                <div class="event-summary-icon summary-icon-green">
+                    <span class="material-symbols-rounded">event_available</span>
+                </div>
+            </div>
+
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Event Mendatang</h2>
+                    <strong>{{ $totalUpcomingEvents }}</strong>
+                    <p>Event yang akan berlangsung</p>
+                </div>
+                <div class="event-summary-icon summary-icon-yellow">
+                    <span class="material-symbols-rounded">upcoming</span>
+                </div>
+            </div>
+
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Total Tiket Terjual</h2>
+                    <strong>{{ number_format($totalTicketsSold, 0, ',', '.') }}</strong>
+                    <p>Akumulasi tiket terjual</p>
+                </div>
+                <div class="event-summary-icon summary-icon-blue">
+                    <span class="material-symbols-rounded">confirmation_number</span>
+                </div>
             </div>
         </div>
 
@@ -200,27 +234,31 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7">
+                                <td colspan="7" class="event-empty-cell">
                                     <div class="event-empty-state">
-                                        <span class="material-symbols-rounded">
-                                            event_busy
-                                        </span>
+                                        <div class="event-empty-icon">
+                                            <span class="material-symbols-rounded">
+                                                event_busy
+                                            </span>
+                                        </div>
 
                                         <h3>Event tidak ditemukan</h3>
 
                                         <p>
                                             @if ($search !== '')
                                                 Tidak ada event yang cocok dengan
-                                                pencarian "{{ $search }}".
+                                                pencarian <strong>"{{ $search }}"</strong>.
                                             @else
                                                 Belum ada event yang tersedia.
                                             @endif
                                         </p>
 
                                         @if ($search !== '')
-                                            <a href="{{ route('admin.events.index') }}"
-                                                class="event-btn event-btn-secondary">
-                                                Reset Pencarian
+                                            <a href="{{ route('admin.events.index') }}" class="event-empty-reset">
+                                                <span class="material-symbols-rounded">
+                                                    restart_alt
+                                                </span>
+                                                <span>Reset Pencarian</span>
                                             </a>
                                         @endif
                                     </div>
@@ -231,17 +269,28 @@
                 </table>
             </div>
 
+
             {{-- Footer tabel --}}
             <div class="event-list-footer">
-                <span>
-                    Menampilkan {{ count($events) }} dari {{ $totalEvents }} event
-                </span>
+                <div class="event-list-footer-info">
+                    <span class="event-list-footer-label">Data event</span>
+                    <span class="event-list-footer-count">
+                        Menampilkan
+                        <strong>{{ count($events) }}</strong>
+                        dari
+                        <strong>{{ $totalEvents }}</strong>
+                        event
+                    </span>
+                </div>
 
-                <span class="event-preview-label">
+                <div class="event-preview-label">
                     <span class="material-symbols-rounded">science</span>
-                    Mode preview · Dummy data
-                </span>
+                    <span>Mode preview</span>
+                    <span class="event-preview-separator">•</span>
+                    <span>Dummy data</span>
+                </div>
             </div>
+
         </div>
     </div>
 @endsection
