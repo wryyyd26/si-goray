@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -47,4 +48,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(Booking::class);
     }
+/**
+ * Relasi akun pengguna dengan petugas gerbang.
+ */
+public function petugasGerbang(): HasOne
+{
+    return $this->hasOne(
+        PetugasGerbang::class,
+        'user_id'
+    );
+}
+
 }

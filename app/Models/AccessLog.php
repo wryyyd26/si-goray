@@ -11,10 +11,14 @@ class AccessLog extends Model
 {
     use HasFactory, HasUuids;
 
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
+
     public $timestamps = false;
+
 
     protected $fillable = [
         'qr_ticket_id',
@@ -24,17 +28,32 @@ class AccessLog extends Model
         'catatan',
     ];
 
+
     protected $casts = [
         'waktu_scan' => 'datetime',
     ];
 
+
+    /**
+     * QR yang discan.
+     */
     public function qrTicket(): BelongsTo
     {
-        return $this->belongsTo(QrTicket::class, 'qr_ticket_id');
+        return $this->belongsTo(
+            QrTicket::class,
+            'qr_ticket_id'
+        );
     }
 
+
+    /**
+     * Petugas yang melakukan scan.
+     */
     public function petugas(): BelongsTo
     {
-        return $this->belongsTo(PetugasGerbang::class, 'petugas_id');
+        return $this->belongsTo(
+            PetugasGerbang::class,
+            'petugas_id'
+        );
     }
 }

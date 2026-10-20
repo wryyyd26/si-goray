@@ -26,13 +26,13 @@ class PaymentTransaction extends Model
         'jumlah_retry',
         'referensi_gateway',
         'expired_at',
-	'snap_token',
+        'snap_token',
     ];
 
     protected $casts = [
         'nominal' => 'decimal:2',
         'expired_at' => 'datetime',
-	'snap_token' => 'encrypted',
+        'snap_token' => 'encrypted',
     ];
 
     public function booking(): BelongsTo
