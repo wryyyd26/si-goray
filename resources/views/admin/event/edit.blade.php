@@ -11,6 +11,9 @@
                 <p>Perbarui informasi, poster, jadwal, dan tarif event.</p>
             </div>
             <a href="{{ route('admin.events.index') }}" class="event-btn event-btn-secondary">
+                <span class="material-symbols-rounded">
+                    arrow_back
+                </span>
                 Kembali
             </a>
         </div>

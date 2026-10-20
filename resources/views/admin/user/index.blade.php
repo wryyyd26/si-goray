@@ -196,9 +196,7 @@
 
                             {{-- Aksi --}}
                             <td>
-
-                                <a
-                                    href="{{ route('admin.user.detail', $user['id']) }}"
+                                <a href="{{ route('admin.user.detail', $user['id']) }}"
                                     class="user-action-btn view"
                                     title="Lihat Detail"
                                 >
@@ -207,9 +205,7 @@
                                     </span>
                                     Detail User
                                 </a>
-
                             </td>
-
                         </tr>
 
                     @empty

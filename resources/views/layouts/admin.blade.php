@@ -97,8 +97,10 @@
                     <span>Tiket Reguler</span>
                 </a>
 
-                {{-- Tiket Event --}}
-                <a href="#" class="menu-item">
+
+                {{-- Event --}}
+                <a href="{{ route('admin.events.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.events.*') ? 'active' : '' }}">
                     <span class="material-symbols-rounded">
                         storefront
                     </span>
@@ -106,17 +108,18 @@
                 </a>
 
                 {{-- Kelola Pesanan --}}
-                <a href="{{ route('admin.pemesanan.index') }}"
-                    class="menu-item {{ request()->routeIs('admin.pemesanan.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.booking.pemesanan') }}"
+                    class="menu-item {{ request()->routeIs('admin.booking.*') ? 'active' : '' }}">
                     <span class="material-symbols-rounded">
                         receipt_long
                     </span>
-                    <span>Kelola Pesanan</span>
+                    <span>Kelola Pemesanan</span>
                 </a>
 
                 {{-- Kelola Pembayaran --}}
                 <a href="{{ route('admin.payment.pembayaran') }}"
-                    class="menu-item {{ request()->routeIs('admin.pembayaran.*') ? 'active' : '' }}">
+                    class="menu-item {{ request()->routeIs('admin.payment.*') ? 'active' : '' }}">
+
                     <span class="material-symbols-rounded">
                         credit_card
                     </span>
@@ -129,19 +132,14 @@
                     PENGGUNA
                 </div>
 
-                {{-- Kelola Notifikasi --}}
-                <a href="#" class="menu-item">
-                    <span class="material-symbols-rounded">
-                        notifications
-                    </span>
-                    <span>Kelola Notifikasi</span>
-                </a>
-
                 {{-- Kelola User --}}
-                <a href="#" class="menu-item">
+                <a href="{{ route('admin.user.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.user.*') ? 'active' : '' }}">
+
                     <span class="material-symbols-rounded">
                         account_circle
                     </span>
+
                     <span>Kelola User</span>
                 </a>
 
@@ -152,7 +150,8 @@
                 </div>
 
                 {{-- Saran & Masukan --}}
-                <a href="#" class="menu-item">
+                <a href="{{ route('admin.saran-masukan.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.saran-masukan.*') ? 'active' : '' }}">
                     <span class="material-symbols-rounded">
                         mail
                     </span>
@@ -160,27 +159,12 @@
                 </a>
 
                 {{-- Laporan --}}
-                <a href="#" class="menu-item">
-                    <span class="material-symbols-rounded">
-                        bar_chart
-                    </span>
+
+                <a href="{{ route('admin.report.index') }}"
+                    class="menu-item {{ request()->routeIs('admin.report.*') ? 'active' : '' }}">
+                    <span class="material-symbols-rounded">bar_chart</span>
                     <span>Laporan</span>
                 </a>
-
-
-                {{-- Section --}}
-                <div class="menu-section">
-                    PENGATURAN
-                </div>
-
-                {{-- Manajemen Admin --}}
-                <a href="#" class="menu-item">
-                    <span class="material-symbols-rounded">
-                        settings
-                    </span>
-                    <span>Manajemen Admin</span>
-                </a>
-
             </nav>
 
             {{-- SIDEBAR FOOTER --}}
@@ -237,36 +221,56 @@
 
                 <div class="topbar-right">
 
-
-                    {{-- Search --}}
-                    <button class="icon-button" type="button" title="Pencarian">
-
-                        <span class="material-symbols-rounded">
-                            search
-                        </span>
-
+                    {{-- Global Search --}}
+                    <button class="icon-button" id="globalSearchToggle" type="button" title="Pencarian global"
+                        aria-label="Buka pencarian global" aria-haspopup="dialog" aria-controls="globalSearchPanel">
+                        <span class="material-symbols-rounded">search</span>
                     </button>
-
 
                     {{-- Notification --}}
-                    <button class="icon-button notification-button" type="button" title="Notifikasi">
+                    <div class="notification-wrapper" id="notificationWrapper">
 
-                        <span class="material-symbols-rounded">
-                            notifications
-                        </span>
+                        <button class="icon-button notification-button" id="notificationToggle" type="button"
+                            title="Notifikasi" aria-label="Buka notifikasi" aria-haspopup="true" aria-expanded="false"
+                            aria-controls="notificationDropdown">
 
-                        <span class="notification-dot"></span>
+                            <span class="material-symbols-rounded">notifications</span>
 
-                    </button>
+                            <span class="notification-count" id="notificationCount">3</span>
+                        </button>
 
+                        {{-- Dropdown Notifikasi --}}
+                        <section class="notification-dropdown" id="notificationDropdown" aria-label="Daftar notifikasi"
+                            hidden>
+
+                            <div class="notification-header">
+                                <div>
+                                    <h3>Notifikasi</h3>
+                                    <p id="notificationSummary">3 belum dibaca</p>
+                                </div>
+
+                                <button type="button" class="notification-mark-all" id="notificationMarkAll">
+                                    Tandai semua dibaca
+                                </button>
+                            </div>
+
+                            <div class="notification-list" id="notificationList" aria-live="polite">
+                                {{-- Data dummy akan ditampilkan oleh JavaScript --}}
+                            </div>
+
+                            <a href="#" class="notification-see-all">
+                                Lihat Semua Notifikasi
+                                <span class="material-symbols-rounded">arrow_forward</span>
+                            </a>
+                        </section>
+
+                    </div>
 
                     {{-- Theme --}}
                     <button class="icon-button" id="themeToggle" type="button" title="Ganti tema">
-
                         <span class="material-symbols-rounded" id="themeIcon">
                             dark_mode
                         </span>
-
                     </button>
 
 
@@ -300,6 +304,75 @@
             </header>
 
 
+            {{-- GLOBAL SEARCH PANEL --}}
+            <div class="global-search-overlay" id="globalSearchOverlay" aria-hidden="true">
+                <section class="global-search-panel" id="globalSearchPanel" role="dialog" aria-modal="true"
+                    aria-labelledby="globalSearchTitle" aria-hidden="true" tabindex="-1">
+                    <div class="global-search-header">
+                        <div class="global-search-heading">
+                            <div class="global-search-heading-icon">
+                                <span class="material-symbols-rounded">search</span>
+                            </div>
+
+                            <div>
+                                <h2 id="globalSearchTitle">Pencarian Global</h2>
+                                <p>Cari informasi di panel admin SI-GORAY</p>
+                            </div>
+                        </div>
+
+                        <button type="button" class="global-search-close" id="globalSearchClose"
+                            aria-label="Tutup pencarian">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+                    </div>
+
+                    <form class="global-search-form" id="globalSearchForm" role="search" autocomplete="off">
+                        <span class="material-symbols-rounded">search</span>
+
+                        <input type="search" id="globalSearchInput" name="q"
+                            placeholder="Cari event, kode pemesanan, tiket reguler..."
+                            aria-label="Kata kunci pencarian" maxlength="100">
+
+                        <button type="button" id="globalSearchClear" class="global-search-clear"
+                            aria-label="Hapus kata kunci" hidden>
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
+
+                        <kbd>ESC</kbd>
+                    </form>
+
+                    <div class="global-search-results" id="globalSearchResults" aria-live="polite"
+                        aria-busy="false">
+                        <div class="global-search-welcome">
+                            <div class="global-search-welcome-icon">
+                                <span class="material-symbols-rounded">travel_explore</span>
+                            </div>
+
+                            <h3>Cari informasi dengan cepat</h3>
+
+                            <p>
+                                Masukkan nama event, kode pemesanan, atau informasi
+                                tiket yang ingin kamu temukan.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="global-search-footer">
+                        <span>
+                            <kbd>↑</kbd>
+                            <kbd>↓</kbd>
+                            untuk navigasi
+                        </span>
+
+                        <span>
+                            <kbd>ESC</kbd>
+                            untuk menutup
+                        </span>
+                    </div>
+                </section>
+            </div>
+
+
             {{-- =====================================
             CONTENT
         ====================================== --}}
@@ -314,11 +387,6 @@
         </div>
 
     </div>
-
-
-    {{-- Admin JS --}}
-    <script src="{{ asset('admin/js/admin.js') }}"></script>
-
     @stack('scripts')
 
 </body>

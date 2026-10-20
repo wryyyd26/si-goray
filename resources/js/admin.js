@@ -306,35 +306,426 @@ document.addEventListener("keydown", function (event) {
     }
 });
 
-
 // SEARCH USER
 
-document.addEventListener('DOMContentLoaded', function () {
-
-    const searchInput = document.getElementById('userSearch');
-    const tableBody = document.getElementById('userTableBody');
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("userSearch");
+    const tableBody = document.getElementById("userTableBody");
 
     if (!searchInput || !tableBody) {
         return;
     }
 
-    searchInput.addEventListener('input', function () {
-
+    searchInput.addEventListener("input", function () {
         const keyword = this.value.toLowerCase().trim();
-        const rows = tableBody.querySelectorAll('tr');
+        const rows = tableBody.querySelectorAll("tr");
 
         rows.forEach(function (row) {
-
             const text = row.textContent.toLowerCase();
 
             if (text.includes(keyword)) {
-                row.style.display = '';
+                row.style.display = "";
             } else {
-                row.style.display = 'none';
+                row.style.display = "none";
             }
-
         });
+    });
+});
 
+/* =====================================================
+   GLOBAL SEARCH - SI-GORAY ADMIN
+   Tahap 1: UI dan interaksi
+===================================================== */
+
+document.addEventListener("DOMContentLoaded", function () {
+    const searchToggle = document.getElementById("globalSearchToggle");
+    const searchOverlay = document.getElementById("globalSearchOverlay");
+    const searchPanel = document.getElementById("globalSearchPanel");
+    const searchClose = document.getElementById("globalSearchClose");
+    const searchForm = document.getElementById("globalSearchForm");
+    const searchInput = document.getElementById("globalSearchInput");
+    const searchClear = document.getElementById("globalSearchClear");
+    const searchResults = document.getElementById("globalSearchResults");
+
+    if (
+        !searchToggle ||
+        !searchOverlay ||
+        !searchPanel ||
+        !searchClose ||
+        !searchForm ||
+        !searchInput ||
+        !searchClear ||
+        !searchResults
+    ) {
+        return;
+    }
+
+    let previousFocus = null;
+
+    function openGlobalSearch() {
+        previousFocus = document.activeElement;
+
+        searchOverlay.classList.add("is-open");
+        searchOverlay.setAttribute("aria-hidden", "false");
+        searchPanel.setAttribute("aria-hidden", "false");
+
+        document.body.style.overflow = "hidden";
+
+        window.setTimeout(function () {
+            searchInput.focus();
+        }, 50);
+    }
+
+    function closeGlobalSearch() {
+        searchOverlay.classList.remove("is-open");
+        searchOverlay.setAttribute("aria-hidden", "true");
+        searchPanel.setAttribute("aria-hidden", "true");
+
+        document.body.style.overflow = "";
+
+        searchToggle.focus();
+
+        if (previousFocus && previousFocus !== searchToggle) {
+            // Fokus dikembalikan ke tombol pencarian navbar.
+            searchToggle.focus();
+        }
+    }
+
+    function renderSearchMessage(title, message) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "global-search-welcome";
+
+        const iconBox = document.createElement("div");
+        iconBox.className = "global-search-welcome-icon";
+
+        const icon = document.createElement("span");
+        icon.className = "material-symbols-rounded";
+        icon.textContent = "info";
+
+        const heading = document.createElement("h3");
+        heading.textContent = title;
+
+        const description = document.createElement("p");
+        description.textContent = message;
+
+        iconBox.appendChild(icon);
+        wrapper.append(iconBox, heading, description);
+
+        searchResults.replaceChildren(wrapper);
+    }
+
+    function updateClearButton() {
+        searchClear.hidden = searchInput.value.length === 0;
+    }
+
+    searchToggle.addEventListener("click", openGlobalSearch);
+
+    searchClose.addEventListener("click", closeGlobalSearch);
+
+    searchOverlay.addEventListener("click", function (event) {
+        if (event.target === searchOverlay) {
+            closeGlobalSearch();
+        }
     });
 
+    searchClear.addEventListener("click", function () {
+        searchInput.value = "";
+        updateClearButton();
+
+        renderSearchMessage(
+            "Cari informasi dengan cepat",
+            "Masukkan nama event, kode pemesanan, atau informasi tiket yang ingin kamu temukan.",
+        );
+
+        searchInput.focus();
+    });
+
+    searchInput.addEventListener("input", function () {
+        updateClearButton();
+
+        const keyword = searchInput.value.trim();
+
+        if (keyword.length === 0) {
+            renderSearchMessage(
+                "Cari informasi dengan cepat",
+                "Masukkan nama event, kode pemesanan, atau informasi tiket yang ingin kamu temukan.",
+            );
+            return;
+        }
+
+        renderSearchMessage(
+            "Pencarian siap",
+            'Kata kunci "' +
+                keyword +
+                '" sudah dimasukkan. Pencarian data akan aktif setelah endpoint backend diintegrasikan.',
+        );
+    });
+
+    searchForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        const keyword = searchInput.value.trim();
+
+        if (!keyword) {
+            searchInput.focus();
+            return;
+        }
+
+        renderSearchMessage(
+            "Backend pencarian belum terhubung",
+            "Antarmuka pencarian sudah siap, tetapi hasil event, pemesanan, dan tiket reguler belum diambil dari Laravel.",
+        );
+    });
+
+    document.addEventListener("keydown", function (event) {
+        const isSearchShortcut =
+            (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
+
+        if (isSearchShortcut) {
+            event.preventDefault();
+
+            if (!searchOverlay.classList.contains("is-open")) {
+                openGlobalSearch();
+            } else {
+                searchInput.focus();
+            }
+
+            return;
+        }
+
+        if (
+            event.key === "Escape" &&
+            searchOverlay.classList.contains("is-open")
+        ) {
+            closeGlobalSearch();
+        }
+    });
+
+    updateClearButton();
+});
+
+/* =====================================================
+   NOTIFICATION DROPDOWN - DUMMY DATA
+   Tahap 1: UI dan interaksi
+===================================================== */
+
+document.addEventListener("DOMContentLoaded", function () {
+    const wrapper = document.getElementById("notificationWrapper");
+    const toggle = document.getElementById("notificationToggle");
+    const dropdown = document.getElementById("notificationDropdown");
+    const countElement = document.getElementById("notificationCount");
+    const summaryElement = document.getElementById("notificationSummary");
+    const listElement = document.getElementById("notificationList");
+    const markAllButton = document.getElementById("notificationMarkAll");
+
+    if (
+        !wrapper ||
+        !toggle ||
+        !dropdown ||
+        !countElement ||
+        !summaryElement ||
+        !listElement ||
+        !markAllButton
+    ) {
+        return;
+    }
+
+    // Data contoh untuk menguji UI sebelum backend tersedia.
+    const notifications = [
+        {
+            id: 1,
+            icon: "receipt_long",
+            title: "Pemesanan baru",
+            message: "Pemesanan BKG-0125 telah dibuat.",
+            time: "Baru saja",
+            url: "#",
+            isRead: false,
+        },
+        {
+            id: 2,
+            icon: "payments",
+            title: "Pembayaran berhasil",
+            message: "Pembayaran tiket telah dikonfirmasi.",
+            time: "5 menit lalu",
+            url: "#",
+            isRead: false,
+        },
+        {
+            id: 3,
+            icon: "qr_code_scanner",
+            title: "Tiket telah digunakan",
+            message: "QR tiket pengunjung telah dipindai.",
+            time: "15 menit lalu",
+            url: "#",
+            isRead: false,
+        },
+        {
+            id: 4,
+            icon: "event",
+            title: "Informasi event",
+            message: "Periksa jadwal event yang akan berlangsung.",
+            time: "1 jam lalu",
+            url: "#",
+            isRead: true,
+        },
+    ];
+
+    function getUnreadCount() {
+        return notifications.filter(function (item) {
+            return !item.isRead;
+        }).length;
+    }
+
+    function updateSummary() {
+        const unread = getUnreadCount();
+
+        countElement.textContent = unread > 99 ? "99+" : unread;
+        countElement.hidden = unread === 0;
+
+        summaryElement.textContent = unread + " belum dibaca";
+
+        markAllButton.disabled = unread === 0;
+        markAllButton.style.opacity = unread === 0 ? "0.5" : "1";
+        markAllButton.style.cursor = unread === 0 ? "default" : "pointer";
+    }
+
+    function renderNotifications() {
+        listElement.replaceChildren();
+
+        if (notifications.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "notification-empty";
+
+            const icon = document.createElement("span");
+            icon.className = "material-symbols-rounded";
+            icon.textContent = "notifications_off";
+
+            const message = document.createElement("p");
+            message.textContent = "Belum ada notifikasi.";
+
+            empty.append(icon, message);
+            listElement.appendChild(empty);
+
+            updateSummary();
+            return;
+        }
+
+        notifications.forEach(function (item) {
+            const row = document.createElement("div");
+            row.className = "notification-item";
+
+            if (!item.isRead) {
+                row.classList.add("is-unread");
+            }
+
+            row.tabIndex = 0;
+            row.setAttribute("role", "link");
+            row.setAttribute("aria-label", item.title + ". " + item.message);
+
+            const iconBox = document.createElement("div");
+            iconBox.className = "notification-item-icon";
+
+            const icon = document.createElement("span");
+            icon.className = "material-symbols-rounded";
+            icon.textContent = item.icon;
+
+            iconBox.appendChild(icon);
+
+            const content = document.createElement("div");
+            content.className = "notification-item-content";
+
+            const title = document.createElement("h4");
+            title.className = "notification-item-title";
+            title.textContent = item.title;
+
+            const message = document.createElement("p");
+            message.className = "notification-item-message";
+            message.textContent = item.message;
+
+            const time = document.createElement("span");
+            time.className = "notification-item-time";
+            time.textContent = item.time;
+
+            content.append(title, message, time);
+            row.append(iconBox, content);
+
+            if (!item.isRead) {
+                const indicator = document.createElement("span");
+                indicator.className = "notification-unread-indicator";
+                indicator.setAttribute("aria-label", "Belum dibaca");
+                row.appendChild(indicator);
+            }
+
+            function openNotification() {
+                item.isRead = true;
+                updateSummary();
+                renderNotifications();
+
+                // Navigasi hanya dilakukan jika URL sudah ditentukan.
+                if (item.url && item.url !== "#") {
+                    window.location.href = item.url;
+                }
+            }
+
+            row.addEventListener("click", openNotification);
+
+            row.addEventListener("keydown", function (event) {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openNotification();
+                }
+            });
+
+            listElement.appendChild(row);
+        });
+
+        updateSummary();
+    }
+
+    function openDropdown() {
+        dropdown.hidden = false;
+        toggle.setAttribute("aria-expanded", "true");
+    }
+
+    function closeDropdown() {
+        dropdown.hidden = true;
+        toggle.setAttribute("aria-expanded", "false");
+    }
+
+    toggle.addEventListener("click", function (event) {
+        event.stopPropagation();
+
+        if (dropdown.hidden) {
+            openDropdown();
+        } else {
+            closeDropdown();
+        }
+    });
+
+    dropdown.addEventListener("click", function (event) {
+        event.stopPropagation();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!wrapper.contains(event.target)) {
+            closeDropdown();
+        }
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && !dropdown.hidden) {
+            closeDropdown();
+            toggle.focus();
+        }
+    });
+
+    markAllButton.addEventListener("click", function () {
+        notifications.forEach(function (item) {
+            item.isRead = true;
+        });
+
+        renderNotifications();
+    });
+
+    renderNotifications();
 });

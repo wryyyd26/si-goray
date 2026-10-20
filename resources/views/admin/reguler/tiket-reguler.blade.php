@@ -1,13 +1,13 @@
 @extends('layouts.admin')
 
-@section('title', 'Kelola Slot Harian')
-@section('page', 'Kelola Slot Harian')
+@section('title', 'Tiket Reguler')
+@section('page', 'Tiket Reguler')
 
 @section('content')
 
     <div class="regular-page">
 
-        <h1>Kelola Slot Harian</h1>
+        <h1>Kelola Tiket Reguler</h1>
         {{-- HEADER --}}
         <div class="regular-page-header">
             <p>
@@ -162,7 +162,7 @@
                     <div>
 
                         <h2>
-                            Kuota Harian
+                            Tiket Reguler
                         </h2>
 
                         <p>
@@ -190,55 +190,21 @@
 
             {{-- TABLE --}}
             <div class="regular-table-wrapper">
-
                 <table class="regular-table">
-
                     <thead>
-
                         <tr>
-
-                            <th>
-                                Tanggal
-                            </th>
-
-                            <th>
-                                Hari
-                            </th>
-
-                            <th>
-                                Jam
-                            </th>
-
-                            <th>
-                                Kuota
-                            </th>
-
-                            <th>
-                                Terpakai
-                            </th>
-
-                            <th>
-                                Sisa
-                            </th>
-
-                            <th>
-                                Pengisian
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Aksi
-                            </th>
-
+                            <th>Tanggal</th>
+                            <th>Hari</th>
+                            <th>Jam</th>
+                            <th>Kuota</th>
+                            <th>Terpakai</th>
+                            <th>Sisa</th>
+                            <th>Pengisian</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
                         </tr>
-
                     </thead>
-
                     <tbody>
-
                         @forelse ($slots as $slot)
                             @php
 
