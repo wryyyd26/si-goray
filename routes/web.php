@@ -8,6 +8,8 @@ Route::get('/', function () {
     
 });
 
+Route::view('/events/detail', 'events.show')
+    ->name('events.show');
 
 Route::get('/events', function () {
     $events = [

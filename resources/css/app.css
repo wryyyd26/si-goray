@@ -1358,6 +1358,458 @@ body {
 }
 
 
+/* ==========================================
+   SI-GORAY - DETAIL EVENT THEME
+   Navy, putih, abu-abu, dan aksen hijau
+========================================== */
+
+.event-detail-page {
+    --goray-navy: #17243b;
+    --goray-blue: #1e4776;
+    --goray-green: #16c765;
+    --goray-red: #ef3340;
+    --goray-bg: #f1f3f6;
+    --goray-border: #d7dce4;
+
+    width: calc(100% - 40px);
+    max-width: 1200px;
+    margin: 12px auto 30px;
+    padding: 12px;
+
+    background: var(--goray-bg);
+    color: var(--goray-navy);
+    border-radius: 10px;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.event-detail-page *,
+.event-detail-page *::before,
+.event-detail-page *::after {
+    box-sizing: border-box;
+}
+
+/* ==========================================
+   LAYOUT POSTER + TIKET
+========================================== */
+
+.event-detail-page .event-detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: start;
+    gap: 16px;
+
+    width: 100%;
+    min-width: 0;
+}
+
+/* POSTER EVENT */
+
+.event-detail-page .event-main-image {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+
+    background: #ffffff;
+    border: 2px solid var(--goray-blue);
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(23, 36, 59, 0.12);
+}
+
+.event-detail-page .event-main-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 7px;
+}
+
+/* ==========================================
+   KARTU INFORMASI EVENT
+========================================== */
+
+.event-detail-page .event-ticket-panel {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+
+    background: #ffffff;
+    border: 1px solid #cfd5df;
+    border-radius: 12px;
+    box-shadow: 0 3px 9px rgba(23, 36, 59, 0.10);
+}
+
+.event-detail-page .ticket-summary {
+    padding: 14px;
+}
+
+.event-detail-page .ticket-summary h2 {
+    margin: 0 0 2px;
+
+    color: var(--goray-navy);
+    font-size: 23px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.event-detail-page .ticket-summary > p {
+    margin: 0 0 14px;
+    color: #5e6878;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* INFORMASI TANGGAL, LOKASI, KUOTA */
+
+.event-detail-page .event-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.event-detail-page .event-meta li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    min-width: 0;
+    color: #263348;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.event-detail-page .event-meta .material-symbols-rounded {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+    width: 21px;
+    height: 21px;
+
+    color: #ffffff;
+    background: var(--goray-navy);
+    border-radius: 50%;
+    font-size: 13px;
+}
+
+/* INDIKATOR KUOTA */
+
+.event-detail-page .ticket-quota {
+    width: 100%;
+    height: 5px;
+    margin: 13px 0;
+
+    overflow: hidden;
+    background: #e3e7ed;
+    border-radius: 20px;
+}
+
+.event-detail-page .ticket-quota span {
+    display: block;
+    width: 12%;
+    height: 100%;
+
+    background: var(--goray-red);
+    border-radius: inherit;
+}
+
+/* ==========================================
+   PILIHAN HARGA TIKET
+========================================== */
+
+.event-detail-page .ticket-price-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 8px;
+    min-width: 0;
+}
+
+.event-detail-page .ticket-price-option button {
+    flex-shrink: 0;
+    min-width: 76px;
+    padding: 6px 11px;
+
+    border: none;
+    border-radius: 20px;
+    background: var(--goray-green);
+    color: #ffffff;
+
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.event-detail-page .ticket-price-option .non-citizen-button {
+    background: var(--goray-red);
+}
+
+.event-detail-page .ticket-price-option button:hover {
+    filter: brightness(0.92);
+}
+
+.event-detail-page .ticket-price-option button:active {
+    transform: scale(0.97);
+}
+
+.event-detail-page .ticket-price-option span {
+    min-width: 0;
+    color: #384356;
+    font-size: 10px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+/* ==========================================
+   KARTU PEMESANAN BERGAYA TIKET
+========================================== */
+
+.event-detail-page .ticket-bottom {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+
+    padding: 14px;
+    margin-top: 0;
+
+    background: #ffffff;
+    border-top: 2px dashed #c6ccd6;
+}
+
+.event-detail-page .ticket-brand {
+    align-self: center;
+    color: var(--goray-blue);
+    font-size: 19px;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+}
+
+.event-detail-page .ticket-bottom > strong {
+    color: var(--goray-navy);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+}
+
+/* TOMBOL KATEGORI */
+
+.event-detail-page .ticket-category-button {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 9px 10px;
+
+    border: 1px solid var(--goray-border);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--goray-navy);
+
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.event-detail-page .ticket-category-button[data-category="warga"].active {
+    color: #ffffff;
+    background: var(--goray-green);
+    border-color: var(--goray-green);
+}
+
+.event-detail-page .ticket-category-button[data-category="luar"].active {
+    color: #ffffff;
+    background: var(--goray-red);
+    border-color: var(--goray-red);
+}
+
+.event-detail-page .ticket-bottom small {
+    color: #727b8a;
+    font-size: 10px;
+    text-align: center;
+}
+
+/* ==========================================
+   DESKRIPSI EVENT
+========================================== */
+
+.event-detail-page .event-description {
+    width: 100%;
+    min-width: 0;
+    margin-top: 16px;
+    padding: 0 2px 4px;
+
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow-wrap: anywhere;
+}
+
+.event-detail-page .event-description h2 {
+    margin: 0 0 10px;
+    color: var(--goray-navy);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.event-detail-page .event-description p {
+    margin: 0 0 9px;
+    color: #303b4c;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.event-detail-page .event-description p:last-child {
+    margin-bottom: 0;
+}
+
+
+.event-detail-page .event-meta .material-symbols-rounded {
+    font-family: "Material Symbols Rounded";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 13px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    font-feature-settings: "liga";
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    color: #fff;
+    background: #17243b;
+}
+
+
+/* ==========================================
+   TABLET
+========================================== */
+
+@media (max-width: 900px) {
+    .event-detail-page {
+        width: calc(100% - 24px);
+        padding: 10px;
+    }
+
+    .event-detail-page .event-detail {
+        grid-template-columns: minmax(0, 1fr) 250px;
+        gap: 12px;
+    }
+
+    .event-detail-page .ticket-summary,
+    .event-detail-page .ticket-bottom {
+        padding: 11px;
+    }
+
+    .event-detail-page .ticket-summary h2 {
+        font-size: 20px;
+    }
+
+    .event-detail-page .event-meta li {
+        font-size: 11px;
+    }
+
+    .event-detail-page .event-description h2 {
+        font-size: 20px;
+    }
+}
+
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 600px) {
+    .event-detail-page {
+        width: calc(100% - 20px);
+        margin: 10px auto 24px;
+        padding: 9px;
+        border-radius: 9px;
+    }
+
+    .event-detail-page .event-detail {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .event-detail-page .event-main-image img {
+        width: 100%;
+        height: auto;
+    }
+
+    .event-detail-page .event-ticket-panel {
+        border-radius: 10px;
+    }
+
+    .event-detail-page .ticket-summary {
+        padding: 15px;
+    }
+
+    .event-detail-page .ticket-summary h2 {
+        font-size: 22px;
+    }
+
+    .event-detail-page .event-meta li {
+        font-size: 12px;
+    }
+
+    .event-detail-page .ticket-price-option span {
+        font-size: 11px;
+    }
+
+    .event-detail-page .ticket-bottom {
+        padding: 15px;
+    }
+
+    .event-detail-page .ticket-category-button {
+        font-size: 12px;
+    }
+
+    .event-detail-page .event-description {
+        margin-top: 16px;
+    }
+
+    .event-detail-page .event-description h2 {
+        font-size: 20px;
+    }
+
+    .event-detail-page .event-description p {
+        font-size: 13px;
+        line-height: 1.7;
+    }
+}
+
+
 /* =========================
    ABOUT PAGE
 ========================= */
