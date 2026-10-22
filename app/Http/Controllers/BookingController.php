@@ -16,14 +16,18 @@ class BookingController extends Controller
     }
 
     /**
-     * Membuat booking baru.
+     * Membuat booking baru milik user login.
      */
     public function store(BookingRequest $request): JsonResponse
     {
+        $data = $request->validated();
+
+        // ID akun berasal dari Sanctum, bukan frontend.
+        $data['user_id'] = $request->user()->id;
+
         try {
-            $booking = $this->bookingService->createBooking(
-                $request->validated()
-            );
+            $booking = $this->bookingService
+                ->createBooking($data);
 
             return response()->json([
                 'success' => true,
@@ -32,7 +36,6 @@ class BookingController extends Controller
             ], 201);
 
         } catch (InvalidArgumentException $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -41,27 +44,14 @@ class BookingController extends Controller
     }
 
     /**
-     * Menampilkan riwayat booking milik user.
-     *
-     * Untuk sementara user_id dikirim melalui
-     * query parameter.
-     *
-     * Setelah authentication selesai,
-     * user_id akan diambil dari user yang sedang login.
+     * Riwayat booking milik user login.
      */
     public function history(Request $request): JsonResponse
     {
-        $request->validate([
-            'user_id' => [
-                'required',
-                'uuid',
-                'exists:users,id',
-            ],
-        ]);
-
-        $bookings = $this->bookingService->getBookingHistory(
-            $request->user_id
-        );
+        $bookings = $this->bookingService
+            ->getBookingHistory(
+                $request->user()->id
+            );
 
         return response()->json([
             'success' => true,

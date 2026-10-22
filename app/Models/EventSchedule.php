@@ -13,8 +13,10 @@ class EventSchedule extends Model
     use HasFactory, HasUuids;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
+    // Tabel event_schedules tidak menggunakan timestamp.
     public $timestamps = false;
 
     protected $fillable = [

@@ -1,0 +1,54 @@
+1) Tambahkan import ini di bagian atas routes/web.php bersama import lainnya:
+
+use App\Http\Controllers\Admin\EventController as AdminEventController;
+
+2) Tambahkan blok ini di PALING BAWAH routes/web.php.
+JANGAN mengganti isi route frontend yang sudah ada.
+
+Route::prefix('admin')->name('admin.')->group(function () {
+    // Sementara modul admin lain diarahkan ke Manajemen Event
+    // agar seluruh link pada layouts.admin tetap dapat dibuat.
+    Route::get('/', function () {
+        return redirect()->route('admin.events.index');
+    })->name('dashboard');
+
+    Route::get('/reguler', function () {
+        return redirect()->route('admin.events.index');
+    })->name('reguler.index');
+
+    Route::get('/booking', function () {
+        return redirect()->route('admin.events.index');
+    })->name('booking.pemesanan');
+
+    Route::get('/payments', function () {
+        return redirect()->route('admin.events.index');
+    })->name('payment.pembayaran');
+
+    Route::get('/users', function () {
+        return redirect()->route('admin.events.index');
+    })->name('user.index');
+
+    Route::get('/saran-masukan', function () {
+        return redirect()->route('admin.events.index');
+    })->name('saran-masukan.index');
+
+    Route::get('/reports', function () {
+        return redirect()->route('admin.events.index');
+    })->name('report.index');
+
+    // CRUD Manajemen Event
+    Route::get('/events', [AdminEventController::class, 'index'])
+        ->name('events.index');
+
+    Route::get('/events/create', [AdminEventController::class, 'create'])
+        ->name('events.create');
+
+    Route::post('/events', [AdminEventController::class, 'store'])
+        ->name('events.store');
+
+    Route::get('/events/{event}/edit', [AdminEventController::class, 'edit'])
+        ->name('events.edit');
+
+    Route::put('/events/{event}', [AdminEventController::class, 'update'])
+        ->name('events.update');
+});

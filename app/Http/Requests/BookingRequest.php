@@ -8,29 +8,24 @@ use Illuminate\Validation\Rule;
 class BookingRequest extends FormRequest
 {
     /**
-     * Menentukan apakah user boleh melakukan request ini.
+     * Pengguna harus sudah login.
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user() !== null;
     }
 
     /**
-     * Aturan validasi data booking.
+     * Validasi pembuatan booking.
      */
     public function rules(): array
     {
         return [
-            'user_id' => [
-                'required',
-                'uuid',
-                'exists:users,id',
-            ],
-
             'identity_id' => [
                 'required',
                 'uuid',
-                'exists:identities,id',
+                Rule::exists('identities', 'id')
+                    ->where('user_id', $this->user()->id),
             ],
 
             'jenis_booking' => [
