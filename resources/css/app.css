@@ -1,3 +1,31 @@
+/*
+==================================================
+DAFTAR ISI CSS SI-GORAY
+==================================================
+01. Tailwind dan konfigurasi tema
+02. Global / Reset
+03. Navbar
+04. Home: Hero
+05. Modal Reservasi dan Form
+06. Home: Daftar Event
+07. Home: Reservasi
+08. Footer
+09. Responsive Navbar dan Home
+10. Halaman Event
+11. Detail Event dan Tiket
+12. Halaman About
+13. Halaman Contact
+14. Responsive: Modal, Detail Event, About, Contact, dan Event
+
+Catatan:
+- Selector dikelompokkan berdasarkan komponen/halaman.
+- Aturan responsive tetap diletakkan dekat bagian asalnya agar urutan cascade
+  dan perilaku CSS tetap terjaga.
+- Nilai desain dan selector dipertahankan; hanya komentar yang rusak dan
+  penulisan yang tidak konsisten dirapikan.
+==================================================
+*/
+
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -231,14 +259,14 @@ body {
     flex: 1;
     display: flex;
     justify-content: flex-end;
-    WIDTH: auto;
+    width: auto;
     height: 250px;
     /* Membatasi tinggi gambar agar tidak terlalu besar */
 }
 
 .hero-image img {
     width: 100%;
-    /* max-width: 500px; /* Membatasi besaran maksimal vektor */
+    /* max-width: 500px; Membatasi besaran maksimal vektor */
     height: auto;
     object-fit: contain;
 }
@@ -994,10 +1022,9 @@ body {
     height: auto;
 }
 
-/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   HOME PAGE
-   
-/* --- SEKSYEN PENGAKI (FOOTER) --- */
+/* ==================================================
+   FOOTER
+================================================== */
 .footer-section {
     background-color: #172033;
     /* Warna biru gelap */
