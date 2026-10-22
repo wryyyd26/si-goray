@@ -3,10 +3,10 @@
 use App\Http\Controllers\EventController;
 use Illuminate\Support\Facades\Route;
 
+// ROUTE USER
 Route::get('/', function () {
     return view('home');
 });
-
 
 Route::get('/events', function () {
     $events = [

@@ -135,6 +135,7 @@
                             <th>Event</th>
                             <th>Jadwal</th>
                             <th>Tarif</th>
+                            <th>Kuota Tiket</th>
                             <th>Tiket Terjual</th>
                             <th>Status</th>
                             <th>Aksi</th>
@@ -200,6 +201,32 @@
                                     </div>
                                 </td>
 
+                                {{-- Kuota tiket --}}
+                                <td>
+                                    @php
+                                        $quota = isset($event['quota']) ? (int) $event['quota'] : null;
+
+                                        $sold = (int) ($event['sold'] ?? 0);
+                                    @endphp
+
+                                    <div class="event-quota-info">
+                                        @if ($quota !== null)
+                                            <strong>
+                                                {{ number_format($quota, 0, ',', '.') }}
+                                            </strong>
+
+                                            <span>
+                                                {{ number_format(max(0, $quota - $sold), 0, ',', '.') }}
+                                                tersedia
+                                            </span>
+                                        @else
+                                            <span class="event-sold-label">
+                                                Ditentukan sistem
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+
                                 {{-- Tiket terjual --}}
                                 <td>
                                     <strong>
@@ -225,16 +252,31 @@
 
                                 {{-- Aksi --}}
                                 <td>
-                                    <a href="{{ route('admin.events.edit', $event['id']) }}" class="event-action-link"
-                                        aria-label="Atur event {{ $event['name'] }}">
-                                        <span class="material-symbols-rounded">tune</span>
-                                        Atur
-                                    </a>
+                                    <div class="event-row-actions">
+                                        <a href="{{ route('admin.events.edit', $event['id']) }}" class="event-action-link"
+                                            aria-label="Atur event {{ $event['name'] }}">
+                                            <span class="material-symbols-rounded">tune</span>
+                                            Atur
+                                        </a>
+
+                                        <form action="{{ route('admin.events.destroy', $event['id']) }}" method="POST"
+                                            class="event-delete-form"
+                                            onsubmit="return confirm('Yakin ingin menghapus event ini?')">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit" class="event-action-delete"
+                                                aria-label="Hapus event {{ $event['name'] }}">
+                                                <span class="material-symbols-rounded">delete</span>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="event-empty-cell">
+                                <td colspan="8" class="event-empty-cell">
                                     <div class="event-empty-state">
                                         <div class="event-empty-icon">
                                             <span class="material-symbols-rounded">
