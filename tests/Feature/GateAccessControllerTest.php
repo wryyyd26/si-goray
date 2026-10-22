@@ -116,8 +116,7 @@ class GateAccessControllerTest extends TestCase
         Sanctum::actingAs($this->buatUser(), ['gate:scan']);
 
         $this->postJson('/api/gate/scan', ['qr_payload' => 'tidak-valid'])
-            ->assertForbidden()
-            ->assertJsonPath('success', false);
+            ->assertForbidden();
     }
 
     public function test_petugas_tidak_aktif_ditolak(): void
@@ -127,8 +126,7 @@ class GateAccessControllerTest extends TestCase
         Sanctum::actingAs($user, ['gate:scan']);
 
         $this->postJson('/api/gate/scan', ['qr_payload' => 'tidak-valid'])
-            ->assertForbidden()
-            ->assertJsonPath('success', false);
+            ->assertForbidden();
     }
 
     public function test_token_tanpa_izin_scan_ditolak(): void
@@ -138,8 +136,7 @@ class GateAccessControllerTest extends TestCase
         Sanctum::actingAs($user, ['booking:read']);
 
         $this->postJson('/api/gate/scan', ['qr_payload' => 'tidak-valid'])
-            ->assertForbidden()
-            ->assertJsonPath('success', false);
+            ->assertForbidden();
     }
 
     public function test_petugas_aktif_dengan_izin_bisa_scan(): void

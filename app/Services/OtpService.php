@@ -25,7 +25,7 @@ class OtpService
         string $tujuan,
         callable $sendOtp
     ): OtpVerification {
-        if ($tujuan !== 'LOGIN_PETUGAS') {
+        if (!in_array($tujuan, ['LOGIN_PETUGAS', 'LOGIN_PENGUNJUNG'], true)) {
             throw new RuntimeException(
                 'Tujuan OTP tidak diizinkan.'
             );
@@ -116,7 +116,7 @@ class OtpService
         string $kode
     ): bool {
         if (
-            $tujuan !== 'LOGIN_PETUGAS' ||
+            !in_array($tujuan, ['LOGIN_PETUGAS', 'LOGIN_PENGUNJUNG'], true) ||
             !preg_match('/^[0-9]{6}$/', $kode)
         ) {
             return false;

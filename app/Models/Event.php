@@ -12,8 +12,10 @@ class Event extends Model
     use HasFactory, HasUuids;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
+    // Tabel events tidak menggunakan updated_at.
     const UPDATED_AT = null;
 
     protected $fillable = [
