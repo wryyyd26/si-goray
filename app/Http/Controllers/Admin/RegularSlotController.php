@@ -56,7 +56,7 @@ class RegularSlotController extends Controller
             $totalQuota - $totalUsed
         );
 
-       
+
 return view('admin.reguler.tiket-reguler', [
     'slots' => $slots,
     'totalQuota' => $totalQuota,
@@ -302,7 +302,7 @@ public function store(Request $request)
                 'Pengaturan tiket reguler berhasil diperbarui.'
             );
     }
-	
+
 /**
  * Menampilkan pengaturan satu slot berdasarkan UUID.
  */
