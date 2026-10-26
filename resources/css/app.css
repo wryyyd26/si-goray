@@ -1,3 +1,31 @@
+/*
+==================================================
+DAFTAR ISI CSS SI-GORAY
+==================================================
+01. Tailwind dan konfigurasi tema
+02. Global / Reset
+03. Navbar
+04. Home: Hero
+05. Modal Reservasi dan Form
+06. Home: Daftar Event
+07. Home: Reservasi
+08. Footer
+09. Responsive Navbar dan Home
+10. Halaman Event
+11. Detail Event dan Tiket
+12. Halaman About
+13. Halaman Contact
+14. Responsive: Modal, Detail Event, About, Contact, dan Event
+
+Catatan:
+- Selector dikelompokkan berdasarkan komponen/halaman.
+- Aturan responsive tetap diletakkan dekat bagian asalnya agar urutan cascade
+  dan perilaku CSS tetap terjaga.
+- Nilai desain dan selector dipertahankan; hanya komentar yang rusak dan
+  penulisan yang tidak konsisten dirapikan.
+==================================================
+*/
+
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -38,7 +66,7 @@ body {
     padding: 0 24px;
     display: flex;
     align-items: center;
-    /* Kunci utamanya ada di sini: space-between akan otomatis 
+    /* Kunci utamanya ada di sini: space-between akan otomatis
        melempar Blok 1 ke kiri, Blok 2 ke tengah, dan Blok 3 ke kanan */
     justify-content: space-between;
 }
@@ -231,249 +259,322 @@ body {
     flex: 1;
     display: flex;
     justify-content: flex-end;
-    WIDTH: auto;
+    width: auto;
     height: 250px;
     /* Membatasi tinggi gambar agar tidak terlalu besar */
 }
 
 .hero-image img {
     width: 100%;
-    /* max-width: 500px; /* Membatasi besaran maksimal vektor */
+    /* max-width: 500px; Membatasi besaran maksimal vektor */
     height: auto;
     object-fit: contain;
 }
 
-/* Latar Belakang Gelap (Overlay) */
+/* =========================================
+   SI-GORAY - CSS MODAL RESERVASI
+========================================= */
+
+:root {
+    --primary: #ef233c;
+    --primary-hover: #d91e35;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --background: #ffffff;
+}
+
+/* OVERLAY */
 .modal-overlay {
     position: fixed;
     inset: 0;
     z-index: 9999;
+
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.55);
+
+    box-sizing: border-box;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    padding: 24px;
+
+    background: rgba(15, 23, 42, 0.65);
+
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: 0.25s ease;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    transition: opacity 0.25s ease,
+                visibility 0.25s ease;
 }
 
-/* Class untuk memunculkan modal (akan dipicu oleh JavaScript) */
+/* TAMPILKAN MODAL */
 .modal-overlay.show {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
 }
 
-/* Kotak Pop-up Putih */
+/* KOTAK MODAL */
 .modal-box {
     position: relative;
+    box-sizing: border-box;
+
     width: 100%;
     max-width: 500px;
-    max-height: 90vh;
-    padding: 30px;
-    background: #fff;
-    border-radius: 18px;
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+
+    margin: auto;
+    padding: 32px;
+
+    overflow-x: hidden;
     overflow-y: auto;
-    transform: translateY(20px) scale(0.98);
-    transition: 0.25s ease;
+
+    background: var(--background);
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.20);
+
+    transform: translateY(12px);
+    transition: transform 0.25s ease;
 }
 
+/* MODAL FORM */
+.modal-box.form-box {
+    max-width: 620px;
+}
+
+/* ANIMASI */
 .modal-overlay.show .modal-box {
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
 }
 
+/* JUDUL */
 .modal-box h3 {
-    font-size: 20px;
-    color: #111827;
-    margin-bottom: 8px;
+    margin: 0 35px 12px 0;
+
+    color: var(--text);
+    font-size: 23px;
     font-weight: 700;
+    line-height: 1.4;
 }
 
-.modal-box p {
-    font-size: 16px;
-    color: #374151;
-    margin-bottom: 24px;
+/* DESKRIPSI */
+.modal-box > p {
+    margin: 0 0 26px;
+
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
 }
 
-/* Pengaturan Tombol */
-.modal-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-}
-
-.btn-yes,
-.btn-no {
-    padding: 10px 32px;
-    font-size: 16px;
-    font-weight: 600;
-    border: none;
-    border-radius: 50px;
-    /* Membuat tombol berbentuk kapsul */
-    cursor: pointer;
-    color: #ffffff;
-    transition: 0.2s;
-}
-
-.btn-yes {
-    background-color: #10b981;
-    /* Warna hijau */
-}
-
-.btn-yes:hover {
-    background-color: #059669;
-}
-
-.btn-no {
-    background-color: #dc2626;
-    /* Warna merah */
-}
-
-.btn-no:hover {
-    background-color: #b91c1c;
-}
-
-/* Animasi Muncul Halus */
-@keyframes popIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.modal-box {
-    position: relative;
-}
-
+/* TOMBOL CLOSE */
 .modal-close {
     position: absolute;
-    top: 12px;
-    right: 15px;
-    width: 34px;
-    height: 34px;
+    top: 16px;
+    right: 16px;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
+    width: 34px;
+    height: 34px;
+    padding: 0;
+
     border: none;
-    border-radius: 50%;
-    background: transparent;
-    font-size: 28px;
-    line-height: 1;
-    color: #777;
+    border-radius: 8px;
+
+    background: #f1f5f9;
+    color: #64748b;
+
+    font-size: 24px;
     cursor: pointer;
-    transition: 0.2s ease;
+
+    transition: 0.2s;
 }
 
 .modal-close:hover {
-    background: #f1f1f1;
-    color: #ef233c;
+    background: #fee2e2;
+    color: var(--primary);
 }
 
-/* Deskripsi */
-.modal-box>p {
-    margin-bottom: 24px;
-    font-size: 15px;
-    line-height: 1.6;
-    color: #666;
-}
-
-/* ========================================= FORM modal  ========================================= */
+/* FORM */
+.modal-box form,
 .activity-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
+
+    width: 100%;
+    min-width: 0;
 }
 
+/* GRUP INPUT */
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    align-items: stretch;
+    gap: 8px;
+
+    width: 100%;
+    min-width: 0;
+    margin: 0;
 }
 
+/* LABEL */
 .form-group label {
+    display: block;
+    margin: 0;
+
+    color: #334155;
     font-size: 14px;
     font-weight: 600;
-    color: #333;
+    line-height: 1.5;
+    text-align: left;
 }
 
+/* INPUT, SELECT, TEXTAREA */
 .form-group input,
 .form-group select,
 .form-group textarea {
-    width: 100%;
+    display: block;
     box-sizing: border-box;
-    padding: 11px 13px;
-    border: 1px solid #ddd;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 46px;
+
+    padding: 12px 14px;
+
+    border: 1px solid #dbe2ea;
     border-radius: 9px;
-    background: #fff;
-    font-size: 14px;
+
+    background: #f8fafc;
+    color: var(--text);
+
     font-family: inherit;
+    font-size: 14px;
+
     outline: none;
-    transition: 0.2s ease;
+    transition: border-color 0.2s,
+                box-shadow 0.2s,
+                background 0.2s;
 }
 
+/* PLACEHOLDER */
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #94a3b8;
+}
+
+/* FOKUS INPUT */
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-    border-color: #ef233c;
-    box-shadow: 0 0 0 3px rgba(239, 35, 60, 0.08);
+    border-color: var(--primary);
+    background: #ffffff;
+
+    box-shadow: 0 0 0 3px rgba(239, 35, 60, 0.10);
 }
 
+/* TEXTAREA */
 .form-group textarea {
-    min-height: 90px;
+    min-height: 100px;
     resize: vertical;
+    line-height: 1.6;
 }
 
-/* ========================================= TANGGAL & JAM ========================================= */
+/* BARIS JAM */
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+
+    width: 100%;
+    min-width: 0;
 }
 
-/* ========================================= TOMBOL VALIDASI ========================================= */
+/* INPUT TANGGAL DAN JAM */
+.form-group input[type="date"],
+.form-group input[type="time"] {
+    width: 100%;
+    min-width: 0;
+}
+
+/* TOMBOL MODAL */
 .modal-buttons {
     display: flex;
+    align-items: center;
     gap: 12px;
-    margin-top: 10px;
+
+    width: 100%;
+    margin-top: 6px;
+    padding-top: 20px;
+
+    border-top: 1px solid #edf0f5;
 }
 
+/* GAYA DASAR TOMBOL */
 .modal-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
     flex: 1;
-    min-height: 45px;
-    border: none;
+    min-width: 0;
+    min-height: 46px;
+
+    padding: 11px 16px;
+
+    border: 1px solid transparent;
     border-radius: 9px;
+
+    font-family: inherit;
     font-size: 14px;
     font-weight: 600;
+
     cursor: pointer;
-    transition: 0.2s ease;
+    transition: background 0.2s,
+                color 0.2s,
+                transform 0.2s;
 }
 
+/* TOMBOL UTAMA */
 .btn-yes {
-    background: #ef233c;
-    color: #fff;
+    background: var(--primary);
+    color: #ffffff;
 }
 
 .btn-yes:hover {
-    background: #d91e35;
+    background: var(--primary-hover);
 }
 
+/* TOMBOL SEKUNDER */
 .btn-no {
-    background: #f1f1f1;
-    color: #333;
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #475569;
 }
 
 .btn-no:hover {
-    background: #e4e4e4;
+    background: #e2e8f0;
 }
 
-/* ========================================= TOMBOL FORM ========================================= */
+/* EFEK KLIK */
+.modal-buttons button:active {
+    transform: scale(0.98);
+}
+
+/* TOMBOL FORM TAMBAHAN */
 .form-buttons {
     display: flex;
     gap: 12px;
@@ -482,153 +583,165 @@ body {
 
 .form-buttons button {
     flex: 1;
+    min-width: 0;
     min-height: 44px;
+    padding: 10px 14px;
+
+    border: 1px solid #e2e8f0;
     border-radius: 9px;
+
+    font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
 }
 
 .btn-back {
-    border: 1px solid #ddd;
-    background: #fff;
-    color: #444;
+    background: #ffffff;
+    color: #475569;
 }
 
 .btn-back:hover {
-    background: #f5f5f5;
+    background: #f1f5f9;
 }
 
 .btn-submit {
-    border: none;
-    background: #ef233c;
-    color: #fff;
+    background: var(--primary);
+    border-color: var(--primary) !important;
+    color: #ffffff;
 }
 
 .btn-submit:hover {
-    background: #d91e35;
+    background: var(--primary-hover);
 }
 
-/* ========================================= TABLET ========================================= */
+/* =========================================
+   TABLET DAN LAPTOP KECIL
+========================================= */
+
 @media (max-width: 768px) {
     .modal-overlay {
-        padding: 16px;
+        padding: 18px;
     }
 
-    .modal-box {
-        max-width: 100%;
-        max-height: 92vh;
-        padding: 25px 22px;
-        border-radius: 16px;
+    .modal-box,
+    .modal-box.form-box {
+        max-width: 560px;
+        max-height: calc(100dvh - 36px);
+        padding: 26px;
     }
 
     .modal-box h3 {
-        font-size: 20px;
-    }
-
-    .modal-box>p {
-        font-size: 14px;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
-        gap: 14px;
+        font-size: 21px;
     }
 }
 
-/* ========================================= HP ========================================= */
+/* =========================================
+   HP
+========================================= */
+
 @media (max-width: 480px) {
     .modal-overlay {
         padding: 12px;
-        align-items: center;
     }
 
-    .modal-box {
+    .modal-box,
+    .modal-box.form-box {
         width: 100%;
-        max-height: 92vh;
-        padding: 22px 17px;
-        border-radius: 14px;
-    }
+        max-width: 100%;
 
-    .modal-close {
-        top: 9px;
-        right: 10px;
-        width: 32px;
-        height: 32px;
-        font-size: 25px;
+        max-height: calc(100dvh - 24px);
+        padding: 24px 18px;
+
+        border-radius: 13px;
     }
 
     .modal-box h3 {
+        font-size: 19px;
         margin-right: 30px;
-        margin-bottom: 8px;
-        font-size: 18px;
     }
 
-    .modal-box>p {
-        margin-bottom: 20px;
-        font-size: 13px;
-        line-height: 1.5;
+    .modal-box > p {
+        margin-bottom: 22px;
+        font-size: 14px;
     }
 
+    .modal-box form,
     .activity-form {
-        gap: 13px;
+        gap: 15px;
     }
 
-    .form-group {
-        gap: 6px;
-    }
-
-    .form-group label {
-        font-size: 13px;
+    .form-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 15px;
     }
 
     .form-group input,
     .form-group select,
     .form-group textarea {
-        padding: 10px 11px;
-        font-size: 13px;
+        min-height: 44px;
+        font-size: 16px;
     }
 
     .modal-buttons {
         gap: 9px;
+        padding-top: 16px;
     }
 
     .modal-buttons button {
-        min-height: 42px;
+        min-height: 44px;
+        padding: 10px;
         font-size: 13px;
-    }
-
-    .form-buttons {
-        flex-direction: column-reverse;
-        gap: 9px;
-    }
-
-    .form-buttons button {
-        width: 100%;
-        min-height: 43px;
     }
 }
 
-/* ========================================= HP SANGAT KECIL ========================================= */
+/* HP SANGAT KECIL */
 @media (max-width: 360px) {
     .modal-overlay {
         padding: 8px;
     }
 
-    .modal-box {
-        padding: 20px 14px;
+    .modal-box,
+    .modal-box.form-box {
+        max-height: calc(100dvh - 16px);
+        padding: 22px 14px;
     }
 
-    .modal-box h3 {
-        font-size: 17px;
+    .modal-buttons,
+    .form-buttons {
+        flex-direction: column-reverse;
     }
 
-    .modal-buttons {
-        flex-direction: column;
-    }
-
-    .modal-buttons button {
+    .modal-buttons button,
+    .form-buttons button {
+        flex: none;
         width: 100%;
+    }
+}
+
+/* LAYAR PENDEK / LANDSCAPE */
+@media (max-height: 600px) {
+    .modal-overlay {
+        align-items: flex-start;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .modal-box,
+    .modal-box.form-box {
+        max-height: calc(100dvh - 24px);
+        margin: auto 0;
+    }
+}
+
+/* AKSESIBILITAS */
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay,
+    .modal-box,
+    .modal-close,
+    .modal-buttons button,
+    .form-buttons button {
+        transition: none;
     }
 }
 
@@ -909,10 +1022,9 @@ body {
     height: auto;
 }
 
-/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   HOME PAGE
-   
-/* --- SEKSYEN PENGAKI (FOOTER) --- */
+/* ==================================================
+   FOOTER
+================================================== */
 .footer-section {
     background-color: #172033;
     /* Warna biru gelap */
@@ -1270,6 +1382,458 @@ body {
     color: #d71920;
     text-decoration: none;
     font-weight: 600;
+}
+
+
+/* ==========================================
+   SI-GORAY - DETAIL EVENT THEME
+   Navy, putih, abu-abu, dan aksen hijau
+========================================== */
+
+.event-detail-page {
+    --goray-navy: #17243b;
+    --goray-blue: #1e4776;
+    --goray-green: #16c765;
+    --goray-red: #ef3340;
+    --goray-bg: #f1f3f6;
+    --goray-border: #d7dce4;
+
+    width: calc(100% - 40px);
+    max-width: 1200px;
+    margin: 12px auto 30px;
+    padding: 12px;
+
+    background: var(--goray-bg);
+    color: var(--goray-navy);
+    border-radius: 10px;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.event-detail-page *,
+.event-detail-page *::before,
+.event-detail-page *::after {
+    box-sizing: border-box;
+}
+
+/* ==========================================
+   LAYOUT POSTER + TIKET
+========================================== */
+
+.event-detail-page .event-detail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: start;
+    gap: 16px;
+
+    width: 100%;
+    min-width: 0;
+}
+
+/* POSTER EVENT */
+
+.event-detail-page .event-main-image {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+
+    background: #ffffff;
+    border: 2px solid var(--goray-blue);
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(23, 36, 59, 0.12);
+}
+
+.event-detail-page .event-main-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 7px;
+}
+
+/* ==========================================
+   KARTU INFORMASI EVENT
+========================================== */
+
+.event-detail-page .event-ticket-panel {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+
+    background: #ffffff;
+    border: 1px solid #cfd5df;
+    border-radius: 12px;
+    box-shadow: 0 3px 9px rgba(23, 36, 59, 0.10);
+}
+
+.event-detail-page .ticket-summary {
+    padding: 14px;
+}
+
+.event-detail-page .ticket-summary h2 {
+    margin: 0 0 2px;
+
+    color: var(--goray-navy);
+    font-size: 23px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.event-detail-page .ticket-summary > p {
+    margin: 0 0 14px;
+    color: #5e6878;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* INFORMASI TANGGAL, LOKASI, KUOTA */
+
+.event-detail-page .event-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.event-detail-page .event-meta li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    min-width: 0;
+    color: #263348;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.event-detail-page .event-meta .material-symbols-rounded {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+    width: 21px;
+    height: 21px;
+
+    color: #ffffff;
+    background: var(--goray-navy);
+    border-radius: 50%;
+    font-size: 13px;
+}
+
+/* INDIKATOR KUOTA */
+
+.event-detail-page .ticket-quota {
+    width: 100%;
+    height: 5px;
+    margin: 13px 0;
+
+    overflow: hidden;
+    background: #e3e7ed;
+    border-radius: 20px;
+}
+
+.event-detail-page .ticket-quota span {
+    display: block;
+    width: 12%;
+    height: 100%;
+
+    background: var(--goray-red);
+    border-radius: inherit;
+}
+
+/* ==========================================
+   PILIHAN HARGA TIKET
+========================================== */
+
+.event-detail-page .ticket-price-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 8px;
+    min-width: 0;
+}
+
+.event-detail-page .ticket-price-option button {
+    flex-shrink: 0;
+    min-width: 76px;
+    padding: 6px 11px;
+
+    border: none;
+    border-radius: 20px;
+    background: var(--goray-green);
+    color: #ffffff;
+
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.event-detail-page .ticket-price-option .non-citizen-button {
+    background: var(--goray-red);
+}
+
+.event-detail-page .ticket-price-option button:hover {
+    filter: brightness(0.92);
+}
+
+.event-detail-page .ticket-price-option button:active {
+    transform: scale(0.97);
+}
+
+.event-detail-page .ticket-price-option span {
+    min-width: 0;
+    color: #384356;
+    font-size: 10px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+/* ==========================================
+   KARTU PEMESANAN BERGAYA TIKET
+========================================== */
+
+.event-detail-page .ticket-bottom {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 9px;
+
+    padding: 14px;
+    margin-top: 0;
+
+    background: #ffffff;
+    border-top: 2px dashed #c6ccd6;
+}
+
+.event-detail-page .ticket-brand {
+    align-self: center;
+    color: var(--goray-blue);
+    font-size: 19px;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+}
+
+.event-detail-page .ticket-bottom > strong {
+    color: var(--goray-navy);
+    font-size: 12px;
+    font-weight: 800;
+    text-align: center;
+}
+
+/* TOMBOL KATEGORI */
+
+.event-detail-page .ticket-category-button {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 9px 10px;
+
+    border: 1px solid var(--goray-border);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--goray-navy);
+
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.event-detail-page .ticket-category-button[data-category="warga"].active {
+    color: #ffffff;
+    background: var(--goray-green);
+    border-color: var(--goray-green);
+}
+
+.event-detail-page .ticket-category-button[data-category="luar"].active {
+    color: #ffffff;
+    background: var(--goray-red);
+    border-color: var(--goray-red);
+}
+
+.event-detail-page .ticket-bottom small {
+    color: #727b8a;
+    font-size: 10px;
+    text-align: center;
+}
+
+/* ==========================================
+   DESKRIPSI EVENT
+========================================== */
+
+.event-detail-page .event-description {
+    width: 100%;
+    min-width: 0;
+    margin-top: 16px;
+    padding: 0 2px 4px;
+
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow-wrap: anywhere;
+}
+
+.event-detail-page .event-description h2 {
+    margin: 0 0 10px;
+    color: var(--goray-navy);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.event-detail-page .event-description p {
+    margin: 0 0 9px;
+    color: #303b4c;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.event-detail-page .event-description p:last-child {
+    margin-bottom: 0;
+}
+
+
+.event-detail-page .event-meta .material-symbols-rounded {
+    font-family: "Material Symbols Rounded";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 13px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    font-feature-settings: "liga";
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    color: #fff;
+    background: #17243b;
+}
+
+
+/* ==========================================
+   TABLET
+========================================== */
+
+@media (max-width: 900px) {
+    .event-detail-page {
+        width: calc(100% - 24px);
+        padding: 10px;
+    }
+
+    .event-detail-page .event-detail {
+        grid-template-columns: minmax(0, 1fr) 250px;
+        gap: 12px;
+    }
+
+    .event-detail-page .ticket-summary,
+    .event-detail-page .ticket-bottom {
+        padding: 11px;
+    }
+
+    .event-detail-page .ticket-summary h2 {
+        font-size: 20px;
+    }
+
+    .event-detail-page .event-meta li {
+        font-size: 11px;
+    }
+
+    .event-detail-page .event-description h2 {
+        font-size: 20px;
+    }
+}
+
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 600px) {
+    .event-detail-page {
+        width: calc(100% - 20px);
+        margin: 10px auto 24px;
+        padding: 9px;
+        border-radius: 9px;
+    }
+
+    .event-detail-page .event-detail {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .event-detail-page .event-main-image img {
+        width: 100%;
+        height: auto;
+    }
+
+    .event-detail-page .event-ticket-panel {
+        border-radius: 10px;
+    }
+
+    .event-detail-page .ticket-summary {
+        padding: 15px;
+    }
+
+    .event-detail-page .ticket-summary h2 {
+        font-size: 22px;
+    }
+
+    .event-detail-page .event-meta li {
+        font-size: 12px;
+    }
+
+    .event-detail-page .ticket-price-option span {
+        font-size: 11px;
+    }
+
+    .event-detail-page .ticket-bottom {
+        padding: 15px;
+    }
+
+    .event-detail-page .ticket-category-button {
+        font-size: 12px;
+    }
+
+    .event-detail-page .event-description {
+        margin-top: 16px;
+    }
+
+    .event-detail-page .event-description h2 {
+        font-size: 20px;
+    }
+
+    .event-detail-page .event-description p {
+        font-size: 13px;
+        line-height: 1.7;
+    }
 }
 
 

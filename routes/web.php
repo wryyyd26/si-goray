@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use App\Models\Event;
 use Illuminate\Http\Request;
@@ -16,7 +16,12 @@ Route::get('/', function () {
     return view('home');
 })->name('home');
 
+
+Route::view('/events/detail', 'events.show')
+    ->name('events.show');
+
 Route::get('/events', function (Request $request) {
+
 
     $search = trim((string) $request->query('q', ''));
 

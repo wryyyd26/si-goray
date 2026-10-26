@@ -170,4 +170,7 @@
 </div>
         </section>
     </main>
+
+@include('components.footer')
+
 @endsection
