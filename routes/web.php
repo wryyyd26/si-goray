@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\EventController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return view('home');
@@ -10,6 +11,57 @@ Route::get('/', function () {
 
 Route::view('/events/detail', 'events.show')
     ->name('events.show');
+
+Route::get('/event/futsal/pesan-tiket', function () {
+    return view('events.event-tiket');
+})->name('events.pesan-tiket');
+
+Route::get('/event/futsal/pesan-tiket-luar', function () {
+    return view('events.event-tiket-luar');
+})->name('events.pesan-tiket-luar');
+
+// FORM WARGA KOTA
+Route::post('/event/futsal/pesan-tiket', function (Request $request) {
+    $data = $request->validate([
+        'nama_lengkap' => ['required', 'string', 'max:255'],
+        'nik' => ['required', 'digits:16'],
+        'email' => ['required', 'email', 'max:255'],
+        'nomor_hp' => ['required', 'string', 'max:20'],
+    ]);
+
+    $request->session()->put('detail_pemesanan', $data);
+
+    return redirect()->route('events.detail-warga');
+})->name('events.pesan-tiket.simpan');
+
+Route::get('/event/futsal/detail-pemesanan-warga', function () {
+    abort_unless(session()->has('detail_pemesanan'), 403);
+
+    return view('events.detail-pemesanan-warga');
+})->name('events.detail-warga');
+
+
+// FORM WARGA LUAR KOTA
+Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
+    $data = $request->validate([
+        'nama_lengkap' => ['required', 'string', 'max:255'],
+        'nik' => ['required', 'digits:16'],
+        'alamat_ktp' => ['required', 'string', 'max:1000'],
+        'email' => ['required', 'email', 'max:255'],
+        'nomor_hp' => ['required', 'string', 'max:20'],
+    ]);
+
+    $request->session()->put('detail_pemesanan', $data);
+
+    return redirect()->route('events.detail-luar');
+})->name('events.pesan-tiket-luar.simpan');
+
+Route::get('/event/futsal/detail-pemesanan-luar', function () {
+    abort_unless(session()->has('detail_pemesanan'), 403);
+
+    return view('events.detail-pemesanan-luar');
+})->name('events.detail-luar');
+
 
 Route::get('/events', function () {
     $events = [
@@ -69,6 +121,7 @@ Route::get('/events', function () {
         ],
     ];
 
+    
     $category = request('category', 'Semua');
     $search = request('q', '');
 
