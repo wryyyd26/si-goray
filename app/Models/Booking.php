@@ -31,9 +31,6 @@ class Booking extends Model
         'retribusi_diperlukan' => 'boolean',
     ];
 
-    // BR-1: hanya salah satu dari regular_slot_id ATAU event_schedule_id yang terisi,
-    // sesuai jenis_booking. Dijaga CHECK constraint di DB; validasi juga di FormRequest/service.
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -56,29 +53,28 @@ class Booking extends Model
 
     public function tariff(): BelongsTo
     {
-        return $this->belongsTo(TariffReference::class, 'tariff_id');
+        return $this->belongsTo(
+            TariffReference::class,
+            'tariff_id'
+        );
     }
 
-    // Seluruh riwayat transaksi (bisa lebih dari satu akibat retry, BR-4)
     public function paymentTransactions(): HasMany
     {
         return $this->hasMany(PaymentTransaction::class);
     }
 
-    // Transaksi yang sedang menunggu bayar: maksimal 1 (dijaga uq_payment_pending_per_booking)
     public function pendingPayment(): HasOne
     {
         return $this->hasOne(PaymentTransaction::class)
             ->where('status_pembayaran', 'PENDING');
     }
 
-    // Seluruh QR termasuk yang sudah INVALID/SUDAH_DIPAKAI (rantai regenerasi, BR-7)
     public function qrTickets(): HasMany
-{
-    return $this->hasMany(QrTicket::class);
-}
+    {
+        return $this->hasMany(QrTicket::class);
+    }
 
-    // QR yang sedang berlaku: maksimal 1 (dijaga uq_qr_aktif_per_booking, BR-5)
     public function activeQrTicket(): HasOne
     {
         return $this->hasOne(QrTicket::class)

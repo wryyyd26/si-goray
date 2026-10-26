@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Kelola Event')
+@section('title', 'Tiket Event')
+@section('page', 'Tiket Event')
 
 @section('content')
     <div class="event-page">
@@ -8,7 +9,6 @@
         {{-- Header --}}
         <div class="event-page-header">
             <div>
-                <span class="event-eyebrow">MANAJEMEN EVENT</span>
                 <h1>Kelola Event</h1>
                 <p>Kelola informasi, jadwal, dan tarif tiket event GOR.</p>
             </div>
@@ -54,16 +54,50 @@
             </div>
         </div>
 
-        {{-- Ringkasan --}}
-        <div class="event-summary-card">
-            <div>
-                <h2>Total Event</h2>
-                <strong>{{ $totalEvents }}</strong>
-                <p>Event dalam data preview</p>
+        {{-- Ringkasan Statistik Event --}}
+        <div class="event-summary-grid">
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Total Event</h2>
+                    <strong>{{ $totalEvents }}</strong>
+                    <p>Seluruh event terdaftar</p>
+                </div>
+                <div class="event-summary-icon summary-icon-red">
+                    <span class="material-symbols-rounded">event</span>
+                </div>
             </div>
 
-            <div class="event-summary-icon">
-                <span class="material-symbols-rounded">event</span>
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Event Aktif</h2>
+                    <strong> {{ $totalActiveEvents }} </strong>
+                    <p>Event berstatus aktif</p>
+                </div>
+                <div class="event-summary-icon summary-icon-green">
+                    <span class="material-symbols-rounded">event_available</span>
+                </div>
+            </div>
+
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Event Mendatang</h2>
+                    <strong>{{ $totalUpcomingEvents }}</strong>
+                    <p>Event yang akan berlangsung</p>
+                </div>
+                <div class="event-summary-icon summary-icon-yellow">
+                    <span class="material-symbols-rounded">upcoming</span>
+                </div>
+            </div>
+
+            <div class="event-summary-card">
+                <div class="event-summary-content">
+                    <h2>Total Tiket Terjual</h2>
+                    <strong>{{ number_format($totalTicketsSold, 0, ',', '.') }}</strong>
+                    <p>Akumulasi tiket terjual</p>
+                </div>
+                <div class="event-summary-icon summary-icon-blue">
+                    <span class="material-symbols-rounded">confirmation_number</span>
+                </div>
             </div>
         </div>
 
@@ -101,6 +135,7 @@
                             <th>Event</th>
                             <th>Jadwal</th>
                             <th>Tarif</th>
+                            <th>Kuota Tiket</th>
                             <th>Tiket Terjual</th>
                             <th>Status</th>
                             <th>Aksi</th>
@@ -166,6 +201,32 @@
                                     </div>
                                 </td>
 
+                                {{-- Kuota tiket --}}
+                                <td>
+                                    @php
+                                        $quota = isset($event['quota']) ? (int) $event['quota'] : null;
+
+                                        $sold = (int) ($event['sold'] ?? 0);
+                                    @endphp
+
+                                    <div class="event-quota-info">
+                                        @if ($quota !== null)
+                                            <strong>
+                                                {{ number_format($quota, 0, ',', '.') }}
+                                            </strong>
+
+                                            <span>
+                                                {{ number_format(max(0, $quota - $sold), 0, ',', '.') }}
+                                                tersedia
+                                            </span>
+                                        @else
+                                            <span class="event-sold-label">
+                                                Ditentukan sistem
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+
                                 {{-- Tiket terjual --}}
                                 <td>
                                     <strong>
@@ -191,36 +252,55 @@
 
                                 {{-- Aksi --}}
                                 <td>
-                                    <a href="{{ route('admin.events.edit', $event['id']) }}" class="event-action-link"
-                                        aria-label="Atur event {{ $event['name'] }}">
-                                        <span class="material-symbols-rounded">tune</span>
-                                        Atur
-                                    </a>
+                                    <div class="event-row-actions">
+                                        <a href="{{ route('admin.events.edit', $event['id']) }}" class="event-action-link"
+                                            aria-label="Atur event {{ $event['name'] }}">
+                                            <span class="material-symbols-rounded">tune</span>
+                                            Atur
+                                        </a>
+
+                                        <form action="{{ route('admin.events.destroy', $event['id']) }}" method="POST"
+                                            class="event-delete-form"
+                                            onsubmit="return confirm('Yakin ingin menghapus event ini?')">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit" class="event-action-delete"
+                                                aria-label="Hapus event {{ $event['name'] }}">
+                                                <span class="material-symbols-rounded">delete</span>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8" class="event-empty-cell">
                                     <div class="event-empty-state">
-                                        <span class="material-symbols-rounded">
-                                            event_busy
-                                        </span>
+                                        <div class="event-empty-icon">
+                                            <span class="material-symbols-rounded">
+                                                event_busy
+                                            </span>
+                                        </div>
 
                                         <h3>Event tidak ditemukan</h3>
 
                                         <p>
                                             @if ($search !== '')
                                                 Tidak ada event yang cocok dengan
-                                                pencarian "{{ $search }}".
+                                                pencarian <strong>"{{ $search }}"</strong>.
                                             @else
                                                 Belum ada event yang tersedia.
                                             @endif
                                         </p>
 
                                         @if ($search !== '')
-                                            <a href="{{ route('admin.events.index') }}"
-                                                class="event-btn event-btn-secondary">
-                                                Reset Pencarian
+                                            <a href="{{ route('admin.events.index') }}" class="event-empty-reset">
+                                                <span class="material-symbols-rounded">
+                                                    restart_alt
+                                                </span>
+                                                <span>Reset Pencarian</span>
                                             </a>
                                         @endif
                                     </div>
@@ -231,17 +311,28 @@
                 </table>
             </div>
 
+
             {{-- Footer tabel --}}
             <div class="event-list-footer">
-                <span>
-                    Menampilkan {{ count($events) }} dari {{ $totalEvents }} event
-                </span>
+                <div class="event-list-footer-info">
+                    <span class="event-list-footer-label">Data event</span>
+                    <span class="event-list-footer-count">
+                        Menampilkan
+                        <strong>{{ count($events) }}</strong>
+                        dari
+                        <strong>{{ $totalEvents }}</strong>
+                        event
+                    </span>
+                </div>
 
-                <span class="event-preview-label">
+                <div class="event-preview-label">
                     <span class="material-symbols-rounded">science</span>
-                    Mode preview · Dummy data
-                </span>
+                    <span>Mode preview</span>
+                    <span class="event-preview-separator">•</span>
+                    <span>Dummy data</span>
+                </div>
             </div>
+
         </div>
     </div>
 @endsection

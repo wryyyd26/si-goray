@@ -5,237 +5,233 @@
 
 @section('content')
 
-<div class="user-page">
+    <div class="user-page">
 
-    {{-- =========================
+        {{-- =========================
         HEADER
     ========================== --}}
-    <div class="user-page-header">
+        <div class="user-page-header">
 
-        <div>
-            <h1>Kelola User</h1>
-            <p>
-                Pantau data pengguna yang telah terdaftar
-                pada sistem SI-GORAY.
-            </p>
-        </div>
-
-    </div>
-
-
-    {{-- =========================
-        STATISTIK USER
-    ========================== --}}
-    <div class="user-stats">
-
-        {{-- Total User --}}
-        <div class="user-stat-card">
-
-            <div class="user-stat-icon">
-                <span class="material-symbols-rounded">
-                    group
-                </span>
-            </div>
-
-            <div class="user-stat-content">
-                <span>Total User</span>
-                <strong>{{ count($users) }}</strong>
-            </div>
-
-        </div>
-
-
-        {{-- Warga Kota --}}
-        <div class="user-stat-card">
-
-            <div class="user-stat-icon">
-                <span class="material-symbols-rounded">
-                    location_city
-                </span>
-            </div>
-
-            <div class="user-stat-content">
-                <span>Warga Kota</span>
-
-                <strong>
-                    {{ collect($users)->where('is_warga_kota', true)->count() }}
-                </strong>
-            </div>
-
-        </div>
-
-
-        {{-- Bukan Warga Kota --}}
-        <div class="user-stat-card">
-
-            <div class="user-stat-icon">
-                <span class="material-symbols-rounded">
-                    person
-                </span>
-            </div>
-
-            <div class="user-stat-content">
-                <span>Bukan Warga Kota</span>
-
-                <strong>
-                    {{ collect($users)->where('is_warga_kota', false)->count() }}
-                </strong>
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- =========================
-        DATA USER
-    ========================== --}}
-    <div class="user-table-card">
-
-        {{-- Table Header --}}
-        <div class="user-table-header">
-
-            <div class="user-table-title">
-                <h3>Data User</h3>
-
+            <div>
+                <h1>Kelola User</h1>
                 <p>
-                    Daftar pengguna yang telah melakukan registrasi.
+                    Pantau data pengguna yang telah terdaftar
+                    pada sistem SI-GORAY.
                 </p>
             </div>
 
+        </div>
 
-            {{-- Search --}}
-            <div class="user-search">
 
-                <span class="material-symbols-rounded">
-                    search
-                </span>
+        {{-- =========================
+        STATISTIK USER
+    ========================== --}}
+        <div class="user-stats">
 
-                <input
-                    type="text"
-                    id="userSearch"
-                    placeholder="Cari berdasarkan NIK..."
-                    autocomplete="off"
-                >
+            {{-- Total User --}}
+            <div class="user-stat-card">
+
+                <div class="user-stat-icon">
+                    <span class="material-symbols-rounded">
+                        group
+                    </span>
+                </div>
+
+                <div class="user-stat-content">
+                    <span>Total User</span>
+                    <strong>{{ count($users) }}</strong>
+                </div>
+
+            </div>
+
+
+            {{-- Warga Kota --}}
+            <div class="user-stat-card">
+
+                <div class="user-stat-icon">
+                    <span class="material-symbols-rounded">
+                        location_city
+                    </span>
+                </div>
+
+                <div class="user-stat-content">
+                    <span>Warga Kota</span>
+
+                    <strong>
+                        {{ collect($users)->where('is_warga_kota', true)->count() }}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            {{-- Bukan Warga Kota --}}
+            <div class="user-stat-card">
+
+                <div class="user-stat-icon">
+                    <span class="material-symbols-rounded">
+                        person
+                    </span>
+                </div>
+
+                <div class="user-stat-content">
+                    <span>Bukan Warga Kota</span>
+
+                    <strong>
+                        {{ collect($users)->where('is_warga_kota', false)->count() }}
+                    </strong>
+                </div>
 
             </div>
 
         </div>
 
 
-        {{-- Table --}}
-        <div class="table-responsive">
+        {{-- =========================
+        DATA USER
+    ========================== --}}
+        <div class="user-table-card">
 
-            <table class="user-table">
+            {{-- Table Header --}}
+            <div class="user-table-header">
 
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>NIK</th>
-                        <th>Tanggal Lahir</th>
-                        <th>Status Warga</th>
-                        <th>Terdaftar</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
+                <div class="user-table-title">
+                    <h3>Data User</h3>
+
+                    <p>
+                        Daftar pengguna yang telah melakukan registrasi.
+                    </p>
+                </div>
 
 
-                <tbody id="userTableBody">
+                {{-- Search --}}
+                <div class="user-search">
 
-                    @forelse($users as $index => $user)
+                    <span class="material-symbols-rounded">
+                        search
+                    </span>
 
+                    <input type="text" id="userSearch" placeholder="Cari berdasarkan NIK..." autocomplete="off">
+
+                </div>
+
+            </div>
+
+
+            {{-- Table --}}
+            <div class="table-responsive">
+
+                <table class="user-table">
+
+                    <thead>
                         <tr>
-
-                            {{-- No --}}
-                            <td>
-                                {{ $index + 1 }}
-                            </td>
-
-
-                            {{-- NIK --}}
-                            <td>
-                                <span class="user-nik">
-                                    {{ substr($user['nik'], 0, 4) }}
-                                    ****
-                                    {{ substr($user['nik'], -4) }}
-                                </span>
-                            </td>
+                            <th>No</th>
+                            <th>NIK</th>
+                            <th>Tanggal Lahir</th>
+                            <th>Status Warga</th>
+                            <th>Terdaftar</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
 
 
-                            {{-- Tanggal Lahir --}}
-                            <td>
-                                {{ \Carbon\Carbon::parse($user['tanggal_lahir'])->format('d M Y') }}
-                            </td>
+                    <tbody id="userTableBody">
+
+                        @forelse($users as $index => $user)
+                            <tr>
+
+                                {{-- No --}}
+                                <td>
+                                    {{ $index + 1 }}
+                                </td>
 
 
-                            {{-- Status Warga --}}
-                            <td>
-
-                                @if($user['is_warga_kota'])
-
-                                    <span class="user-status warga">
-                                        Warga Kota
+                                {{-- NIK --}}
+                                <td>
+                                    <span class="user-nik">
+                                        {{ substr($user['nik'], 0, 4) }}
+                                        ****
+                                        {{ substr($user['nik'], -4) }}
                                     </span>
-
-                                @else
-
-                                    <span class="user-status non-warga">
-                                        Bukan Warga Kota
-                                    </span>
-
-                                @endif
-
-                            </td>
+                                </td>
 
 
-                            {{-- Tanggal Terdaftar --}}
-                            <td>
-                                {{ \Carbon\Carbon::parse($user['created_at'])->format('d M Y') }}
-                            </td>
+                                {{-- Tanggal Lahir --}}
+                                <td>
+                                    {{ \Carbon\Carbon::parse($user['tanggal_lahir'])->format('d M Y') }}
+                                </td>
 
 
-                            {{-- Aksi --}}
-                            <td>
+                                {{-- Status Warga --}}
+                                <td>
 
-                                <a
-                                    href="{{ route('admin.user.detail', $user['id']) }}"
-                                    class="user-action-btn view"
-                                    title="Lihat Detail"
-                                >
+                                    @if ($user['is_warga_kota'])
+                                        <span class="user-status warga">
+                                            Warga Kota
+                                        </span>
+                                    @else
+                                        <span class="user-status non-warga">
+                                            Bukan Warga Kota
+                                        </span>
+                                    @endif
+
+                                </td>
+
+
+                                {{-- Tanggal Terdaftar --}}
+                                <td>
+                                    {{ \Carbon\Carbon::parse($user['created_at'])->format('d M Y') }}
+                                </td>
+
+
+                                {{-- Aksi --}}
+                                <td>
+                                    <div class="regular-action-group">
+                                        <a href="{{ route('admin.user.detail', $user['id']) }}" class="user-action-btn view"
+                                            title="Lihat Detail">
+                                            <span class="material-symbols-rounded">
+                                                visibility
+                                            </span>
+                                            Detail User
+                                        </a>
+
+                                        <form action="" method="POST" class="user-delete-form"
+                                            onsubmit="return confirm('Yakin ingin menghapus user ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="user-action-btn user-action-btn-delete"
+                                                aria-label="Hapus User">
+                                                <span class="material-symbols-rounded">delete</span>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </div>    
+                                </td>
+                            </tr>
+
+                        @empty
+
+                            <tr>
+                                <td colspan="7" class="user-empty">
                                     <span class="material-symbols-rounded">
-                                        visibility
+                                        group_off
                                     </span>
-                                    Detail User
-                                </a>
 
-                            </td>
+                                    <span>
+                                        Belum ada data user.
+                                    </span>
+                                </td>
+                            </tr>
+                        @endforelse
 
-                        </tr>
+                    </tbody>
 
-                    @empty
+                </table>
 
-                        <tr>
-                            <td colspan="6" class="user-empty">
-                                <span class="material-symbols-rounded">
-                                    group_off
-                                </span>
-
-                                <span>
-                                    Belum ada data user.
-                                </span>
-                            </td>
-                        </tr>
-
-                    @endforelse
-
-                </tbody>
-
-            </table>
+            </div>
 
         </div>
 
     </div>
-
-</div>
 
 @endsection

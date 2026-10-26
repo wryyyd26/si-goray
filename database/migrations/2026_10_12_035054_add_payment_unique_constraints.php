@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -10,7 +9,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Setiap kode bayar harus unik.
         Schema::table('payment_transactions', function (Blueprint $table) {
             $table->unique(
                 'kode_bayar',
@@ -18,8 +16,6 @@ return new class extends Migration
             );
         });
 
-        // Hanya transaksi PENDING yang menghasilkan booking_id.
-        // Status lainnya menghasilkan NULL.
         DB::statement("
             ALTER TABLE payment_transactions
             ADD COLUMN pending_booking_id CHAR(36)
@@ -32,7 +28,6 @@ return new class extends Migration
             ) STORED
         ");
 
-        // Maksimal satu pembayaran PENDING per booking.
         DB::statement("
             CREATE UNIQUE INDEX uq_payment_pending_per_booking
             ON payment_transactions (pending_booking_id)

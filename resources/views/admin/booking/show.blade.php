@@ -11,33 +11,16 @@
         <div class="booking-detail-header">
 
             <div>
-                <div class="booking-breadcrumb">
-                    Kelola Pemesanan
-
-                    <span class="material-symbols-rounded">
-                        chevron_right
-                    </span>
-
-                    Detail Booking
-
-                    <span class="material-symbols-rounded">
-                        chevron_right
-                    </span>
-
-                    {{ $booking['booking_code'] }}
-                </div>
-
                 <h1>
                     Detail Pemesanan
                 </h1>
-
                 <p>
                     Informasi lengkap booking,
                     pembayaran, QR ticket, dan riwayat akses.
                 </p>
             </div>
 
-            <a href="{{ route('admin.pemesanan.index') }}" class="booking-btn booking-btn-secondary">
+            <a href="{{ route('admin.booking.pemesanan') }}" class="booking-btn booking-btn-secondary">
                 <span class="material-symbols-rounded">
                     arrow_back
                 </span>

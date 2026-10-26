@@ -66,7 +66,7 @@ body {
     padding: 0 24px;
     display: flex;
     align-items: center;
-    /* Kunci utamanya ada di sini: space-between akan otomatis 
+    /* Kunci utamanya ada di sini: space-between akan otomatis
        melempar Blok 1 ke kiri, Blok 2 ke tengah, dan Blok 3 ke kanan */
     justify-content: space-between;
 }
@@ -711,7 +711,7 @@ body {
     .form-buttons {
         flex-direction: column-reverse;
     }
-    
+
     .modal-buttons button,
     .form-buttons button {
         flex: none;

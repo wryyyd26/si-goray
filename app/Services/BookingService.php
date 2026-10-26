@@ -102,20 +102,44 @@ class BookingService
              * 4. CARI TARIF AKTIF
              * ==========================================
              *
-             * Backend mengambil tarif yang:
-             * - jenis pengunjung UMUM
-             * - aktif
-             * - sudah mulai berlaku
-             * - paling baru
+             * Booking REGULER memakai tarif umum (event_id NULL).
+             * Booking EVENT terlebih dahulu mencari tarif khusus event.
+             * Jika event lama belum memiliki tarif khusus, gunakan tarif umum
+             * sebagai fallback agar booking lama tetap dapat berjalan.
              */
-            $tariff = TariffReference::where(
-                'jenis_pengunjung',
-                'UMUM'
-            )
+            $tariffQuery = TariffReference::query()
+                ->where('jenis_pengunjung', 'UMUM')
                 ->where('aktif', true)
-                ->where('berlaku_mulai', '<=', today())
-                ->orderByDesc('berlaku_mulai')
-                ->first();
+                ->whereDate('berlaku_mulai', '<=', today());
+
+            if ($jenisBooking === 'EVENT') {
+                $scheduleForTariff = EventSchedule::query()->find(
+                    $data['event_schedule_id'] ?? null
+                );
+
+                if (!$scheduleForTariff) {
+                    throw new InvalidArgumentException(
+                        'Event schedule tidak ditemukan.'
+                    );
+                }
+
+                $tariff = (clone $tariffQuery)
+                    ->where('event_id', $scheduleForTariff->event_id)
+                    ->orderByDesc('berlaku_mulai')
+                    ->first();
+
+                if (!$tariff) {
+                    $tariff = (clone $tariffQuery)
+                        ->whereNull('event_id')
+                        ->orderByDesc('berlaku_mulai')
+                        ->first();
+                }
+            } else {
+                $tariff = (clone $tariffQuery)
+                    ->whereNull('event_id')
+                    ->orderByDesc('berlaku_mulai')
+                    ->first();
+            }
 
             if (!$tariff) {
                 throw new InvalidArgumentException(
@@ -163,6 +187,16 @@ class BookingService
                         'Regular slot tidak ditemukan.'
                     );
                 }
+
+	/*
+ * Tolak booking pada slot yang dinonaktifkan admin.
+ */
+if ($regularSlot->status !== 'active') {
+    throw new InvalidArgumentException(
+        'Slot reguler sedang tidak tersedia.'
+    );
+}
+
 
                 /*
                  * Cek kapasitas.

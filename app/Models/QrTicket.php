@@ -14,9 +14,11 @@ class QrTicket extends Model
     use HasFactory, HasUuids;
 
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     public $timestamps = false;
+
 
     protected $fillable = [
         'booking_id',
@@ -27,30 +29,64 @@ class QrTicket extends Model
         'waktu_expired',
     ];
 
+
     protected $casts = [
         'waktu_terbit' => 'datetime',
         'waktu_expired' => 'datetime',
     ];
 
+
+    /**
+     * QR milik sebuah booking.
+     */
     public function booking(): BelongsTo
     {
-        return $this->belongsTo(Booking::class);
+        return $this->belongsTo(
+            Booking::class
+        );
     }
 
-    // QR sebelumnya yang digantikan oleh QR ini (BR-7)
+
+    /**
+     * QR baru menyimpan referensi
+     * terhadap QR lama.
+     *
+     * Contoh:
+     * QR-002 regenerated_from QR-001
+     */
     public function regeneratedFrom(): BelongsTo
     {
-        return $this->belongsTo(QrTicket::class, 'regenerated_from_qr_id');
+        return $this->belongsTo(
+            QrTicket::class,
+            'regenerated_from_qr_id'
+        );
     }
 
-    // QR pengganti dari QR ini: paling banyak satu (ERD 0..1, dijaga uq_qr_regenerated_from)
+
+    /**
+     * QR lama memiliki satu QR pengganti.
+     *
+     * Contoh:
+     * QR-001 -> QR-002
+     */
     public function regeneratedTo(): HasOne
     {
-        return $this->hasOne(QrTicket::class, 'regenerated_from_qr_id');
+        return $this->hasOne(
+            QrTicket::class,
+            'regenerated_from_qr_id'
+        );
     }
 
+
+    /**
+     * Riwayat scan QR.
+     */
     public function accessLogs(): HasMany
     {
-        return $this->hasMany(AccessLog::class, 'qr_ticket_id');
+        return $this->hasMany(
+            AccessLog::class,
+            'qr_ticket_id'
+        );
     }
+    
 }

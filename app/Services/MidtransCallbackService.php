@@ -8,11 +8,16 @@ use App\Models\PaymentTransaction;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Midtrans\Config;
-use Midtrans\Transaction;
 use RuntimeException;
 
 class MidtransCallbackService
 {
+    
+    public function __construct(
+        private MidtransStatusGateway $gateway
+    ) {
+    }
+
     public function receive(array $payload): array
     {
         $required = [
@@ -85,7 +90,7 @@ class MidtransCallbackService
             false
         );
 
-        $gateway = Transaction::status($orderId);
+    $gateway = $this->gateway->getStatus($orderId);
 
         if (
             (string) ($gateway->order_id ?? '') !== $orderId

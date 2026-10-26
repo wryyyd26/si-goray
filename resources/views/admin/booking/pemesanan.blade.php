@@ -10,16 +10,7 @@
         {{-- HEADER --}}
         <div class="booking-page-header">
             <div>
-                <div class="booking-breadcrumb">
-                    Pemesanan
-                    <span class="material-symbols-rounded">
-                        chevron_right
-                    </span>
-                    Kelola Pemesanan
-                </div>
-
                 <h1>Kelola Pemesanan</h1>
-
                 <p>
                     Pantau seluruh booking reguler dan event,
                     pembayaran, tiket QR, serta riwayat akses.
@@ -89,7 +80,6 @@
                     </strong>
                 </div>
             </div>
-
         </div>
 
         {{-- FILTER --}}
@@ -103,13 +93,12 @@
                         </span>
                         Filter Pemesanan
                     </h3>
-
                     <p>
                         Gunakan filter untuk menemukan booking tertentu.
                     </p>
                 </div>
 
-                <a href="{{ route('admin.pemesanan.index') }}" class="booking-reset-btn">
+                <a href="{{ route('admin.booking.pemesanan') }}" class="booking-reset-btn">
                     <span class="material-symbols-rounded">
                         restart_alt
                     </span>
@@ -117,7 +106,7 @@
                 </a>
             </div>
 
-            <form method="GET" action="{{ route('admin.pemesanan.index') }}" class="booking-filter-form">
+            <form method="GET" action="{{ route('admin.booking.pemesanan') }}" class="booking-filter-form">
 
                 <div class="booking-filter-group search">
                     <label for="search">
@@ -397,13 +386,25 @@
 
                                 {{-- ACTION --}}
                                 <td>
-                                    <a href="{{ route('admin.payment.show', $booking['booking_code']) }}"
+                                    <a href="{{ route('admin.booking.show', $booking['booking_code']) }}"
                                         class="booking-action-btn">
                                         <span class="material-symbols-rounded">
                                             visibility
                                         </span>
                                         Detail
                                     </a>
+
+                                    {{-- Aksi Hapus --}}
+                                    <form action="" method="POST" class="booking-delete-form"
+                                        onsubmit="return confirm('Yakin ingin menghapus pesanan ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="booking-action-delete"
+                                            aria-label="Hapus Pesanan">
+                                            <span class="material-symbols-rounded">delete</span>
+                                            Hapus
+                                        </button>
+                                    </form>
                                 </td>
 
                             </tr>
@@ -411,7 +412,7 @@
                         @empty
 
                             <tr>
-                                <td colspan="8" class="booking-empty">
+                                <td colspan="9" class="booking-empty">
                                     <span class="material-symbols-rounded">
                                         search_off
                                     </span>
