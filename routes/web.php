@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use App\Models\Event;
 use Illuminate\Http\Request;
@@ -12,10 +12,10 @@ use App\Http\Controllers\Admin\RegularSlotController;
 |--------------------------------------------------------------------------
 */
 
+// ROUTE USER
 Route::get('/', function () {
     return view('home');
 })->name('home');
-
 
 Route::view('/events/detail', 'events.show')
     ->name('events.show');

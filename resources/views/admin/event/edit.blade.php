@@ -109,6 +109,24 @@
                         </div>
 
                         <div class="event-form-field">
+                            <label for="quota">Kuota Tiket <span>*</span></label>
+
+                            <input id="quota" name="quota" type="number"
+                                value="{{ old('quota', $event['quota'] ?? '') }}"
+                                min="{{ max(1, (int) ($event['sold'] ?? 0)) }}" step="1" required>
+
+                            <small>
+                                Kuota awal ditentukan otomatis oleh sistem.
+                                Admin dapat menyesuaikannya, tetapi tidak boleh
+                                lebih rendah daripada jumlah tiket yang sudah terjual.
+                            </small>
+
+                            @error('quota')
+                                <small class="event-field-error">{{ $message }}</small>
+                            @enderror
+                        </div>
+
+                        <div class="event-form-field">
                             <label for="tariff">Tarif Tiket (Rp) <span>*</span></label>
                             <input id="tariff" name="tariff" type="number"
                                 value="{{ old('tariff', $event['tariff']) }}" min="0" step="1000" required>

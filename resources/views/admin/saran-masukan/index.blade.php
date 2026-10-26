@@ -113,12 +113,29 @@
                                         {{ ucfirst($item['status']) }}
                                     </span>
                                 </td>
+
+                                {{-- 1. KOLOM AKSI PADA TABEL --}}
                                 <td>
-                                    <a href="{{ route('admin.saran-masukan.detail', $item['id']) }}"
-                                        class="sm-detail-link">
-                                        Detail
-                                        <span class="material-symbols-rounded">arrow_forward</span>
-                                    </a>
+                                    <div class="sm-action-group">
+                                        <a href="{{ route('admin.saran-masukan.detail', $item['id']) }}"
+                                            class="sm-action-btn sm-action-btn-detail">
+                                            <span>Detail</span>
+                                            <span class="material-symbols-rounded">arrow_forward</span>
+                                        </a>
+
+                                        {{-- Aksi Hapus --}}
+                                        <form action=""
+                                            method="POST" class="sm-delete-form"
+                                            onsubmit="return confirm('Yakin ingin menghapus pesan ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="sm-action-btn sm-action-btn-delete"
+                                                aria-label="Hapus Pesanan">
+                                                <span class="material-symbols-rounded">delete</span>
+                                                <span>Hapus</span>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

@@ -420,21 +420,21 @@ NOTIFICATION DROPDOWN - SI-GORAY ADMIN
 
 .notification-count {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    min-width: 14px;
-    height: 14px;
+    top: 3px;
+    right: 3px;
+    min-width: 15px;
+    height: 15px;
     padding: 0 3px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    border: 1.5px solid var(--card-bg);
+    border: 2px solid var(--card-bg);
     border-radius: 999px;
     background: var(--primary);
     color: #fff;
-    font-family: 'Inter', sans-serif;
-    font-size: 8px;
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
     font-weight: 700;
     line-height: 1;
     white-space: nowrap;
@@ -1340,20 +1340,130 @@ body.dark .badge-warning {
     font-size: 11px;
 }
 
-.regular-period-badge {
+/* =====================================================
+SEARCH TIKET REGULER
+===================================================== */
+
+.regular-search-form {
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 280px;
+}
+
+.regular-search-box {
+    height: 38px;
+    padding: 0 11px;
     display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 8px 11px;
+    gap: 8px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 9px;
+    background: var(--bg);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.regular-search-box:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.1);
+}
+
+.regular-search-icon {
+    font-size: 18px;
     color: var(--text-secondary);
-    background: var(--muted-bg);
+    flex-shrink: 0;
+}
+
+.regular-search-input {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
     font-size: 12px;
 }
 
-.regular-period-badge .material-symbols-rounded {
-    font-size: 17px;
+.regular-search-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+.regular-search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.regular-search-clear:hover {
+    color: var(--primary);
+}
+
+.regular-search-clear .material-symbols-rounded {
+    font-size: 16px;
+}
+
+/* =====================================================
+   REGULAR EMPTY STATE (PENCARIAN / DATA KOSONG)
+===================================================== */
+
+.regular-empty-cell {
+    padding: 0 !important;
+    background: var(--card-bg);
+}
+
+.regular-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 280px;
+    padding: 32px 20px;
+    text-align: center;
+}
+
+.reguler-empty-icon {
+    display: grid;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 16px;
+    background: rgb(215 25 32 / 9%);
+    color: var(--primary);
+}
+
+.regular-empty-state .material-symbols-rounded {
+    font-size: 29px;
+    line-height: 1;
+}
+
+.regular-empty-state strong {
+    display: block;
+    color: var(--text, #f8fafc);
+    font-size: 15px;
+    font-weight: 650;
+    margin-bottom: 4px;
+}
+
+.regular-empty-state p {
+    margin: 0;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 12px;
+    max-width: 320px;
+    line-height: 1.5;
+}
+
+body.dark .regular-empty-icon {
+    background: rgb(215 25 32 / 17%);
+    color: #ff777c;
 }
 
 /* =========================================================
@@ -1546,8 +1656,19 @@ body.dark .badge-warning {
 }
 
 /* =====================================================
-   ACTION BUTTON
+   ACTION BUTTON GROUP (ATUR & HAPUS)
 ===================================================== */
+
+.regular-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.regular-delete-form {
+    margin: 0;
+    display: inline-flex;
+}
 
 .regular-action-btn {
     display: inline-flex;
@@ -1557,9 +1678,10 @@ body.dark .badge-warning {
     padding: 7px 11px;
     border: 1px solid var(--border);
     border-radius: 7px;
-    background: var(--mute-bg);
+    background: var(--muted-bg);
     color: var(--text);
     cursor: pointer;
+    text-decoration: none;
     font-family: inherit;
     font-size: 11px;
     font-weight: 600;
@@ -1574,6 +1696,25 @@ body.dark .badge-warning {
 
 .regular-action-btn .material-symbols-rounded {
     font-size: 15px;
+}
+
+/* Tombol Hapus (Danger) */
+.regular-action-btn-danger {
+    color: #ff5964;
+    border-color: rgba(215, 25, 32, 0.28);
+    background: rgba(215, 25, 32, 0.08);
+}
+
+.regular-action-btn-danger:hover:not(:disabled) {
+    background: #d71920;
+    border-color: #d71920;
+    color: #ffffff;
+}
+
+.regular-action-btn-danger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
 }
 
 /* =====================================================
@@ -2242,6 +2383,15 @@ body.dark .regular-info-progress {
     .regular-info-progress {
         padding: 14px;
     }
+
+    .regular-table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .regular-search-form {
+        max-width: 100%;
+    }
 }
 
 /* NOTE */
@@ -2897,7 +3047,7 @@ body.dark .summary-icon-blue {
 
 .event-table {
     width: 100%;
-    min-width: 900px;
+    min-width: 1080px;
     border-collapse: separate;
     border-spacing: 0;
     text-align: left;
@@ -3098,6 +3248,112 @@ body.dark .summary-icon-blue {
 .event-action-link:hover {
     background: rgb(215 25 32 / 12%);
     color: var(--primary);
+}
+
+/* =========================================
+   INFORMASI KUOTA TIKET
+========================================= */
+
+.event-quota-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 90px;
+}
+
+.event-quota-info strong {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 750;
+    line-height: 1.5;
+}
+
+.event-quota-info span {
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+/* =========================================
+   AKSI EVENT: ATUR DAN HAPUS
+========================================= */
+
+.event-row-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 158px;
+}
+
+.event-delete-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.event-action-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    min-height: 34px;
+    padding: 7px 11px;
+
+    border: 1px solid rgb(220 38 38 / 24%);
+    border-radius: 8px;
+
+    background: rgb(220 38 38 / 6%);
+    color: var(--primary-dark);
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.event-action-delete .material-symbols-rounded {
+    font-size: 17px;
+    line-height: 1;
+}
+
+.event-action-delete:hover {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--card-bg);
+}
+
+.event-action-delete:active {
+    transform: scale(0.97);
+}
+
+.event-action-delete:focus-visible {
+    outline: 3px solid rgb(220 38 38 / 22%);
+    outline-offset: 2px;
+}
+
+/* Dark mode */
+
+body.dark .event-action-delete {
+    border-color: rgb(248 113 113 / 28%);
+    background: rgb(248 113 113 / 8%);
+    color: var(--primary);
+}
+
+body.dark .event-action-delete:hover {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: var(--card-bg);
 }
 
 /* ==================================================
@@ -3763,6 +4019,7 @@ body.dark .event-form-body input[type="number"] {
     border-color: var(--primary);
 }
 
+/* TOMBOL KEMBALI */
 .booking-btn {
     min-height: 38px;
     padding: 0 14px;
@@ -3838,7 +4095,7 @@ body.dark .event-form-body input[type="number"] {
 }
 
 .booking-table tbody tr:hover {
-    background: rgba(215, 25, 32, 0.025);
+    background: var(--bg);
 }
 
 .booking-code {
@@ -3965,37 +4222,76 @@ body.dark .event-form-body input[type="number"] {
     color: var(--text-secondary);
 }
 
+/* TOMBOL AKSI */
+.booking-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.booking-delete-form {
+    margin: 0;
+    display: inline-flex;
+}
+
 .booking-action-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 5px;
-    padding: 6px 9px;
+    padding: 7px 11px;
     border: 1px solid var(--border);
     border-radius: 7px;
-    color: var(--text-secondary);
-    font-size: 10px;
+    background: var(--muted-bg);
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+    font-size: 11px;
     font-weight: 600;
+    transition: 0.18s ease;
 }
 
 .booking-action-btn:hover {
+    background: var(--bg);
     border-color: var(--primary);
-    color: var(--primary);
+    transform: translateY(-1px);
 }
 
 .booking-action-btn .material-symbols-rounded {
     font-size: 15px;
 }
 
-.booking-empty {
-    height: 180px;
-    text-align: center !important;
+/* Tombol Hapus (Danger) */
+.booking-action-btn-delete {
+    color: #ff5964;
+    border-color: rgba(215, 25, 32, 0.28);
+    background: rgba(215, 25, 32, 0.08);
 }
 
-.booking-empty .material-symbols-rounded {
+.booking-action-btn-delete:hover:not(:disabled) {
+    background: #d71920;
+    border-color: #d71920;
+    color: #ffffff;
+}
+
+.booking-action-btn-delete:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* /* Fitur Pencarian */
+*/ .booking-empty .material-symbols-rounded {
     display: block;
     margin-bottom: 8px;
     color: var(--text-secondary);
     font-size: 30px;
+}
+
+.booking-empty {
+    height: 180px;
+    text-align: center !important;
 }
 
 .booking-empty strong,
@@ -4534,8 +4830,6 @@ PAYMENT PAGE
     gap: 24px;
     margin-bottom: 24px;
 }
-
-
 
 .payment-title {
     margin: 0;
@@ -5324,39 +5618,65 @@ TABLE
 }
 
 /* =========================================================
-   ACTION
+   ACTION DETAIL & HAPUS
 ========================================================= */
 
+.user-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.user-delete-form {
+    margin: 0;
+    display: inline-flex;
+}
+
 .user-action-btn {
-    width: 100px;
-    height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 5px;
+    padding: 7px 11px;
     border: 1px solid var(--border);
-    border-radius: 9px;
-    background: var(--bg);
-    color: var(--text-secondary);
+    border-radius: 7px;
+    background: var(--muted-bg);
+    color: var(--text);
+    cursor: pointer;
     text-decoration: none;
-    transition:
-        color 0.18s ease,
-        background 0.18s ease,
-        border-color 0.18s ease,
-        transform 0.18s ease;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    transition: 0.18s ease;
 }
 
 .user-action-btn:hover {
-    color: var(--primary);
-
-    background: rgba(215, 25, 32, 0.08);
-
-    border-color: rgba(215, 25, 32, 0.2);
-
+    background: var(--bg);
+    border-color: var(--primary);
     transform: translateY(-1px);
 }
 
 .user-action-btn .material-symbols-rounded {
     font-size: 19px;
+}
+
+/* Tombol Hapus (Danger) */
+.user-action-btn-danger {
+    color: #ff5964;
+    border-color: rgba(215, 25, 32, 0.28);
+    background: rgba(215, 25, 32, 0.08);
+}
+
+.user-action-btn-danger:hover:not(:disabled) {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+}
+
+.user-action-btn-danger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
 }
 
 /* =========================================================
@@ -6070,6 +6390,7 @@ DETAIL RESPONSIVE - MOBILE
 
 .report-summary-card:hover {
     transform: translateY(-2px);
+    border-color: var(--primary);
     box-shadow: 0 8px 20px rgba(23, 32, 51, 0.06);
 }
 
@@ -6193,7 +6514,7 @@ DETAIL RESPONSIVE - MOBILE
 }
 
 .report-table tbody tr:hover {
-    background: rgba(215, 25, 32, 0.025);
+    background: var(--bg);
 }
 
 .report-table tbody tr:last-child td {
@@ -6701,32 +7022,113 @@ DETAIL RESPONSIVE - MOBILE
     background: #e1f6e9;
 }
 
-/* Link detail dan kembali */
+/* =====================================================
+   TOMBOL KEMBALI (HALAMAN DETAIL)
+===================================================== */
 
-.sm-detail-link,
-.sm-back-link {
+.sm-back-wrapper {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    margin-bottom: 16px;
+}
+
+.sm-back {
+    min-height: 38px;
+    padding: 0 14px;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    color: var(--primary);
+    justify-content: center;
+    gap: 8px;
+    align-self: flex-start; /* Mencegah tombol tertarik ke tengah di dalam flex container */
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-family: inherit;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
 }
 
-.sm-detail-link:hover,
-.sm-back-link:hover {
-    text-decoration: underline;
-}
-
-.sm-detail-link .material-symbols-rounded,
-.sm-back-link .material-symbols-rounded {
+.sm-back .material-symbols-rounded {
     font-size: 17px;
+    transition: transform 0.18s ease;
 }
 
-.sm-back-link {
-    align-self: flex-start;
-    margin-bottom: -7px;
+.sm-back:hover {
+    color: var(--text);
+    border-color: var(--primary);
+    background: var(--bg);
+}
+
+.sm-back:hover .material-symbols-rounded {
+    transform: translateX(-3px);
+}
+
+/* =====================================================
+   KOLOM AKSI: TOMBOL DETAIL & HAPUS SEJAJAR
+===================================================== */
+
+.sm-action-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.sm-delete-form {
+    margin: 0;
+    display: inline-flex;
+}
+
+.sm-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 32px;
+    padding: 0 11px;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.sm-action-btn .material-symbols-rounded {
+    font-size: 15px;
+}
+
+/* Tombol Detail */
+.sm-action-btn-detail {
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+.sm-action-btn-detail:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+/* Tombol Hapus */
+.sm-action-btn-delete {
+    color: #ff5964;
+    background: rgba(215, 25, 32, 0.1);
+    border: 1px solid rgba(215, 25, 32, 0.28);
+}
+
+.sm-action-btn-delete:hover {
+    color: #ffffff;
+    background: #d71920;
+    border-color: #d71920;
+    transform: translateY(-1px);
 }
 
 /* Tampilan kosong */

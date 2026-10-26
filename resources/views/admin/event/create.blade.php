@@ -102,6 +102,24 @@
                             <small class="event-field-error">{{ $message }}</small>
                         @enderror
 
+                        {{-- Kuota Tiket --}}
+                        <div class="event-form-field">
+                            <label for="quota">Kuota Tiket <span>*</span></label>
+
+                            <input id="quota" name="quota" type="number" min="1" step="1"
+                                value="{{ old('quota', $defaultQuota ?? '') }}" placeholder="Masukkan kuota tiket"
+                                required>
+
+                            <small>
+                                Kuota awal diisi otomatis oleh sistem.
+                                Admin dapat menyesuaikannya sebelum event disimpan.
+                            </small>
+
+                            @error('quota')
+                                <small class="event-field-error">{{ $message }}</small>
+                            @enderror
+                        </div>
+
                         <div class="event-form-field">
                             <label for="tariff">Tarif Non-Warga (Rp)</label>
 

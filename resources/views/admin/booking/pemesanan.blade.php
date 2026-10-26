@@ -393,6 +393,18 @@
                                         </span>
                                         Detail
                                     </a>
+
+                                    {{-- Aksi Hapus --}}
+                                    <form action="" method="POST" class="booking-delete-form"
+                                        onsubmit="return confirm('Yakin ingin menghapus pesanan ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="booking-action-delete"
+                                            aria-label="Hapus Pesanan">
+                                            <span class="material-symbols-rounded">delete</span>
+                                            Hapus
+                                        </button>
+                                    </form>
                                 </td>
 
                             </tr>
@@ -400,7 +412,7 @@
                         @empty
 
                             <tr>
-                                <td colspan="8" class="booking-empty">
+                                <td colspan="9" class="booking-empty">
                                     <span class="material-symbols-rounded">
                                         search_off
                                     </span>
