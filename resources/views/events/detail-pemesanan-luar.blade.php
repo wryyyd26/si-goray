@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('content')
@@ -20,8 +19,7 @@
             <div class="booking-detail-event">
                 <img
                     src="{{ asset('storage/images/events/futsal.jpg') }}"
-                    alt="Poster Futsal"
-                >
+                    alt="Poster Futsal">
                 <div>
                     <h2>Futsal</h2>
                     <p>Pertandingan Antar Sekolah</p>
@@ -59,19 +57,22 @@
                 </div>
             </div>
 
+
             <div class="booking-detail-total">
                 <span>Total Harga Tiket</span>
                 <strong>Rp25.000</strong>
             </div>
 
             <p class="booking-detail-note">
-                Periksa kembali data pemesan sebelum melanjutkan.
+                Periksa kembali data pemesan sebelum melanjutkan ke pembayaran.
             </p>
 
-            <a href="{{ route('events.pesan-tiket-luar') }}"
-               class="booking-submit booking-detail-button">
-                Kembali ke Form
+            <a href="{{ route('pembayaran.luar-kota') }}"
+                class="booking-submit booking-detail-button">
+                Lanjut ke Pembayaran →
             </a>
+
+
         </div>
     </div>
 </main>

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PaymentCallbackController;
 use App\Http\Controllers\Api\GateAccessController;
 use App\Http\Controllers\Api\GateAuthController;
 use App\Http\Controllers\Api\RegularSlotCalendarController;
+use App\Http\Controllers\Api\EventController;   
 
 
 /*
@@ -114,6 +115,9 @@ Route::post(
     'auth:sanctum',
     'abilities:gate:scan',
 ]);
+
+Route::get('/events', [EventController::class, 'index'])
+    ->name('api.events.index');
 
 /*
 |--------------------------------------------------------------------------

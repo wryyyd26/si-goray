@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\RegularSlotController;
 
+
 /*
 |--------------------------------------------------------------------------
 | Frontend Pengunjung SI-GORAY
@@ -15,7 +16,7 @@ use App\Http\Controllers\Admin\RegularSlotController;
 // ROUTE USER
 Route::get('/', function () {
     return view('home');
-})->name('home');
+})->name('home');   
 
 Route::view('/events/detail', 'events.show')
     ->name('events.show');
@@ -71,110 +72,64 @@ Route::get('/event/futsal/detail-pemesanan-luar', function () {
 })->name('events.detail-luar');
 
 
+
 Route::get('/events', function (Request $request) {
     $search = trim((string) $request->query('q', ''));
 
-    $query = Event::query()
-        ->with([
-            'schedules' => function ($query) {
-                $query->whereDate('tanggal', '>=', today())
-                    ->orderBy('tanggal');
-            },
-        ])
-        ->where('status', 'AKTIF');
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(10)
+            ->get('http://192.168.37.242:8000/api/events', [
+                'q' => $search,
+            ]);
 
-    if ($search !== '') {
-        $query->where(function ($query) use ($search) {
-            $query->where('nama_event', 'like', "%{$search}%")
-                ->orWhere('deskripsi', 'like', "%{$search}%");
-        });
-    }
-
-    $events = $query
-        ->orderBy('nama_event')
-        ->get()
-        ->map(function ($event) {
-            $total = $event->schedules->sum('kapasitas');
-            $used = $event->schedules->sum('kuota_terpakai');
-
-            return [
-                'id' => $event->id,
-                'title' => $event->nama_event,
-                'description' => $event->deskripsi,
-                'image' => $event->gambar ?: 'images/events/futsal.jpg',
-                'category' => 'Event',
-                'remaining' => max(0, $total - $used),
-                'total' => $total,
-                'price' => 'Tarif sesuai ketentuan',
-            ];
-        });
-
-    return view('events', [
-        'events' => $events,
-        'selectedCategory' => 'Semua',
-        'search' => $search,
-    ]);
-})->name('events.index');
-   
-Route::get('/events', function (Request $request) {
-
-
-    $search = trim((string) $request->query('q', ''));
-
-    $query = Event::query()
-        ->with([
-            'schedules' => function ($query) {
-                $query->whereDate('tanggal', '>=', today())
-                    ->orderBy('tanggal');
-            },
-        ])
-        ->where('status', 'AKTIF');
-
-    if ($search !== '') {
-        $query->where(function ($query) use ($search) {
-            $query->where(
-                'nama_event',
-                'like',
-                "%{$search}%"
-            )->orWhere(
-                'deskripsi',
-                'like',
-                "%{$search}%"
+        if (!$response->successful()) {
+            throw new \RuntimeException(
+                'API event mengembalikan HTTP ' . $response->status()
             );
-        });
-    }
+        }
 
-    $events = $query
-        ->orderBy('nama_event')
-        ->get()
-        ->map(function ($event) {
+        $payload = $response->json();
 
-            $total = $event->schedules->sum('kapasitas');
-
-            $used = $event->schedules->sum(
-                'kuota_terpakai'
+        if (
+            !is_array($payload) ||
+            !($payload['success'] ?? false)
+        ) {
+            throw new \RuntimeException(
+                'Format respons API event tidak sesuai.'
             );
+        }
 
-            return [
-                'id' => $event->id,
-                'title' => $event->nama_event,
-                'description' => $event->deskripsi,
-                'image' => $event->gambar
-                    ?: 'images/events/futsal.jpg',
-                'category' => 'Event',
-                'remaining' => max(0, $total - $used),
-                'total' => $total,
-                'price' => 'Tarif sesuai ketentuan',
-            ];
-        });
+        $events = collect($payload['data'] ?? [])
+            ->map(function ($event) {
+                return [
+                    'id' => $event['id'] ?? '',
+                    'title' => $event['title'] ?? 'Event',
+                    'description' => $event['description'] ?? '',
+                    'image' => $event['image_url']
+                        ?? $event['image']
+                        ?? 'images/events/futsal.jpg',
+                    'category' => $event['category'] ?? 'Event',
+                    'remaining' => (int) ($event['remaining'] ?? 0),
+                    'total' => (int) ($event['total'] ?? 0),
+                    'price' => (float) ($event['price'] ?? 0),
+                ];
+            });
 
-    return view('events', [
-        'events' => $events,
-        'selectedCategory' => 'Semua',
-        'search' => $search,
-    ]);
+        return view('events', [
+            'events' => $events,
+            'selectedCategory' => 'Semua',
+            'search' => $search,
+        ]);
+   } catch (\Throwable $exception) {
+    report($exception);
 
+    return response(
+        'Penyebab error: ' . $exception->getMessage(),
+        503
+    );
+}
 })->name('events.index');
+
 
 Route::get('/about', function () {
     return view('about');
@@ -183,6 +138,88 @@ Route::get('/about', function () {
 Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
+
+// PEMBAYARAN WARGA LUAR KOTA
+
+Route::get('/pembayaran/luar-kota', function () {
+    $detail = session('detail_pemesanan', []);
+
+    if (empty($detail)) {
+        return redirect()->route('events.pesan-tiket-luar');
+    }
+
+    $subtotal = 25000;
+    $biayaLayanan = 1000;
+    $total = $subtotal + $biayaLayanan;
+
+    return view('pembayaran', [
+        'detail' => $detail,
+        'subtotal' => $subtotal,
+        'biayaLayanan' => $biayaLayanan,
+        'total' => $total,
+        'jenisPemesan' => 'luar-kota',
+    ]);
+})->name('pembayaran.luar-kota');
+
+
+
+// PEMBAYARAN WARGA DALAM KOTA
+Route::get('/pembayaran/warga-kota', function () {
+    $detail = session('detail_pemesanan', []);
+
+    if (empty($detail)) {
+        return redirect()->route('events.pesan-tiket')
+            ->with('error', 'Silakan lengkapi data pemesanan terlebih dahulu.');
+    }
+
+    $subtotal = (float) ($detail['subtotal']
+        ?? $detail['total_pembayaran']
+        ?? $detail['total_harga']
+        ?? 0);
+
+    $biayaLayanan = (float) ($detail['biaya_layanan'] ?? 0);
+    $total = (float) ($detail['total_pembayaran']
+        ?? ($subtotal + $biayaLayanan));
+
+    return view('pembayaran', [
+        'detail' => $detail,
+        'subtotal' => $subtotal,
+        'biayaLayanan' => $biayaLayanan,
+        'total' => $total,
+        'jenisPemesan' => 'warga-kota',
+    ]);
+})->name('pembayaran.show');
+
+
+// KONFIRMASI PEMBAYARAN SEMENTARA
+Route::post('/pembayaran/konfirmasi', function (Request $request) {
+    $detail = session('detail_pemesanan', []);
+
+    if (empty($detail)) {
+        return redirect()->route('events.pesan-tiket');
+    }
+
+    $jenisPemesan = $request->input('jenis_pemesan', 'warga-kota');
+
+    $total = $jenisPemesan === 'luar-kota'
+        ? 26000
+        : (float) ($detail['total_pembayaran']
+            ?? $detail['total_harga']
+            ?? 0);
+
+    if ($total > 0) {
+        return back()->with(
+            'error',
+            'Pembayaran belum dapat dikonfirmasi otomatis. Integrasi payment gateway diperlukan.'
+        );
+    }
+
+    return back()->with(
+        'success',
+        'Pemesanan gratis siap diproses melalui backend.'
+    );
+})->name('pembayaran.konfirmasi');
+
 
 
 /*
@@ -299,6 +336,11 @@ Route::put(
         return redirect()->route('admin.events.index');
     })->name('saran-masukan.index');
 
+ /*
+    |--------------------------------------------------------------------------
+    | event.api
+    |--------------------------------------------------------------------------
+    */
 
     /*
     |--------------------------------------------------------------------------
