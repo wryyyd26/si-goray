@@ -77,7 +77,6 @@ Route::get('/events', function (Request $request) {
         'selectedCategory' => 'Semua',
         'search' => $search,
     ]);
-
 })->name('events.index');
 
 Route::get('/about', function () {
@@ -108,9 +107,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
     })->name('dashboard');
 
     Route::post('/reguler', [
-    RegularSlotController::class,
-    'store',
-])->name('reguler.store');
+        RegularSlotController::class,
+        'store',
+    ])->name('reguler.store');
 
 
     /*
@@ -132,30 +131,30 @@ Route::prefix('admin')->name('admin.')->group(function () {
         RegularSlotController::class,
         'edit',
     ])->where('date', '\d{4}-\d{2}-\d{2}')
-      ->name('reguler.edit');
+        ->name('reguler.edit');
 
     Route::put('/reguler/{date}', [
         RegularSlotController::class,
         'update',
     ])->where('date', '\d{4}-\d{2}-\d{2}')
-      ->name('reguler.update');
+        ->name('reguler.update');
 
 
-// Edit satu slot reguler berdasarkan UUID.
-Route::get(
-    '/reguler/slots/{slotId}/edit',
-    [RegularSlotController::class, 'editById']
-)
-    ->whereUuid('slotId')
-    ->name('reguler.slots.edit');
+    // Edit satu slot reguler berdasarkan UUID.
+    Route::get(
+        '/reguler/slots/{slotId}/edit',
+        [RegularSlotController::class, 'editById']
+    )
+        ->whereUuid('slotId')
+        ->name('reguler.slots.edit');
 
-// Simpan perubahan satu slot reguler berdasarkan UUID.
-Route::put(
-    '/reguler/slots/{slotId}',
-    [RegularSlotController::class, 'updateById']
-)
-    ->whereUuid('slotId')
-    ->name('reguler.slots.update');
+    // Simpan perubahan satu slot reguler berdasarkan UUID.
+    Route::put(
+        '/reguler/slots/{slotId}',
+        [RegularSlotController::class, 'updateById']
+    )
+        ->whereUuid('slotId')
+        ->name('reguler.slots.update');
 
 
     /*
@@ -245,5 +244,4 @@ Route::put(
         AdminEventController::class,
         'update',
     ])->name('events.update');
-
 });
