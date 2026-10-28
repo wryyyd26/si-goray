@@ -1,0 +1,259 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PaymentCallbackController;
+use App\Http\Controllers\Api\GateAccessController;
+use App\Http\Controllers\Api\GateAuthController;
+use App\Http\Controllers\Api\PengunjungAuthController;
+use App\Http\Controllers\Api\RegularSlotCalendarController;
+
+/*
+|--------------------------------------------------------------------------
+| API SI-GORAY
+|--------------------------------------------------------------------------
+|
+| Endpoint API untuk:
+| 1. Pemeriksaan API
+| 2. Booking pengunjung
+| 3. Pembayaran Midtrans
+| 4. Autentikasi pengunjung
+| 5. Autentikasi petugas gerbang
+| 6. Penerbitan dan regenerasi QR Ticket
+| 7. Pemindaian QR di gerbang
+| 8. Kalender slot reguler
+|
+*/
+
+
+/*
+|--------------------------------------------------------------------------
+| 1. Pemeriksaan API
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/test', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'API SI-GORAY aktif.',
+    ]);
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| 2. Booking Pengunjung
+|--------------------------------------------------------------------------
+|
+| Pembuatan booking hanya untuk pengguna terautentikasi
+| dengan kemampuan booking:create.
+|
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:create',
+])->post(
+    '/bookings',
+    [BookingController::class, 'store']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 3. Riwayat Booking
+|--------------------------------------------------------------------------
+|
+| Pengguna hanya boleh membaca riwayat booking miliknya.
+| Pemeriksaan kepemilikan dilakukan oleh controller/service.
+|
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->get(
+    '/bookings/history',
+    [BookingController::class, 'history']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 4. Pembayaran Booking
+|--------------------------------------------------------------------------
+|
+| Pembayaran harus dilakukan oleh pengguna terautentikasi.
+| PaymentController juga memeriksa kepemilikan booking
+| dan status booking sebelum membuat transaksi.
+|
+*/
+
+Route::middleware([
+    'auth:sanctum',
+])->post(
+    '/bookings/{booking}/payment',
+    [PaymentController::class, 'store']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 5. QR Ticket Pengunjung
+|--------------------------------------------------------------------------
+|
+| Pengguna harus terautentikasi dan mempunyai izin
+| booking:read.
+|
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->post(
+    '/bookings/{booking}/qr-ticket',
+    [BookingController::class, 'qrTicket']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 6. Regenerasi QR Ticket
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->post(
+    '/bookings/{booking}/qr-ticket/regenerate',
+    [BookingController::class, 'regenerateQrTicket']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 7. Callback Pembayaran Midtrans
+|--------------------------------------------------------------------------
+|
+| PENTING:
+| Callback dipanggil oleh server Midtrans, bukan browser
+| pengunjung yang memiliki token Sanctum.
+|
+| Jangan masukkan route ini ke dalam grup:
+| - auth:sanctum
+| - abilities:booking:read
+|
+| Keaslian notifikasi tetap wajib diverifikasi oleh
+| PaymentCallbackController dan MidtransCallbackService.
+|
+*/
+
+Route::post(
+    '/payments/callback',
+    [PaymentCallbackController::class, 'receive']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 8. Autentikasi Pengunjung
+|--------------------------------------------------------------------------
+|
+| Request OTP dan verifikasi OTP tidak memerlukan token
+| yang sudah terautentikasi.
+|
+*/
+
+Route::post(
+    '/pengunjung/auth/request-otp',
+    [PengunjungAuthController::class, 'requestOtp']
+);
+
+Route::post(
+    '/pengunjung/auth/verify-otp',
+    [PengunjungAuthController::class, 'verifyOtp']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 9. Logout Pengunjung
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->post(
+    '/pengunjung/auth/logout',
+    [PengunjungAuthController::class, 'logout']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 10. Autentikasi Petugas Gerbang
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/gate/auth/request-otp',
+    [GateAuthController::class, 'requestOtp']
+)->middleware('throttle:3,1');
+
+Route::post(
+    '/gate/auth/verify-otp',
+    [GateAuthController::class, 'verifyOtp']
+)->middleware('throttle:5,1');
+
+
+/*
+|--------------------------------------------------------------------------
+| 11. Logout Petugas Gerbang
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:gate:scan',
+])->post(
+    '/gate/auth/logout',
+    [GateAuthController::class, 'logout']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 12. Pemindaian QR di Gerbang
+|--------------------------------------------------------------------------
+|
+| Hanya petugas dengan token yang mempunyai kemampuan
+| gate:scan yang dapat mengakses endpoint ini.
+|
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:gate:scan',
+])->post(
+    '/gate/scan',
+    [GateAccessController::class, 'scan']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 13. Kalender Slot Reguler
+|--------------------------------------------------------------------------
+|
+| Endpoint publik untuk membaca ketersediaan slot reguler.
+|
+*/
+
+Route::get(
+    '/reguler/slots',
+    [RegularSlotCalendarController::class, 'index']
+)->name('api.reguler.slots');

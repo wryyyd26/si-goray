@@ -7,6 +7,7 @@ use App\Models\EventSchedule;
 use App\Models\Identity;
 use App\Models\RegularSlot;
 use App\Models\TariffReference;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -17,37 +18,39 @@ class BookingService
      *
      * Proses:
      * 1. Validasi jenis booking.
-     * 2. Validasi identity dan kepemilikan identity.
+     * 2. Validasi identity dan kepemilikannya.
      * 3. Menentukan status warga/non-warga.
      * 4. Menentukan tarif aktif.
-     * 5. Menentukan retribusi secara backend.
-     * 6. Validasi jadwal sesuai jenis booking.
-     * 7. Mengunci slot/jadwal dengan lockForUpdate().
-     * 8. Mengecek kapasitas.
+     * 5. Menentukan retribusi dari backend.
+     * 6. Memvalidasi jadwal sesuai jenis booking.
+     * 7. Mengunci slot atau jadwal.
+     * 8. Memeriksa kapasitas.
      * 9. Membuat booking.
-     * 10. Menambah kuota_terpakai.
+     * 10. Memperbarui kuota terpakai.
      */
     public function createBooking(array $data): Booking
     {
         return DB::transaction(function () use ($data) {
 
             /*
-             * ==========================================
              * 1. VALIDASI JENIS BOOKING
-             * ==========================================
              */
-            $jenisBooking = strtoupper($data['jenis_booking'] ?? '');
+            $jenisBooking = strtoupper(
+                $data['jenis_booking'] ?? ''
+            );
 
-            if (!in_array($jenisBooking, ['REGULER', 'EVENT'], true)) {
+            if (!in_array(
+                $jenisBooking,
+                ['REGULER', 'EVENT'],
+                true
+            )) {
                 throw new InvalidArgumentException(
                     'Jenis booking harus REGULER atau EVENT.'
                 );
             }
 
             /*
-             * ==========================================
-             * 2. VALIDASI IDENTITY
-             * ==========================================
+             * 2. VALIDASI IDENTITY DAN USER
              */
             if (empty($data['identity_id'])) {
                 throw new InvalidArgumentException(
@@ -65,7 +68,8 @@ class BookingService
              * Identity harus benar-benar milik user
              * yang membuat booking.
              */
-            $identity = Identity::where('id', $data['identity_id'])
+            $identity = Identity::query()
+                ->where('id', $data['identity_id'])
                 ->where('user_id', $data['user_id'])
                 ->first();
 
@@ -76,7 +80,7 @@ class BookingService
             }
 
             /*
-             * Identity harus sudah divalidasi.
+             * Status warga harus sudah ditentukan.
              */
             if ($identity->status_warga_kota === null) {
                 throw new InvalidArgumentException(
@@ -85,26 +89,22 @@ class BookingService
             }
 
             /*
-             * ==========================================
              * 3. TENTUKAN RETRIBUSI
-             * ==========================================
              *
-             * true  = Non-Warga Kota
-             * false = Warga Kota
+             * Warga kota     = tidak memerlukan retribusi.
+             * Non-warga kota = memerlukan retribusi.
              *
-             * Nilai ini TIDAK diambil dari frontend.
+             * Nilai tidak diambil dari frontend.
              */
-            $retribusiDiperlukan = !$identity->status_warga_kota;
+            $retribusiDiperlukan =
+                !$identity->status_warga_kota;
 
             /*
-             * ==========================================
              * 4. CARI TARIF AKTIF
-             * ==========================================
              *
-             * Booking REGULER memakai tarif umum (event_id NULL).
-             * Booking EVENT terlebih dahulu mencari tarif khusus event.
-             * Jika event lama belum memiliki tarif khusus, gunakan tarif umum
-             * sebagai fallback agar booking lama tetap dapat berjalan.
+             * Booking REGULER menggunakan tarif umum.
+             * Booking EVENT mencari tarif khusus event,
+             * kemudian menggunakan tarif umum sebagai fallback.
              */
             $tariffQuery = TariffReference::query()
                 ->where('jenis_pengunjung', 'UMUM')
@@ -112,9 +112,9 @@ class BookingService
                 ->whereDate('berlaku_mulai', '<=', today());
 
             if ($jenisBooking === 'EVENT') {
-                $scheduleForTariff = EventSchedule::query()->find(
-                    $data['event_schedule_id'] ?? null
-                );
+
+                $scheduleForTariff = EventSchedule::query()
+                    ->find($data['event_schedule_id'] ?? null);
 
                 if (!$scheduleForTariff) {
                     throw new InvalidArgumentException(
@@ -123,7 +123,10 @@ class BookingService
                 }
 
                 $tariff = (clone $tariffQuery)
-                    ->where('event_id', $scheduleForTariff->event_id)
+                    ->where(
+                        'event_id',
+                        $scheduleForTariff->event_id
+                    )
                     ->orderByDesc('berlaku_mulai')
                     ->first();
 
@@ -153,9 +156,7 @@ class BookingService
             $eventSchedule = null;
 
             /*
-             * ==========================================
              * 5. BOOKING REGULER
-             * ==========================================
              */
             if ($jenisBooking === 'REGULER') {
 
@@ -172,12 +173,11 @@ class BookingService
                 }
 
                 /*
-                 * Ambil slot dan kunci row.
+                 * Kunci slot agar pemeriksaan kuota
+                 * dan pembuatan booking berlangsung konsisten.
                  */
-                $regularSlot = RegularSlot::where(
-                    'id',
-                    $data['regular_slot_id']
-                )
+                $regularSlot = RegularSlot::query()
+                    ->where('id', $data['regular_slot_id'])
                     ->lockForUpdate()
                     ->first();
 
@@ -187,18 +187,17 @@ class BookingService
                     );
                 }
 
-	/*
- * Tolak booking pada slot yang dinonaktifkan admin.
- */
-if ($regularSlot->status !== 'active') {
-    throw new InvalidArgumentException(
-        'Slot reguler sedang tidak tersedia.'
-    );
-}
-
+                /*
+                 * Slot yang dinonaktifkan admin tidak dapat dipesan.
+                 */
+                if ($regularSlot->status !== 'active') {
+                    throw new InvalidArgumentException(
+                        'Slot reguler sedang tidak tersedia.'
+                    );
+                }
 
                 /*
-                 * Cek kapasitas.
+                 * Periksa kapasitas slot.
                  */
                 if (
                     $regularSlot->kuota_terpakai
@@ -211,9 +210,7 @@ if ($regularSlot->status !== 'active') {
             }
 
             /*
-             * ==========================================
              * 6. BOOKING EVENT
-             * ==========================================
              */
             else {
 
@@ -230,12 +227,10 @@ if ($regularSlot->status !== 'active') {
                 }
 
                 /*
-                 * Ambil jadwal EVENT dan kunci row.
+                 * Kunci jadwal event sebelum memeriksa kuota.
                  */
-                $eventSchedule = EventSchedule::where(
-                    'id',
-                    $data['event_schedule_id']
-                )
+                $eventSchedule = EventSchedule::query()
+                    ->where('id', $data['event_schedule_id'])
                     ->lockForUpdate()
                     ->first();
 
@@ -246,7 +241,7 @@ if ($regularSlot->status !== 'active') {
                 }
 
                 /*
-                 * Cek kapasitas.
+                 * Periksa kapasitas event.
                  */
                 if (
                     $eventSchedule->kuota_terpakai
@@ -259,68 +254,62 @@ if ($regularSlot->status !== 'active') {
             }
 
             /*
-             * ==========================================
              * 7. BUAT BOOKING
-             * ==========================================
              *
              * tariff_id dan retribusi_diperlukan
-             * berasal dari backend.
-             *
-             * Frontend tidak menentukan keduanya.
+             * ditentukan oleh backend.
              */
             $booking = Booking::create([
                 'user_id' => $data['user_id'],
-
                 'identity_id' => $identity->id,
-
                 'jenis_booking' => $jenisBooking,
-
                 'regular_slot_id' => $regularSlot?->id,
-
                 'event_schedule_id' => $eventSchedule?->id,
-
                 'tariff_id' => $tariff->id,
-
                 'retribusi_diperlukan' => $retribusiDiperlukan,
-
                 'status_booking' => 'DRAFT',
             ]);
 
             /*
-             * ==========================================
              * 8. TAMBAH KUOTA TERPAKAI
-             * ==========================================
              */
             if ($regularSlot) {
-
                 $regularSlot->increment('kuota_terpakai');
-
             } elseif ($eventSchedule) {
-
                 $eventSchedule->increment('kuota_terpakai');
             }
 
             /*
-             * Semua berhasil → COMMIT.
-             * Jika terjadi error → ROLLBACK.
+             * Transaksi di-commit jika seluruh proses berhasil.
+             * Jika terjadi exception, transaksi di-rollback.
              */
             return $booking;
         });
     }
 
     /**
-     * Mengambil riwayat booking milik user.
+     * Mengambil riwayat booking milik pengguna.
      *
-     * Untuk sementara user_id dikirim dari request.
-     * Setelah authentication selesai,
-     * user_id akan diambil dari user yang sedang login.
+     * Hanya booking dengan user_id yang sesuai
+     * yang akan dikembalikan.
+     *
+     * Relasi yang dimuat:
+     * - regularSlot
+     * - eventSchedule.event
+     * - activeQrTicket
+     *
+     * Method ini hanya mengambil data.
+     * Penerbitan QR tetap dilakukan melalui alur QR Ticket.
      */
-    public function getBookingHistory(string $userId)
-    {
-        return Booking::with([
-            'regularSlot',
-            'eventSchedule.event',
-        ])
+    public function getBookingHistory(
+        string $userId
+    ): Collection {
+        return Booking::query()
+            ->with([
+                'regularSlot',
+                'eventSchedule.event',
+                'activeQrTicket:id,booking_id,payload_signed,status_qr,regenerated_from_qr_id,waktu_terbit,waktu_expired',
+            ])
             ->where('user_id', $userId)
             ->latest('created_at')
             ->get();

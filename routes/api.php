@@ -1,34 +1,34 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\BookingController;
-use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\PaymentCallbackController;
 use App\Http\Controllers\Api\GateAccessController;
 use App\Http\Controllers\Api\GateAuthController;
+use App\Http\Controllers\Api\PaymentCallbackController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PengunjungAuthController;
 use App\Http\Controllers\Api\RegularSlotCalendarController;
-
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\EventController;
 
 /*
 |--------------------------------------------------------------------------
 | API SI-GORAY
 |--------------------------------------------------------------------------
 |
-| API Sistem Registrasi dan Akses GOR Kota Mojokerto.
-|
-| Modul:
-| 1. Testing API
-| 2. Booking Pengunjung
+| Endpoint:
+| 1. Pemeriksaan API
+| 2. Booking pengunjung
 | 3. Pembayaran Midtrans
-| 4. Autentikasi Petugas Gerbang
+| 4. Autentikasi petugas gerbang
 | 5. Scan QR Ticket
+| 6. Autentikasi pengunjung
+| 7. Kalender slot reguler
 |
 */
 
 /*
 |--------------------------------------------------------------------------
-| 1. Testing API
+| 1. Pemeriksaan API
 |--------------------------------------------------------------------------
 */
 
@@ -41,14 +41,27 @@ Route::get('/test', function () {
 
 /*
 |--------------------------------------------------------------------------
-| 2. Booking Pengunjung
+| Event Publik
 |--------------------------------------------------------------------------
-|
-| Booking hanya dapat dilakukan oleh pengguna
-| yang sudah terautentikasi menggunakan Sanctum.
-|
 */
 
+Route::get('/events', [
+    EventController::class,
+    'index',
+])->name('api.events.index');
+
+Route::get('/events/{event}', [
+    EventController::class,
+    'show',
+])->name('api.events.show');
+
+/*
+|--------------------------------------------------------------------------
+| 2. Booking Pengunjung
+|--------------------------------------------------------------------------
+*/
+
+// Membuat booking.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:create',
@@ -57,6 +70,7 @@ Route::middleware([
     [BookingController::class, 'store']
 );
 
+// Mengambil riwayat booking milik pengguna.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:read',
@@ -65,22 +79,42 @@ Route::middleware([
     [BookingController::class, 'history']
 );
 
+// Mengambil atau menerbitkan QR Ticket booking.
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->post(
+    '/bookings/{booking}/qr-ticket',
+    [BookingController::class, 'qrTicket']
+);
+
+ // Meregenerasi QR Ticket booking.
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->post(
+    '/bookings/{booking}/qr-ticket/regenerate',
+    [BookingController::class, 'regenerateQrTicket']
+);
+
 /*
 |--------------------------------------------------------------------------
 | 3. Pembayaran Midtrans
 |--------------------------------------------------------------------------
-|
-| Pembayaran dilakukan berdasarkan booking.
-| Callback Midtrans tetap bersifat publik,
-| tetapi signature diverifikasi oleh backend.
-|
 */
 
-Route::middleware('auth:sanctum')->post(
+// Membuat transaksi pembayaran untuk booking milik pengguna.
+Route::middleware([
+    'auth:sanctum',
+])->post(
     '/bookings/{booking}/payment',
     [PaymentController::class, 'store']
 );
 
+// Callback Midtrans.
+// Tidak menggunakan auth:sanctum karena dipanggil oleh gateway.
+// Validasi signature dan status gateway tetap dilakukan
+// oleh PaymentCallbackController dan service terkait.
 Route::post(
     '/payments/callback',
     [PaymentCallbackController::class, 'receive']
@@ -90,41 +124,35 @@ Route::post(
 |--------------------------------------------------------------------------
 | 4. Autentikasi Petugas Gerbang
 |--------------------------------------------------------------------------
-|
-| Login petugas menggunakan OTP.
-| Permintaan OTP dan verifikasi OTP
-| dibatasi menggunakan throttle.
-|
 */
 
-Route::post(
+// Meminta OTP petugas.
+Route::middleware([
+    'throttle:3,1',
+])->post(
     '/gate/auth/request-otp',
     [GateAuthController::class, 'requestOtp']
-)->middleware('throttle:3,1');
+);
 
-Route::post(
+// Memverifikasi OTP petugas.
+Route::middleware([
+    'throttle:5,1',
+])->post(
     '/gate/auth/verify-otp',
     [GateAuthController::class, 'verifyOtp']
-)->middleware('throttle:5,1');
+);
 
-Route::post(
-    '/gate/auth/logout',
-    [GateAuthController::class, 'logout']
-)->middleware([
+// Logout petugas dengan token yang memiliki izin scan.
+Route::middleware([
     'auth:sanctum',
     'abilities:gate:scan',
-]);
+])->post(
+    '/gate/auth/logout',
+    [GateAuthController::class, 'logout']
+);
 
-/*
-|--------------------------------------------------------------------------
-| 5. Gate Access - QR Scanner
-|--------------------------------------------------------------------------
-|
-| Endpoint hanya dapat diakses petugas
-| dengan token yang memiliki kemampuan gate:scan.
-|
-*/
-
+// Memindai QR Ticket.
+// Autentikasi dan kemampuan gate:scan wajib diperiksa.
 Route::middleware([
     'auth:sanctum',
     'abilities:gate:scan',
@@ -132,19 +160,41 @@ Route::middleware([
     '/gate/scan',
     [GateAccessController::class, 'scan']
 );
-/* Login / registrasi pengunjung menggunakan OTP email. */
-Route::post('/pengunjung/auth/request-otp',
-    [\App\Http\Controllers\Api\PengunjungAuthController::class, 'requestOtp']
-)->middleware('throttle:3,1');
 
-Route::post('/pengunjung/auth/verify-otp',
-    [\App\Http\Controllers\Api\PengunjungAuthController::class, 'verifyOtp']
-)->middleware('throttle:5,1');
+/*
+|--------------------------------------------------------------------------
+| 5. Autentikasi Pengunjung
+|--------------------------------------------------------------------------
+*/
 
-Route::post('/pengunjung/auth/logout',
-    [\App\Http\Controllers\Api\PengunjungAuthController::class, 'logout']
-)->middleware(['auth:sanctum', 'abilities:booking:read']);
+// Meminta OTP pengunjung.
+Route::post(
+    '/pengunjung/auth/request-otp',
+    [PengunjungAuthController::class, 'requestOtp']
+);
 
+// Memverifikasi OTP pengunjung.
+Route::post(
+    '/pengunjung/auth/verify-otp',
+    [PengunjungAuthController::class, 'verifyOtp']
+);
+
+// Logout pengunjung yang sudah terautentikasi.
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->post(
+    '/pengunjung/auth/logout',
+    [PengunjungAuthController::class, 'logout']
+);
+
+/*
+|--------------------------------------------------------------------------
+| 6. Kalender Slot Reguler
+|--------------------------------------------------------------------------
+*/
+
+// Menampilkan ketersediaan slot reguler.
 Route::get(
     '/reguler/slots',
     [RegularSlotCalendarController::class, 'index']
