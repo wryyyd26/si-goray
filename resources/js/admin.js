@@ -1,5 +1,5 @@
 /* =====================================================
-   SIDEBAR
+SIDEBAR
 ===================================================== */
 const sidebar = document.getElementById("sidebar");
 const sidebarToggle = document.getElementById("sidebarToggle");
@@ -196,113 +196,279 @@ if (themeToggle) {
 }
 
 /* =====================================================
-   REGULAR / SLOT HARIAN MODAL
+TIKET REGULER MODAL ATUR SLOT 
 ===================================================== */
+document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById("regularSlotModal");
+    const openButton = document.getElementById("openRegularModal");
+    const closeButton = document.getElementById("closeRegularModal");
+    const cancelButton = document.getElementById("cancelRegularModal");
 
-const regularModal = document.getElementById("regularModal");
-const regularModalForm = document.getElementById("regularModalForm");
-const regularModalDate = document.getElementById("regularModalDate");
-const regularQuota = document.getElementById("regularQuota");
-const regularUsedInfo = document.getElementById("regularUsedInfo");
+    if (!modal) return;
 
-const statusActive = document.getElementById("statusActive");
-const statusInactive = document.getElementById("statusInactive");
+    const openModal = () => {
+        modal.classList.add("is-visible");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("regular-modal-open");
+    };
 
-function openRegularModal(button) {
-    if (!regularModal) return;
+    const closeModal = () => {
+        modal.classList.remove("is-visible");
+        modal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("regular-modal-open");
+    };
 
-    const date = button.dataset.date;
-    const dateLabel = button.dataset.dateLabel;
-    const quota = button.dataset.quota;
-    const used = button.dataset.used;
-    const status = button.dataset.status;
+    openButton?.addEventListener("click", openModal);
+    closeButton?.addEventListener("click", closeModal);
+    cancelButton?.addEventListener("click", closeModal);
 
-    /*
-     * Isi data ke modal
-     */
+    modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
 
-    regularModalDate.textContent = dateLabel;
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && modal.classList.contains("is-visible")) {
+            closeModal();
+        }
+    });
 
-    regularQuota.value = quota;
-
-    regularUsedInfo.textContent = `Sudah terpakai: ${Number(used).toLocaleString("id-ID")} pengguna`;
-
-    /*
-     * Tentukan status
-     */
-
-    if (status === "active") {
-        statusActive.checked = true;
-    } else {
-        statusInactive.checked = true;
+    // Kunci scroll halaman ketika modal terbuka.
+    if (modal.classList.contains("is-visible")) {
+        document.body.classList.add("regular-modal-open");
     }
+});
 
-    /*
-     * Tentukan action form
-     */
+// MEMBUKA DAN MENUTUP POP UP DETAIL EVENT
+document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById("eventDetailModal");
 
-    regularModalForm.action = `/admin/reguler/${date}`;
+    if (!modal) return;
 
-    /*
-     * Tampilkan modal
-     */
+    const modalDate = document.getElementById("eventModalDate");
+    const modalBody = document.getElementById("eventModalBody");
+    const closeButtons = modal.querySelectorAll("[data-close-event-modal]");
 
-    regularModal.classList.add("show");
+    const formatDate = (dateString) => {
+        const date = new Date(`${dateString}T00:00:00`);
 
-    regularModal.setAttribute("aria-hidden", "false");
+        return new Intl.DateTimeFormat("id-ID", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        }).format(date);
+    };
 
-    /*
-     * Lock body
-     */
+    const addInfoCard = (container, label, value) => {
+        const card = document.createElement("div");
+        card.className = "event-detail-card";
 
-    document.body.style.overflow = "hidden";
+        const cardLabel = document.createElement("span");
+        cardLabel.className = "event-detail-card-label";
+        cardLabel.textContent = label;
 
-    /*
-     * Fokus input
-     */
+        const cardValue = document.createElement("div");
+        cardValue.className = "event-detail-card-value";
+        cardValue.textContent =
+            value !== null && value !== undefined && value !== ""
+                ? value
+                : "Belum tersedia";
 
-    setTimeout(() => {
-        regularQuota.focus();
+        card.append(cardLabel, cardValue);
+        container.appendChild(card);
+    };
 
-        regularQuota.select();
-    }, 100);
-}
+    const openModal = (dateString, events) => {
+        modalDate.textContent = formatDate(dateString);
+        modalBody.replaceChildren();
 
-function closeRegularModal() {
-    if (!regularModal) return;
+        if (!events.length) {
+            const empty = document.createElement("div");
+            empty.className = "event-detail-empty";
+            empty.textContent =
+                "Belum ada rincian event yang tersedia untuk tanggal ini.";
 
-    regularModal.classList.remove("show");
+            modalBody.appendChild(empty);
+        } else {
+            events.forEach((event, index) => {
+                const section = document.createElement("section");
+                section.className = "event-detail-card";
 
-    regularModal.setAttribute("aria-hidden", "true");
+                const heading = document.createElement("div");
+                heading.className = "event-detail-card-value";
+                heading.textContent =
+                    event.nama_event ||
+                    event.name ||
+                    event.judul ||
+                    `Event ${index + 1}`;
 
-    document.body.style.overflow = "";
-}
+                const description = document.createElement("p");
+                description.className = "event-detail-card-label";
+                description.style.marginTop = "8px";
+                description.textContent =
+                    event.deskripsi ||
+                    event.description ||
+                    "Tidak ada deskripsi event.";
 
-/*
- * Tombol + / -
- */
+                section.append(heading, description);
+                modalBody.appendChild(section);
 
-function changeRegularQuota(amount) {
-    if (!regularQuota) return;
+                const grid = document.createElement("div");
+                grid.className = "event-detail-grid";
 
-    let current = parseInt(regularQuota.value) || 0;
+                addInfoCard(
+                    grid,
+                    "Waktu Pelaksanaan",
+                    event.jam_mulai || event.start_time
+                        ? `${event.jam_mulai || event.start_time} – ${
+                              event.jam_selesai ||
+                              event.end_time ||
+                              "Belum tersedia"
+                          }`
+                        : "Belum tersedia",
+                );
 
-    current += amount;
+                addInfoCard(grid, "Lokasi", event.lokasi || event.location);
 
-    if (current < 1) {
-        current = 1;
-    }
+                addInfoCard(grid, "Kuota", event.kuota ?? event.quota);
 
-    regularQuota.value = current;
-}
+                addInfoCard(
+                    grid,
+                    "Sisa Kuota",
+                    event.sisa_kuota ?? event.remaining,
+                );
 
-/*
- * ESC untuk menutup modal
- */
+                modalBody.appendChild(grid);
 
-document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-        closeRegularModal();
+                const status = document.createElement("span");
+                status.className = "event-detail-status";
+                status.textContent =
+                    event.status_label ||
+                    event.status ||
+                    "Status belum tersedia";
+
+                modalBody.appendChild(status);
+            });
+        }
+
+        modal.classList.add("is-open");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+    };
+
+    const closeModal = () => {
+        modal.classList.remove("is-open");
+        modal.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+    };
+
+    document
+        .querySelectorAll('.regular-calendar-day[data-has-event="1"]')
+        .forEach((dayElement) => {
+            dayElement.addEventListener("click", (event) => {
+                event.preventDefault();
+
+                try {
+                    const events = JSON.parse(
+                        dayElement.dataset.events || "[]",
+                    );
+
+                    const dateMatch = dayElement
+                        .getAttribute("aria-label")
+                        ?.match(/—/);
+
+                    const url = new URL(dayElement.href);
+                    const selectedDate = url.searchParams.get("date");
+
+                    if (selectedDate) {
+                        openModal(selectedDate, events);
+                    }
+                } catch (error) {
+                    console.error("Gagal memuat rincian event:", error);
+                }
+            });
+        });
+
+    closeButtons.forEach((button) => {
+        button.addEventListener("click", closeModal);
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && modal.classList.contains("is-open")) {
+            closeModal();
+        }
+    });
+});
+
+// POP UP DETAIL SLOT HARIAN
+document.addEventListener("DOMContentLoaded", function () {
+    const modal = document.getElementById("regularSlotModal");
+
+    if (!modal) return;
+
+    const slotIdInput = document.getElementById("regularSlotId");
+    const startInput = document.getElementById("regularStartTime");
+    const endInput = document.getElementById("regularEndTime");
+    const quotaInput = document.getElementById("regularQuota");
+    const statusInput = document.getElementById("regularStatus");
+    const usedLabel = document.getElementById("regularUsedCount");
+    const sessionLabel = document.getElementById("regularModalSessionNumber");
+
+    const openModal = () => {
+        modal.classList.add("is-visible");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("regular-modal-open");
+    };
+
+    const closeModal = () => {
+        modal.classList.remove("is-visible");
+        modal.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("regular-modal-open");
+    };
+
+    document.querySelectorAll(".js-open-regular-session").forEach((button) => {
+        button.addEventListener("click", () => {
+            slotIdInput.value = button.dataset.slotId || "";
+            startInput.value = button.dataset.startTime || "";
+            endInput.value = button.dataset.endTime || "";
+            quotaInput.value = button.dataset.quota || "0";
+            quotaInput.min = button.dataset.used || "0";
+            statusInput.value = button.dataset.status || "active";
+
+            usedLabel.textContent = Number(
+                button.dataset.used || 0,
+            ).toLocaleString("id-ID");
+
+            sessionLabel.textContent = button.dataset.sessionNumber || "1";
+
+            openModal();
+        });
+    });
+
+    document
+        .getElementById("closeRegularModal")
+        ?.addEventListener("click", closeModal);
+
+    document
+        .getElementById("cancelRegularModal")
+        ?.addEventListener("click", closeModal);
+
+    modal.addEventListener("click", (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && modal.classList.contains("is-visible")) {
+            closeModal();
+        }
+    });
+
+    if (modal.classList.contains("is-visible")) {
+        document.body.classList.add("regular-modal-open");
     }
 });
 
@@ -502,6 +668,33 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     updateClearButton();
+});
+
+// Script Filter Pencarian TIKET REGULER Instan (Client-Side)
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("regularSearchInput");
+    const tableRows = document.querySelectorAll(
+        "#regularTable tbody tr.regular-table-row",
+    );
+    const emptyRow = document.getElementById("regularSearchEmptyRow");
+
+    if (!searchInput || tableRows.length === 0) return;
+
+    searchInput.addEventListener("input", function () {
+        const keyword = this.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        tableRows.forEach(function (row) {
+            const rowText = row.innerText.toLowerCase();
+            const isMatch = rowText.includes(keyword);
+            row.style.display = isMatch ? "" : "none";
+            if (isMatch) visibleCount++;
+        });
+
+        if (emptyRow) {
+            emptyRow.style.display = visibleCount === 0 ? "" : "none";
+        }
+    });
 });
 
 /* =====================================================
