@@ -78,7 +78,7 @@ Route::get('/events', function (Request $request) {
 
     try {
         $response = \Illuminate\Support\Facades\Http::timeout(10)
-            ->get('http://192.168.37.242:8000/api/events', [
+            ->get('http://192.168.37.247:8000/api/events', [
                 'q' => $search,
             ]);
 
@@ -88,16 +88,38 @@ Route::get('/events', function (Request $request) {
             );
         }
 
-        $payload = $response->json();
+      $body = $response->body();
 
-        if (
-            !is_array($payload) ||
-            !($payload['success'] ?? false)
-        ) {
-            throw new \RuntimeException(
-                'Format respons API event tidak sesuai.'
-            );
-        }
+// Hapus UTF-8 BOM jika ada di awal respons.
+$body = preg_replace('/^\xEF\xBB\xBF/', '', $body);
+
+$payload = json_decode($body, true);
+
+if (!is_array($payload)) {
+    throw new \RuntimeException(
+        'Respons API bukan JSON yang valid. HTTP: '
+        . $response->status()
+        . '. Isi respons: '
+        . substr($response->body(), 0, 1000)
+    );
+}
+
+if (($payload['success'] ?? null) !== true) {
+    throw new \RuntimeException(
+        'Nilai success tidak sesuai. Isi respons: '
+        . substr(
+            json_encode($payload, JSON_UNESCAPED_SLASHES),
+            0,
+            1000
+        )
+    );
+}
+
+if (!isset($payload['data']) || !is_array($payload['data'])) {
+    throw new \RuntimeException(
+        'Properti data tidak ada atau bukan array.'
+    );
+}
 
         $events = collect($payload['data'] ?? [])
             ->map(function ($event) {
@@ -220,7 +242,43 @@ Route::post('/pembayaran/konfirmasi', function (Request $request) {
     );
 })->name('pembayaran.konfirmasi');
 
+use Illuminate\Support\Facades\Http;
 
+Route::post('/pembayaran/midtrans', function (Request $request) {
+
+    $bookingId = session('booking_id');
+
+    if (!$bookingId) {
+        return back()->with(
+            'error',
+            'Booking belum tersedia.'
+        );
+    }
+
+    $response = Http::withToken(session('token'))
+        ->post(
+            url("/api/bookings/{$bookingId}/payment")
+        );
+
+    if (!$response->successful()) {
+        return back()->with(
+            'error',
+            'Gagal membuat transaksi.'
+        );
+    }
+
+    $snapToken = data_get(
+        $response->json(),
+        'data.snap_token'
+    );
+
+    session([
+        'snap_token' => $snapToken,
+    ]);
+
+    return back();
+
+})->name('pembayaran.midtrans');
 
 /*
 |--------------------------------------------------------------------------

@@ -247,6 +247,6 @@ class EventController extends Controller
             return asset($path);
         }
 
-        return asset(Storage::disk('public')->url($path));
+        return asset('storage/' . $path);
     }
 }
