@@ -4,6 +4,51 @@
 
 @include('components.navbar')
 
+@php
+    $title = $event['title'] ?? 'Detail Event';
+    $description = $event['description'] ?? 'Belum ada deskripsi event.';
+    $image = $event['image'] ?? $event['image_url'] ?? '';
+    $category = $event['category'] ?? 'Event';
+    $remaining = max(0, (int) ($event['remaining'] ?? 0));
+    $total = max(0, (int) ($event['total'] ?? 0));
+    $price = $event['price'] ?? 'Gratis';
+
+    $schedules = $event['schedules'] ?? [];
+    $schedule = $schedules[0] ?? [];
+
+    $date = $schedule['date'] ?? null;
+    $startTime = $schedule['start_time'] ?? null;
+    $endTime = $schedule['end_time'] ?? null;
+
+    if ($image && str_starts_with($image, 'http://localhost:8000/')) {
+        $image = str_replace(
+            'http://localhost:8000/',
+            'http://192.168.37.247:8000/',
+            $image
+        );
+    } elseif ($image
+        && !str_starts_with($image, 'http://')
+        && !str_starts_with($image, 'https://')) {
+        $image = asset($image);
+    }
+
+    $dateLabel = $date
+        ? \Illuminate\Support\Carbon::parse($date)->locale('id')->translatedFormat('l, d F Y')
+        : 'Jadwal belum tersedia';
+
+    $timeLabel = $startTime
+        ? substr($startTime, 0, 5) . ' WIB'
+        : 'Waktu belum tersedia';
+
+    if ($startTime && $endTime) {
+        $timeLabel = substr($startTime, 0, 5)
+            . '–' . substr($endTime, 0, 5) . ' WIB';
+    }
+
+    $used = max(0, $total - $remaining);
+    $progress = $total > 0 ? min(100, ($used / $total) * 100) : 0;
+@endphp
+
 <main class="event-detail-page">
 
     {{-- DETAIL EVENT --}}
@@ -12,91 +57,123 @@
         {{-- POSTER EVENT --}}
         <div class="event-main-image">
             <img
-                src="{{ asset('storage/images/events/futsal.jpg') }}"
-                alt="Poster Kompetisi Olahraga Antar Sekolah">
+                src="{{ $image ?: asset('images/events/futsal.jpg') }}"
+                alt="Poster {{ $title }}"
+                onerror="this.onerror=null; this.src='{{ asset('images/events/futsal.jpg') }}';"
+            >
         </div>
 
         {{-- PANEL TIKET --}}
         <aside class="event-ticket-panel">
 
             <div class="ticket-summary">
-                <h2>Futsal</h2>
-                <p>Pertandingan Antar Sekolah</p>
+
+                <span class="events-eyebrow">{{ $category }}</span>
+
+                <h2>{{ $title }}</h2>
+
+                <p>{{ $description }}</p>
 
                 <ul class="event-meta">
                     <li>
                         <span class="material-symbols-rounded">calendar_month</span>
-                        <span>Kamis, 27 Agustus 2026</span>
+                        <span>{{ $dateLabel }}</span>
                     </li>
 
                     <li>
                         <span class="material-symbols-rounded">schedule</span>
-                        <span>15.00 WIB</span>
+                        <span>{{ $timeLabel }}</span>
                     </li>
 
                     <li>
                         <span class="material-symbols-rounded">location_on</span>
-                        <span>GOR A. Yani</span>
+                        <span>GOR A. Yani, Kota Mojokerto</span>
                     </li>
 
                     <li>
                         <span class="material-symbols-rounded">confirmation_number</span>
-                        <span>Kuota Event: Sisa 24 dari 200 Tiket</span>
+                        <span>Kuota tersisa: {{ $remaining }} dari {{ $total }} tiket</span>
                     </li>
                 </ul>
 
-                <div class="ticket-quota">
-                    <span></span>
+                <div
+                    class="ticket-quota"
+                    role="progressbar"
+                    aria-label="Kuota tiket terpakai"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="{{ (int) round($progress) }}"
+                >
+                    <span style="width: {{ $progress }}%"></span>
                 </div>
 
-                {{-- HARGA TIKET WARGA --}}
+                {{-- HARGA TIKET --}}
                 <div class="ticket-price-option">
                     <button
                         type="button"
                         class="citizen-button active"
                         data-category="warga"
-                        aria-pressed="true">
+                        aria-pressed="true"
+                    >
                         Gratis
                     </button>
 
                     <span>NIK Kota Mojokerto</span>
                 </div>
 
-                {{-- HARGA TIKET LUAR KOTA --}}
                 <div class="ticket-price-option">
                     <button
                         type="button"
                         class="non-citizen-button"
                         data-category="luar"
-                        aria-pressed="false">
-                        Rp25.000
+                        aria-pressed="false"
+                    >
+                        {{ $price }}
                     </button>
 
                     <span>NIK Luar Kota Mojokerto</span>
                 </div>
+
+                <small>
+                    Harga tiket dapat berbeda sesuai kategori pengguna.
+                </small>
+
             </div>
 
             {{-- PEMILIHAN KATEGORI --}}
             <div class="ticket-bottom">
 
                 <img
-                    src="{{ asset('storage/images/Logo-Si-goray.png') }}" alt="Logo SI-GORAY" class="ticket-brand-logo">
+                    src="{{ asset('storage/images/Logo-Si-goray.png') }}"
+                    alt="Logo SI-GORAY"
+                    class="ticket-brand-logo"
+                >
 
                 <strong>PESAN TIKET EVENT</strong>
 
-                <a
-                    href="{{ route('events.pesan-tiket') }}"
-                    class="ticket-category-button active">
-                    Warga Kota Mojokerto
-                </a>
+                @if ($remaining > 0)
+                    <a
+                        href="{{ route('events.pesan-tiket', ['id' => $event['id'] ?? '']) }}"
+                        class="ticket-category-button active"
+                        id="ticket-warga"
+                    >
+                        Warga Kota Mojokerto
+                    </a>
 
-                <a
-                    href="{{ route('events.pesan-tiket-luar') }}"
-                    class="ticket-category-button">
-                    Luar Warga Kota Mojokerto
-                </a>
+                    <a
+                        href="{{ route('events.pesan-tiket-luar', ['id' => $event['id'] ?? '']) }}"
+                        class="ticket-category-button"
+                        id="ticket-luar"
+                    >
+                        Luar Warga Kota Mojokerto
+                    </a>
+                @else
+                    <span class="ticket-category-button disabled">
+                        Tiket Habis
+                    </span>
+                @endif
 
-                <small>Pilih Sesuai NIK Wilayah</small>
+                <small>Pilih sesuai NIK wilayah</small>
 
             </div>
 
@@ -109,46 +186,40 @@
 
         <h2>Deskripsi Event</h2>
 
-        <p>
-            Tunjukkan Dukunganmu! Jadilah Saksi Sejarah Rivalitas dan
-            Sportivitas Pelajar Terbaik Mojokerto!
-        </p>
-
-        <p>
-            Siapkan gemuruh dan semangatmu! Kompetisi Olahraga Antar
-            Sekolah kembali hadir di GOR A. Yani Kota Mojokerto.
-            Pertandingan futsal paling bergengsi tahun ini akan
-            mempertemukan tim-tim tangguh dari berbagai SMP dan
-            SMA/SMK se-Kota Mojokerto. Mereka siap bertarung
-            habis-habisan di lapangan demi membawa pulang piala
-            kehormatan dan mengharumkan nama sekolah mereka!
-        </p>
+        <p>{{ $description }}</p>
 
     </section>
 
 </main>
 
-{{-- JAVASCRIPT PEMILIHAN KATEGORI TIKET --}}
+{{-- JAVASCRIPT PEMILIHAN KATEGORI --}}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const categoryButtons = document.querySelectorAll(
-            '.event-detail-page [data-category]'
-        );
+document.addEventListener('DOMContentLoaded', function () {
+    const categoryButtons = document.querySelectorAll(
+        '.event-detail-page [data-category]'
+    );
 
-        categoryButtons.forEach(function(button) {
-            button.addEventListener('click', function() {
-                const selectedCategory = this.dataset.category;
+    const wargaLink = document.getElementById('ticket-warga');
+    const luarLink = document.getElementById('ticket-luar');
 
-                categoryButtons.forEach(function(item) {
-                    const isActive =
-                        item.dataset.category === selectedCategory;
+    categoryButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            const selectedCategory = this.dataset.category;
 
-                    item.classList.toggle('active', isActive);
-                    item.setAttribute('aria-pressed', String(isActive));
-                });
+            categoryButtons.forEach(function (item) {
+                const isActive = item.dataset.category === selectedCategory;
+
+                item.classList.toggle('active', isActive);
+                item.setAttribute('aria-pressed', String(isActive));
             });
+
+            if (wargaLink && luarLink) {
+                wargaLink.classList.toggle('active', selectedCategory === 'warga');
+                luarLink.classList.toggle('active', selectedCategory === 'luar');
+            }
         });
     });
+});
 </script>
 
 @include('components.footer')

@@ -933,6 +933,40 @@ body {
     margin-top: auto;
 }
 
+/* Tombol Lihat Semua Event */
+.event-more {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 0 40px;
+}
+
+.event-more .btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.event-more .btn-primary {
+    background-color: #d71920;
+    color: #ffffff;
+    border: 1px solid #d71920;
+}
+
+.event-more .btn-primary:hover {
+    background-color: #95050a;
+    border-color: #95050a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
 .book-ticket {
     width: 100%;
     min-height: 36px;
