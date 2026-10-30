@@ -46,7 +46,11 @@ function getChartColors() {
 }
 
 // Inisialisasi Chart.js
+// SIGORAY_DASHBOARD_BINDINGS_V1: data dibaca dari Blade; halaman lain aman.
 function initCharts() {
+    const dashboard = window.SIGORAY_DASHBOARD || {};
+    const booking = dashboard.booking || {};
+    const payment = dashboard.payment || {};
     const colors = getChartColors();
 
     // 1. Line Chart (Grafik Pemesanan)
@@ -55,21 +59,11 @@ function initCharts() {
         lineChart = new Chart(ctxLine, {
             type: "line",
             data: {
-                labels: [
-                    "Jan",
-                    "Feb",
-                    "Mar",
-                    "Apr",
-                    "Mei",
-                    "Jun",
-                    "Jul",
-                    "Agu",
-                    "Sep",
-                ],
+                labels: booking.labels || ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
                 datasets: [
                     {
                         label: "Reguler",
-                        data: [25, 30, 40, 35, 50, 60, 45, 65, 55],
+                        data: booking.regular || Array(12).fill(0),
                         borderColor: colors.regulerLine,
                         backgroundColor: colors.regulerLine,
                         tension: 0.4,
@@ -79,7 +73,7 @@ function initCharts() {
                     },
                     {
                         label: "Event",
-                        data: [15, 20, 25, 20, 30, 30, 25, 35, 30],
+                        data: booking.event || Array(12).fill(0),
                         borderColor: colors.eventLine,
                         backgroundColor: colors.eventLine,
                         tension: 0.4,
@@ -98,7 +92,7 @@ function initCharts() {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        max: 80,
+                        grace: "10%",
                         grid: { color: colors.gridColor },
                         ticks: { color: colors.textColor },
                     },
@@ -120,7 +114,7 @@ function initCharts() {
                 labels: ["Selesai", "Menunggu", "Ditolak"],
                 datasets: [
                     {
-                        data: [748, 94, 34],
+                        data: [payment.success || 0, payment.pending || 0, payment.failed || 0],
                         backgroundColor: [
                             colors.success,
                             colors.warning,

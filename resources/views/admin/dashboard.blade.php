@@ -4,6 +4,21 @@
 @section('page', 'Dashboard')
 
 @section('content')
+{{-- SIGORAY_DASHBOARD_BINDINGS_V1 --}}
+<script>
+window.SIGORAY_DASHBOARD = @json([
+    'booking' => $bookingChart,
+    'payment' => $paymentCounts,
+]);
+</script>
+<div class="payment-info-notice" style="margin-bottom:16px;">
+    <span class="material-symbols-rounded">info</span>
+    <div>
+        Dashboard menampilkan ringkasan data yang tercatat pada sistem.
+        Statistik, grafik, dan transaksi terbaru
+        diperbarui saat halaman dimuat.
+    </div>
+</div>
     <div class="page-header">
         <div>
             <h1>Dashboard</h1>
@@ -21,10 +36,10 @@
                 <span class="material-symbols-rounded stat-icon">group</span>
             </div>
             <div class="stat-content">
-                <h2>1.284</h2>
+                <h2>{{ number_format($totalUsers, 0, ",", ".") }}</h2>
                 <div class="stat-trend positive">
                     <span class="material-symbols-rounded">trending_up</span>
-                    <span>+34 pengguna bulan ini</span>
+                    <span>+{{ number_format($newUsersThisMonth, 0, ",", ".") }} pengguna bulan ini</span>
                 </div>
             </div>
         </div>
@@ -36,9 +51,9 @@
                 <span class="material-symbols-rounded stat-icon">calendar_today</span>
             </div>
             <div class="stat-content">
-                <h2>87 <span class="text-sm fw-normal text-muted">/ 200</span></h2>
+                <h2>{{ number_format($regularUsed, 0, ",", ".") }} <span class="text-sm fw-normal text-muted">/ {{ number_format($regularCapacity, 0, ",", ".") }}</span></h2>
                 <div class="stat-trend neutral">
-                    <span>Sisa: 113 tempat</span>
+                    <span>Sisa: {{ number_format(max(0, $regularCapacity - $regularUsed), 0, ",", ".") }} tempat</span>
                 </div>
             </div>
         </div>
@@ -50,9 +65,9 @@
                 <span class="material-symbols-rounded stat-icon">event_available</span>
             </div>
             <div class="stat-content">
-                <h2>333</h2>
+                <h2>{{ number_format($eventUsed, 0, ",", ".") }}</h2>
                 <div class="stat-trend neutral">
-                    <span>5 event berjalan</span>
+                    <span>Total kuota event yang terpakai</span>
                 </div>
             </div>
         </div>
@@ -60,11 +75,11 @@
         {{-- Pendapatan --}}
         <div class="stat-card">
             <div class="stat-header">
-                <span class="stat-label">Pendapatan Bulan Ini</span>
+                <span class="stat-label">Pembayaran Sukses (Transaksi Dibuat Bulan Ini)</span>
                 <span class="material-symbols-rounded stat-icon">monetization_on</span>
             </div>
             <div class="stat-content">
-                <h2>Rp 12,6 jt</h2>
+                <h2>Rp {{ number_format($revenueThisMonth, 0, ",", ".") }}</h2>
                 <div class="stat-trend neutral">
                     <span>Retribusi & tiket event</span>
                 </div>
@@ -81,7 +96,7 @@
             <div class="card-header">
                 <div class="card-title-group">
                     <span class="material-symbols-rounded">show_chart</span>
-                    <h3>Grafik Pemesanan 2025</h3>
+                    <h3>Grafik Pemesanan {{ $bookingChart["year"] }}</h3>
                 </div>
                 <div class="chart-legend-custom">
                     <span class="legend-item"><span class="dot reguler"></span> Reguler</span>
@@ -107,15 +122,15 @@
             <div class="donut-legend">
                 <div class="legend-row">
                     <div class="legend-label"><span class="dot success"></span> Selesai</div>
-                    <div class="legend-value success-text">748</div>
+                    <div class="legend-value success-text">{{ number_format($paymentCounts["success"], 0, ",", ".") }}</div>
                 </div>
                 <div class="legend-row">
                     <div class="legend-label"><span class="dot warning"></span> Menunggu</div>
-                    <div class="legend-value warning-text">94</div>
+                    <div class="legend-value warning-text">{{ number_format($paymentCounts["pending"], 0, ",", ".") }}</div>
                 </div>
                 <div class="legend-row">
                     <div class="legend-label"><span class="dot danger"></span> Ditolak</div>
-                    <div class="legend-value danger-text">34</div>
+                    <div class="legend-value danger-text">{{ number_format($paymentCounts["failed"], 0, ",", ".") }}</div>
                 </div>
             </div>
         </div>
@@ -130,7 +145,7 @@
                 <span class="material-symbols-rounded">receipt_long</span>
                 <h3>Transaksi Terbaru</h3>
             </div>
-            <a href="#" class="btn-outline">
+            <a href="{{ route('admin.payment.pembayaran') }}" class="btn-outline">
                 <span>Semua Transaksi</span>
                 <span class="material-symbols-rounded">arrow_forward</span>
             </a>
@@ -149,43 +164,29 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>TRX-001</td>
-                        <td>Budi Santoso</td>
-                        <td>Reguler</td>
-                        <td>14 Sep 2025</td>
-                        <td>Rp 30.000</td>
-                        <td><span class="badge badge-success">Selesai</span></td>
-                        <td>10:30</td>
-                    </tr>
-                    <tr>
-                        <td>TRX-002</td>
-                        <td>Siti Aminah</td>
-                        <td>Event Konser</td>
-                        <td>15 Sep 2025</td>
-                        <td>Rp 150.000</td>
-                        <td><span class="badge badge-warning">Menunggu</span></td>
-                        <td>09:15</td>
-                    </tr>
-                    <tr>
-                        <td>TRX-003</td>
-                        <td>Andi Wijaya</td>
-                        <td>Reguler</td>
-                        <td>14 Sep 2025</td>
-                        <td>Rp 30.000</td>
-                        <td><span class="badge badge-success">Selesai</span></td>
-                        <td>08:45</td>
-                    </tr>
-                    <tr>
-                        <td>TRX-004</td>
-                        <td>Rina Melati</td>
-                        <td>Event Turnamen</td>
-                        <td>20 Sep 2025</td>
-                        <td>Rp 50.000</td>
-                        <td><span class="badge badge-danger">Ditolak</span></td>
-                        <td>08:10</td>
-                    </tr>
-                </tbody>
+    @forelse ($latestTransactions as $tx)
+    <tr>
+        <td>{{ $tx->kode_bayar }}</td>
+        <td>{{ $tx->user_label }}</td>
+        <td>{{ strtoupper($tx->jenis_booking) === 'EVENT' ? 'Event' : 'Reguler' }}</td>
+        <td>{{ $tx->tanggal_kunjungan ? \Carbon\Carbon::parse($tx->tanggal_kunjungan)->format('d/m/Y') : '-' }}</td>
+        <td>Rp {{ number_format((float) $tx->nominal, 0, ',', '.') }}</td>
+        @php
+            $paymentStatus = strtoupper((string) $tx->status_pembayaran);
+            $isSuccess = $paymentStatus === 'SUCCESS';
+            $isPending = $paymentStatus === 'PENDING';
+        @endphp
+        <td>
+            <span class="badge {{ $isSuccess ? 'badge-success' : ($isPending ? 'badge-warning' : 'badge-danger') }}">
+                {{ $isSuccess ? 'Selesai' : ($isPending ? 'Menunggu' : 'Ditolak') }}
+            </span>
+        </td>
+        <td>{{ $tx->created_at ? \Carbon\Carbon::parse($tx->created_at)->format('d/m/Y H:i') : '-' }}</td>
+    </tr>
+    @empty
+    <tr><td colspan="7" class="text-center">Belum ada transaksi pembayaran.</td></tr>
+    @endforelse
+</tbody>
             </table>
         </div>
     </div>

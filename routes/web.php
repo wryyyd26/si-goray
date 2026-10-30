@@ -1,103 +1,243 @@
-﻿<?php
-use App\Http\Controllers\Admin\RegularSlotController;
-use App\Http\Controllers\Admin\EventController as AdminEventController;
+<?php
 
-use App\Http\Controllers\EventController;
+use App\Models\Event;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\RegularSlotController;
 
+
+/*
+|--------------------------------------------------------------------------
+| Frontend Pengunjung SI-GORAY
+|--------------------------------------------------------------------------
+*/
+
+// ROUTE USER
 Route::get('/', function () {
     return view('home');
-    
-});
+})->name('home');
 
-Route::get('/events', function () {
-    $events = [
-        [
-            'title' => 'Futsal',
-            'description' => 'Pertandingan Antar Sekolah',
-            'category' => 'Sport',
-            'image' => 'images/events/futsal.jpg',
-            'remaining' => 24,
-            'total' => 200,
-            'price' => 'Gratis',
-        ],
-        [
-            'title' => 'Kompetisi Badminton',
-            'description' => 'Turnamen Badminton Terbuka',
-            'category' => 'Sport',
-            'image' => 'images/events/futsal.jpg',
-            'remaining' => 40,
-            'total' => 150,
-            'price' => 'Rp25.000',
-        ],
-        [
-            'title' => 'Festival Musik',
-            'description' => 'Pentas Musik dan Kreativitas',
-            'category' => 'Hiburan',
-            'image' => 'images/events/futsal.jpg',
-            'remaining' => 75,
-            'total' => 300,
-            'price' => 'Rp50.000',
-        ],
-        [
-            'title' => 'Pentas Seni',
-            'description' => 'Pertunjukan Seni dan Budaya',
-            'category' => 'Seni',
-            'image' => 'images/events/futsal.jpg',
-            'remaining' => 60,
-            'total' => 200,
-            'price' => 'Gratis',
-        ],
-        [
-            'title' => 'Basket 3x3',
-            'description' => 'Kompetisi Basket Antar Tim',
-            'category' => 'Sport',
-            'image' => 'images/events/futsal.jpg',
-            'remaining' => 18,
-            'total' => 100,
-            'price' => 'Rp20.000',
-        ],
-        [
-            'title' => 'Festival Dance',
-            'description' => 'Kompetisi Tari Modern',
-            'category' => 'Seni',
-            'image' => 'images/events/futsal.jpg',
-            'remaining' => 90,
-            'total' => 250,
-            'price' => 'Rp15.000',
-        ],
-    ];
+Route::view('/events/detail', 'events.show')
+    ->name('events.show');
 
-    $category = request('category', 'Semua');
-    $search = request('q', '');
+Route::get('/event/futsal/pesan-tiket', function () {
+    return view('events.event-tiket');
+})->name('events.pesan-tiket');
 
-    $filteredEvents = collect($events)->filter(function ($event) use ($category, $search) {
-        $matchCategory = $category === 'Semua'
-            || $event['category'] === $category;
+Route::get('/event/futsal/pesan-tiket-luar', function () {
+    return view('events.event-tiket-luar');
+})->name('events.pesan-tiket-luar');
 
-        $matchSearch = $search === ''
-            || stripos($event['title'], $search) !== false
-            || stripos($event['description'], $search) !== false;
-
-        return $matchCategory && $matchSearch;
-    });
-
-    return view('events', [
-        'events' => $filteredEvents,
-        'selectedCategory' => $category,
-        'search' => $search,
+// FORM WARGA KOTA
+Route::post('/event/futsal/pesan-tiket', function (Request $request) {
+    $data = $request->validate([
+        'nama_lengkap' => ['required', 'string', 'max:255'],
+        'nik' => ['required', 'digits:16'],
+        'email' => ['required', 'email', 'max:255'],
+        'nomor_hp' => ['required', 'string', 'max:20'],
     ]);
-});
+
+    $request->session()->put('detail_pemesanan', $data);
+
+    return redirect()->route('events.detail-warga');
+})->name('events.pesan-tiket.simpan');
+
+Route::get('/event/futsal/detail-pemesanan-warga', function () {
+    abort_unless(session()->has('detail_pemesanan'), 403);
+
+    return view('events.detail-pemesanan-warga');
+})->name('events.detail-warga');
+
+
+// FORM WARGA LUAR KOTA
+Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
+    $data = $request->validate([
+        'nama_lengkap' => ['required', 'string', 'max:255'],
+        'nik' => ['required', 'digits:16'],
+        'alamat_ktp' => ['required', 'string', 'max:1000'],
+        'email' => ['required', 'email', 'max:255'],
+        'nomor_hp' => ['required', 'string', 'max:20'],
+    ]);
+
+    $request->session()->put('detail_pemesanan', $data);
+
+    return redirect()->route('events.detail-luar');
+})->name('events.pesan-tiket-luar.simpan');
+
+Route::get('/event/futsal/detail-pemesanan-luar', function () {
+    abort_unless(session()->has('detail_pemesanan'), 403);
+
+    return view('events.detail-pemesanan-luar');
+})->name('events.detail-luar');
+
+
+
+Route::get('/events', function (Request $request) {
+    $search = trim((string) $request->query('q', ''));
+
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(10)
+            ->get('http://192.168.37.242:8000/api/events', [
+                'q' => $search,
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException(
+                'API event mengembalikan HTTP ' . $response->status()
+            );
+        }
+
+        $payload = $response->json();
+
+        if (
+            !is_array($payload) ||
+            !($payload['success'] ?? false)
+        ) {
+            throw new \RuntimeException(
+                'Format respons API event tidak sesuai.'
+            );
+        }
+
+        $events = collect($payload['data'] ?? [])
+            ->map(function ($event) {
+                return [
+                    'id' => $event['id'] ?? '',
+                    'title' => $event['title'] ?? 'Event',
+                    'description' => $event['description'] ?? '',
+                    'image' => $event['image_url']
+                        ?? $event['image']
+                        ?? 'images/events/futsal.jpg',
+                    'category' => $event['category'] ?? 'Event',
+                    'remaining' => (int) ($event['remaining'] ?? 0),
+                    'total' => (int) ($event['total'] ?? 0),
+                    'price' => (float) ($event['price'] ?? 0),
+                ];
+            });
+
+        return view('events', [
+            'events' => $events,
+            'selectedCategory' => 'Semua',
+            'search' => $search,
+        ]);
+   } catch (\Throwable $exception) {
+    report($exception);
+
+    return response(
+        'Penyebab error: ' . $exception->getMessage(),
+        503
+    );
+}
+})->name('events.index');
+
 
 Route::get('/about', function () {
     return view('about');
-});
+})->name('about');
 
 Route::get('/contact', function () {
     return view('contact');
-});
+})->name('contact');
 
-Route::prefix('admin')->name('admin.')->group(function () {
+// PEMBAYARAN WARGA LUAR KOTA
+
+Route::get('/pembayaran/luar-kota', function () {
+    $detail = session('detail_pemesanan', []);
+
+    if (empty($detail)) {
+        return redirect()->route('events.pesan-tiket-luar');
+    }
+
+    $subtotal = 25000;
+    $biayaLayanan = 1000;
+    $total = $subtotal + $biayaLayanan;
+
+    return view('pembayaran', [
+        'detail' => $detail,
+        'subtotal' => $subtotal,
+        'biayaLayanan' => $biayaLayanan,
+        'total' => $total,
+        'jenisPemesan' => 'luar-kota',
+    ]);
+})->name('pembayaran.luar-kota');
+
+
+
+// PEMBAYARAN WARGA DALAM KOTA
+Route::get('/pembayaran/warga-kota', function () {
+    $detail = session('detail_pemesanan', []);
+
+    if (empty($detail)) {
+        return redirect()->route('events.pesan-tiket')
+            ->with('error', 'Silakan lengkapi data pemesanan terlebih dahulu.');
+    }
+
+    $subtotal = (float) ($detail['subtotal']
+        ?? $detail['total_pembayaran']
+        ?? $detail['total_harga']
+        ?? 0);
+
+    $biayaLayanan = (float) ($detail['biaya_layanan'] ?? 0);
+    $total = (float) ($detail['total_pembayaran']
+        ?? ($subtotal + $biayaLayanan));
+
+    return view('pembayaran', [
+        'detail' => $detail,
+        'subtotal' => $subtotal,
+        'biayaLayanan' => $biayaLayanan,
+        'total' => $total,
+        'jenisPemesan' => 'warga-kota',
+    ]);
+})->name('pembayaran.show');
+
+
+// KONFIRMASI PEMBAYARAN SEMENTARA
+Route::post('/pembayaran/konfirmasi', function (Request $request) {
+    $detail = session('detail_pemesanan', []);
+
+    if (empty($detail)) {
+        return redirect()->route('events.pesan-tiket');
+    }
+
+    $jenisPemesan = $request->input('jenis_pemesan', 'warga-kota');
+
+    $total = $jenisPemesan === 'luar-kota'
+        ? 26000
+        : (float) ($detail['total_pembayaran']
+            ?? $detail['total_harga']
+            ?? 0);
+
+    if ($total > 0) {
+        return back()->with(
+            'error',
+            'Pembayaran belum dapat dikonfirmasi otomatis. Integrasi payment gateway diperlukan.'
+        );
+    }
+
+    return back()->with(
+        'success',
+        'Pemesanan gratis siap diproses melalui backend.'
+    );
+})->name('pembayaran.konfirmasi');
+
+
+
+/*
+|--------------------------------------------------------------------------
+| Admin SI-GORAY
+|--------------------------------------------------------------------------
+*/
+
+// Login Admin menggunakan sesi terpisah dari OTP pengunjung/petugas.
+Route::get('/admin/login', [\App\Http\Controllers\Admin\AdminAuthController::class, 'showLogin'])
+    ->name('admin.login');
+Route::post('/admin/login', [\App\Http\Controllers\Admin\AdminAuthController::class, 'login'])
+    ->name('admin.login.submit');
+
+Route::prefix('admin')->name('admin.')->middleware(\App\Http\Middleware\EnsureSiGorayAdmin::class)->group(function () {
+
+    Route::post('/logout', [\App\Http\Controllers\Admin\AdminAuthController::class, 'logout'])
+        ->name('logout');
 
     /*
     |--------------------------------------------------------------------------
@@ -105,9 +245,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/', function () {
-        return redirect()->route('admin.events.index');
-    })->name('dashboard');
+    Route::get('/', [
+    \App\Http\Controllers\Admin\AdminDashboardController::class,
+    'index',
+])->name('dashboard');
 
     Route::post('/reguler', [
     RegularSlotController::class,
@@ -129,6 +270,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
         RegularSlotController::class,
         'index',
     ])->name('reguler.index');
+
+    // Generate enam sesi 2 jam (08:00–20:00) untuk bulan yang dipilih.
+    Route::post('/reguler/generate-bulanan', [
+        \App\Http\Controllers\Admin\MonthlyRegularSlotController::class,
+        'store',
+    ])->name('reguler.generate-bulanan');
+
+        // Atur kapasitas tribun dan kuota 6 sesi per tanggal.
+    Route::post('/reguler/kuota-harian', [
+        \App\Http\Controllers\Admin\DailyRegularQuotaController::class,
+        'store',
+    ])->name('reguler.kuota-harian.store');
 
     Route::get('/reguler/{date}/edit', [
         RegularSlotController::class,
@@ -159,6 +312,12 @@ Route::put(
     ->whereUuid('slotId')
     ->name('reguler.slots.update');
 
+    // Tarif reguler: sudah berada dalam prefix "admin" dan name "admin.".
+    // Catatan: otorisasi Admin perlu diterapkan setelah mekanisme login Admin siap.
+    Route::put('/reguler/tarif', [\App\Http\Controllers\Admin\RegularTariffController::class, 'update'])
+        ->name('reguler.tarif.update');
+
+
 
     /*
     |--------------------------------------------------------------------------
@@ -167,9 +326,15 @@ Route::put(
     | Sementara menunggu integrasi controller booking Admin.
     */
 
-    Route::get('/booking', function () {
-        return redirect()->route('admin.events.index');
-    })->name('booking.pemesanan');
+    Route::get('/booking', [
+    \App\Http\Controllers\Admin\BookingManagementController::class,
+    'index',
+])->name('booking.pemesanan');
+
+Route::get('/booking/{booking}', [
+    \App\Http\Controllers\Admin\BookingManagementController::class,
+    'show',
+])->whereUuid('booking')->name('booking.show');
 
 
     /*
@@ -179,9 +344,17 @@ Route::put(
     | Sementara menunggu integrasi controller pembayaran Admin.
     */
 
-    Route::get('/payments', function () {
-        return redirect()->route('admin.events.index');
-    })->name('payment.pembayaran');
+
+Route::get('/payments', [
+    \App\Http\Controllers\Admin\PaymentManagementController::class,
+    'index',
+])->name('payment.pembayaran');
+
+Route::get('/payments/{payment}', [
+    \App\Http\Controllers\Admin\PaymentManagementController::class,
+    'show',
+])->whereUuid('payment')->name('payment.show');
+
 
 
     /*
@@ -190,9 +363,10 @@ Route::put(
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/users', function () {
-        return redirect()->route('admin.events.index');
-    })->name('user.index');
+
+Route::get('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'index'])->name('user.index');
+    Route::get('/users/{user}', [\App\Http\Controllers\Admin\AdminUserController::class, 'show'])->whereUuid('user')->name('user.detail');
+
 
 
     /*
@@ -202,9 +376,14 @@ Route::put(
     */
 
     Route::get('/saran-masukan', function () {
-        return redirect()->route('admin.events.index');
-    })->name('saran-masukan.index');
+    return view('admin.saran-masukan.index');
+})->name('saran-masukan.index');
 
+ /*
+    |--------------------------------------------------------------------------
+    | event.api
+    |--------------------------------------------------------------------------
+    */
 
     /*
     |--------------------------------------------------------------------------
@@ -212,9 +391,9 @@ Route::put(
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/reports', function () {
-        return redirect()->route('admin.events.index');
-    })->name('report.index');
+   Route::get('/reports', function () {
+    return view('admin.report.index');
+})->name('report.index');
 
 
     /*
