@@ -119,7 +119,7 @@
                         </span>
 
                         <input type="text" id="search" name="search" value="{{ $filters['search'] }}"
-                            placeholder="ID booking atau nama pemesan...">
+                            placeholder="ID booking atau email/no. HP...">
                     </div>
                 </div>
 
@@ -393,18 +393,16 @@
                                         </span>
                                         Detail
                                     </a>
-
-                                    {{-- Aksi Hapus --}}
-                                    <form action="" method="POST" class="booking-delete-form"
-                                        onsubmit="return confirm('Yakin ingin menghapus pesanan ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="booking-action-delete"
-                                            aria-label="Hapus Pesanan">
-                                            <span class="material-symbols-rounded">delete</span>
-                                            Hapus
-                                        </button>
-                                    </form>
+                                    {{-- Hapus belum tersedia --}}
+                                    <button
+                                        type="button"
+                                        class="booking-action-delete"
+                                        disabled
+                                        title="Penghapusan booking belum diaktifkan"
+                                    >
+                                        <span class="material-symbols-rounded">delete</span>
+                                        Hapus
+                                    </button>
                                 </td>
 
                             </tr>
@@ -431,6 +429,10 @@
                     </tbody>
 
                 </table>
+
+                <div style="padding:18px 0">
+                    {{ $bookings->links() }}
+                </div>
 
             </div>
         </div>

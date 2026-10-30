@@ -5,10 +5,11 @@
 
 @section('content')
     @php
-        // [DATA DUMMY] Normalisasi data agar Blade konsisten menerima kumpulan sesi.
+        // Normalisasi data sesi dari controller untuk komponen tampilan Admin.
         $selectedSlots = collect($selectedSlots ?? []);
         $selectedDate = $selectedDate ?? request('date');
         $modalSlot = $selectedSlots->firstWhere('id', old('slot_id')) ?? $selectedSlots->first();
+        $addSessionHasErrors = $errors->any() && old('_form') === 'add_session';
     @endphp
 
     <div class="regular-page">
@@ -165,9 +166,9 @@
                                                 <span class="regular-calendar-today-label">Hari ini</span>
                                             @endif
 
-                                            <span class="calendar-status-badge active">
-                                                Active
-                                            </span>
+                                            @if ($cellSlots->contains(fn($item) => ($item['status'] ?? 'active') === 'active'))
+                                                <span class="calendar-status-badge active">Active</span>
+                                            @endif
                                         </div>
                                     </div>
 
@@ -259,9 +260,11 @@
                         </div>
 
                         {{-- FORM PENGATURAN TARIF (SATU KOTAK KARTU BESAR) --}}
-                        <form action="" method="POST" class="regular-price-card">
+                        <form action="{{ route('admin.reguler.tarif.update') }}" method="POST" class="regular-price-card">
                             @csrf
                             @method('PUT')
+                            <input type="hidden" name="month" value="{{ $monthKey }}">
+                            <input type="hidden" name="date" value="{{ $selectedDate }}">
 
                             <div class="regular-price-card-header">
                                 <div class="regular-price-icon">
@@ -308,9 +311,16 @@
                                             <span class="price-prefix">Rp</span>
                                             <input type="number" id="non_warga_price" name="non_warga_price"
                                                 min="1" step="500"
-                                                value="{{ old('non_warga_price', $nonWargaPrice ?? 15000) }}"
+                                                value="{{ old('non_warga_price', $nonWargaPrice) }}"
                                                 placeholder="Masukkan tarif" required>
                                         </div>
+
+                                        {{-- Pesan ditampilkan jika referensi tarif reguler belum aktif. --}}
+                                        @if (($nonWargaPrice ?? null) === null)
+                                            <small class="text-warning">
+                                                Belum ada tarif reguler aktif. Silakan tentukan nominal sesuai kebijakan yang berlaku.
+                                            </small>
+                                        @endif
 
                                         <small>Tarif berbayar sesuai ketentuan admin.</small>
                                     </div>
@@ -326,8 +336,160 @@
                                 </div>
                             </div>
                         </form>
+                    @endif
 
-                        {{-- SETIAP SESI MEMILIKI TOMBOL ATUR SENDIRI --}}
+                    @if ($selectedDate)
+                        {{-- PENGATURAN KUOTA HARIAN --}}
+@php
+    $dailySchedule = [
+        ['08:00', '10:00'],
+        ['10:00', '12:00'],
+        ['12:00', '14:00'],
+        ['14:00', '16:00'],
+        ['16:00', '18:00'],
+        ['18:00', '20:00'],
+    ];
+    $dailyQuotaErrors = $errors->any()
+        && old('_form') === 'daily_quota';
+@endphp
+
+<div class="regular-session-card" style="margin-bottom:18px">
+    <div class="regular-session-card-header">
+        <div class="regular-session-heading-left">
+            <div class="regular-session-icon">
+                <span class="material-symbols-rounded">groups</span>
+            </div>
+            <div>
+                <h3>Pengaturan Kuota Harian</h3>
+                <p>
+                    {{ \Carbon\Carbon::parse($selectedDate)
+                        ->translatedFormat('d F Y') }}
+                    · Kapasitas berlaku untuk setiap sesi
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <form
+        id="dailyQuotaForm"
+        method="POST"
+        action="{{ route('admin.reguler.kuota-harian.store') }}"
+        class="regular-session-body"
+    >
+        @csrf
+
+        <input type="hidden" name="_form" value="daily_quota">
+        <input type="hidden" name="date" value="{{ $selectedDate }}">
+
+        <div class="regular-price-grid">
+            <div class="form-group">
+                <label for="capacityPerSession">
+                    Kapasitas Tribun per Sesi
+                </label>
+                <input
+                    type="number"
+                    id="capacityPerSession"
+                    name="capacity_per_session"
+                    value="{{ old('capacity_per_session', 200) }}"
+                    min="1"
+                    max="100000"
+                    required
+                >
+                <small>
+                    Contoh: 200 pengunjung untuk setiap sesi.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Pengaturan Cepat</label>
+                <button
+                    id="applyQuotaAllSessions"
+                    type="button"
+                    class="regular-btn regular-btn-secondary"
+                >
+                    <span class="material-symbols-rounded">done_all</span>
+                    Terapkan ke 6 Sesi
+                </button>
+                <small>
+                    Kamu masih bisa mengubah kuota tiap sesi.
+                </small>
+            </div>
+        </div>
+
+        <div class="regular-session-list" style="margin-top:16px">
+            @foreach ($dailySchedule as $i => $time)
+                @php
+                    $savedSlot = $selectedSlots->first(
+                        fn ($s) =>
+                            substr((string) ($s['start_time'] ?? ''), 0, 5)
+                                === $time[0]
+                            &&
+                            substr((string) ($s['end_time'] ?? ''), 0, 5)
+                                === $time[1]
+                    );
+                    $used = (int) ($savedSlot['used'] ?? 0);
+                    $quota = (int) ($savedSlot['quota'] ?? 200);
+                @endphp
+
+                <div class="regular-session-item">
+                    <div class="regular-session-info">
+                        <strong>Sesi {{ $i + 1 }}</strong>
+                        <span>
+                            {{ $time[0] }}–{{ $time[1] }} WIB
+                        </span>
+                        <small>
+                            Terpakai: {{ $used }}
+                            {{ $savedSlot ? '' : ' · Belum disimpan' }}
+                        </small>
+                    </div>
+
+                    <label for="dailyQuota{{ $i }}">Kuota</label>
+
+                    <input
+                        type="number"
+                        id="dailyQuota{{ $i }}"
+                        name="quotas[{{ $i }}]"
+                        class="js-daily-session-quota"
+                        value="{{ old('quotas.'.$i, $quota) }}"
+                        min="{{ $used }}"
+                        max="100000"
+                        style="max-width:110px"
+                        required
+                    >
+                </div>
+            @endforeach
+        </div>
+
+        <p style="margin-top:14px">
+            Total alokasi tiket sehari:
+            <strong id="dailyQuotaSum">0</strong>
+            <small>
+                (Jumlah seluruh sesi, bukan kapasitas serentak.)
+            </small>
+        </p>
+
+        @if ($dailyQuotaErrors)
+            <div class="regular-alert regular-alert-error" role="alert">
+                <strong>Kuota belum berhasil disimpan.</strong>
+                @foreach ($errors->all() as $error)
+                    <p>{{ $error }}</p>
+                @endforeach
+            </div>
+        @endif
+
+        <div class="regular-price-actions" style="margin-top:18px">
+            <button
+                type="submit"
+                class="regular-btn regular-btn-primary"
+                @disabled($selectedDate < now()->toDateString())
+            >
+                <span class="material-symbols-rounded">save</span>
+                Simpan Kuota Tanggal Ini
+            </button>
+        </div>
+    </form>
+</div>
+{{-- DAFTAR SESI HARIAN --}}
                         <div class="regular-session-card">
                             {{-- HEADER KARTU + TOMBOL TAMBAH SESI --}}
                             <div class="regular-session-card-header">
@@ -341,8 +503,7 @@
                                     </div>
                                 </div>
 
-                                <button type="button" class="regular-btn regular-btn-primary js-open-add-session"
-                                    id="addSessionBtn">
+                                <button type="button" class="regular-btn regular-btn-primary" id="addSessionBtn">
                                     <span class="material-symbols-rounded">add</span>
                                     Tambah Sesi
                                 </button>
@@ -350,61 +511,61 @@
 
                             <div class="regular-session-body">
                                 <div class="regular-session-list">
-                                    @foreach ($selectedSlots as $session)
+                                    {{-- Enam posisi sesi selalu tampil. Slot yang belum dibuat bukan slot aktif. --}}
+                                    @foreach ([
+                                        ['08:00', '10:00'],
+                                        ['10:00', '12:00'],
+                                        ['12:00', '14:00'],
+                                        ['14:00', '16:00'],
+                                        ['16:00', '18:00'],
+                                        ['18:00', '20:00'],
+                                    ] as $defaultSession)
                                         @php
+                                            $session = $selectedSlots->first(function ($item) use ($defaultSession) {
+                                                return substr((string) ($item['start_time'] ?? ''), 0, 5) === $defaultSession[0]
+                                                    && substr((string) ($item['end_time'] ?? ''), 0, 5) === $defaultSession[1];
+                                            });
                                             $sessionQuota = (int) ($session['quota'] ?? 0);
                                             $sessionUsed = (int) ($session['used'] ?? 0);
-                                            $sessionRemaining = max($sessionQuota - $sessionUsed, 0);
-                                            $sessionStatus = $session['status'] ?? 'active';
+                                            $sessionRemaining = max(0, $sessionQuota - $sessionUsed);
+                                            $sessionStatus = $session['status'] ?? 'inactive';
                                         @endphp
-
                                         <article class="regular-session-item">
                                             <div class="regular-session-info">
-                                                <strong>Sesi {{ $session['session_number'] ?? $loop->iteration }}</strong>
-                                                <span>
-                                                    {{ $session['start_time'] ?? '--:--' }}–{{ $session['end_time'] ?? '--:--' }}
-                                                    WIB
-                                                </span>
-                                                <small>
-                                                    Kuota {{ number_format($sessionQuota, 0, ',', '.') }}
-                                                    · Terpakai {{ number_format($sessionUsed, 0, ',', '.') }}
-                                                    · Sisa {{ number_format($sessionRemaining, 0, ',', '.') }}
-                                                </small>
+                                                <strong>Sesi {{ $loop->iteration }}</strong>
+                                                <span>{{ $defaultSession[0] }}–{{ $defaultSession[1] }} WIB</span>
+                                                @if ($session)
+                                                    <small>
+                                                        Kuota {{ number_format($sessionQuota, 0, ',', '.') }}
+                                                        · Terpakai {{ number_format($sessionUsed, 0, ',', '.') }}
+                                                        · Sisa {{ number_format($sessionRemaining, 0, ',', '.') }}
+                                                    </small>
+                                                @else
+                                                    <small>Kuota belum diatur · Belum tersedia untuk booking</small>
+                                                @endif
                                             </div>
-
-                                            <span
-                                                class="regular-calendar-cell-status status-{{ $sessionStatus === 'inactive' ? 'inactive' : ($sessionRemaining <= 0 ? 'full' : 'available') }}">
-                                                {{ $sessionStatus === 'inactive' ? 'Nonaktif' : ($sessionRemaining <= 0 ? 'Habis' : 'Aktif') }}
-                                            </span>
-
-                                            <button type="button"
-                                                class="regular-btn regular-btn-primary js-open-regular-session"
-                                                data-slot-id="{{ $session['id'] }}"
-                                                data-session-number="{{ $session['session_number'] ?? $loop->iteration }}"
-                                                data-start-time="{{ $session['start_time'] ?? '' }}"
-                                                data-end-time="{{ $session['end_time'] ?? '' }}"
-                                                data-quota="{{ $sessionQuota }}" data-used="{{ $sessionUsed }}"
-                                                data-status="{{ $sessionStatus }}">
-                                                <span class="material-symbols-rounded">tune</span>
-                                                Atur
-                                            </button>
+                                            @if ($session)
+                                                <span class="regular-calendar-cell-status status-{{ $sessionStatus === 'inactive' ? 'inactive' : ($sessionRemaining <= 0 ? 'full' : 'available') }}">
+                                                    {{ $sessionStatus === 'inactive' ? 'Nonaktif' : ($sessionRemaining <= 0 ? 'Habis' : 'Aktif') }}
+                                                </span>
+                                                <button type="button"
+                                                    class="regular-btn regular-btn-primary js-open-regular-session"
+                                                    data-slot-id="{{ $session['id'] }}"
+                                                    data-session-number="{{ $loop->iteration }}"
+                                                    data-start-time="{{ $session['start_time'] }}"
+                                                    data-end-time="{{ $session['end_time'] }}"
+                                                    data-quota="{{ $sessionQuota }}"
+                                                    data-used="{{ $sessionUsed }}"
+                                                    data-status="{{ $sessionStatus }}">
+                                                    <span class="material-symbols-rounded">tune</span>
+                                                    Atur
+                                                </button>
+                                            @else
+                                                <span class="regular-calendar-cell-status status-unconfigured">Belum diatur</span>
+                                            @endif
                                         </article>
                                     @endforeach
                                 </div>
-                            </div>
-                        </div>
-                    @elseif ($selectedDate)
-                        {{-- perlu diubah agar otomatis  muncul session --}}
-                        <div class="regular-calendar-no-slot">
-                            <div class="regular-calendar-no-slot-icon">
-                                <span class="material-symbols-rounded">event_busy</span>
-                            </div>
-                            <div>
-                                <span class="regular-calendar-overline">TANGGAL DIPILIH</span>
-                                <h3>{{ \Carbon\Carbon::parse($selectedDate)->locale('id')->translatedFormat('l, d F Y') }}
-                                </h3>
-                                <p>Belum ada sesi tiket reguler yang dikonfigurasi untuk tanggal ini.</p>
-                                <small>Penambahan sesi baru akan dihubungkan pada tahap berikutnya.</small>
                             </div>
                         </div>
                     @else
@@ -419,6 +580,7 @@
                             </div>
                         </div>
                     @endif
+
                 </section>
             </div>
         </div>
@@ -426,8 +588,8 @@
 
     {{-- MODAL: SATU MODAL DIPAKAI UNTUK MENGATUR SESI YANG DIPILIH --}}
     @if ($selectedDate && $selectedSlots->isNotEmpty())
-        <div class="regular-modal-overlay {{ $errors->any() ? 'is-visible' : '' }}" id="regularSlotModal"
-            aria-hidden="{{ $errors->any() ? 'false' : 'true' }}">
+        <div class="regular-modal-overlay {{ $errors->any() && ! $addSessionHasErrors && old('_form') !== 'daily_quota' ? 'is-visible' : '' }}" id="regularSlotModal"
+            aria-hidden="{{ $errors->any() && ! $addSessionHasErrors && old('_form') !== 'daily_quota' ? 'false' : 'true' }}">
 
             <section class="regular-modal" role="dialog" aria-modal="true" aria-labelledby="regularModalTitle">
 
@@ -446,21 +608,23 @@
                     </button>
                 </div>
 
-                <form action="{{ route('admin.reguler.update', ['date' => $selectedDate]) }}" method="POST"
-                    class="regular-modal-form" id="regularSlotForm">
+                <form action="{{ route('admin.reguler.slots.update', ['slotId' => $modalSlot['id']]) }}"
+                    data-update-url-template="{{ route('admin.reguler.slots.update', ['slotId' => '__SLOT_ID__']) }}"
+                    method="POST" class="regular-modal-form" id="regularSlotForm">
 
                     @csrf
                     @method('PUT')
 
                     <input type="hidden" name="month" value="{{ $monthKey }}">
+                    <input type="hidden" name="date" value="{{ $selectedDate }}">
                     <input type="hidden" name="slot_id" id="regularSlotId"
                         value="{{ old('slot_id', $modalSlot['id'] ?? '') }}">
 
                     <div class="regular-modal-notice">
                         <span class="material-symbols-rounded">info</span>
                         <p>
-                            Ini masih menggunakan data dummy. Perubahan disimpan di session Laravel,
-                            bukan database. <strong>Integrasi backend dilakukan nanti.</strong>
+                            Perubahan akan diproses untuk sesi yang dipilih.
+                            Pastikan jadwal dan kuota sudah sesuai sebelum menyimpan.
                         </p>
                     </div>
 
@@ -541,6 +705,80 @@
         </div>
     @endif
 
+
+    {{-- MODAL TAMBAH SESI: menggunakan gaya modal Admin yang sama dengan tombol Atur. --}}
+    @if ($selectedDate)
+        <div class="regular-modal-overlay {{ $addSessionHasErrors ? 'is-visible' : '' }}"
+            id="regularAddSessionModal" aria-hidden="{{ $addSessionHasErrors ? 'false' : 'true' }}">
+            <section class="regular-modal" role="dialog" aria-modal="true" aria-labelledby="regularAddModalTitle">
+                <div class="regular-modal-header">
+                    <div>
+                        <span class="regular-modal-eyebrow">MANAJEMEN TIKET REGULER</span>
+                        <h2 id="regularAddModalTitle">Tambah Sesi</h2>
+                        <p>{{ \Carbon\Carbon::parse($selectedDate)->locale('id')->translatedFormat('l, d F Y') }}</p>
+                    </div>
+                    <button type="button" class="regular-modal-close" id="closeRegularAddModal" aria-label="Tutup modal tambah sesi">
+                        <span class="material-symbols-rounded">close</span>
+                    </button>
+                </div>
+
+                <form action="{{ route('admin.reguler.store') }}" method="POST" class="regular-modal-form" id="regularAddSessionForm">
+                    @csrf
+                    <input type="hidden" name="_form" value="add_session">
+                    <input type="hidden" name="month" value="{{ $monthKey }}">
+                    <input type="hidden" name="date" value="{{ $selectedDate }}">
+
+                    @if ($selectedDate < now()->toDateString())
+                        <div class="regular-modal-notice">
+                            <span class="material-symbols-rounded">info</span>
+                            <p>Tanggal ini sudah berlalu. Backend hanya menerima sesi baru untuk hari ini atau tanggal berikutnya.</p>
+                        </div>
+                    @endif
+
+                    <div class="regular-modal-fields">
+                        <div class="regular-modal-field">
+                            <label for="newStartTime">Jam Mulai</label>
+                            <input type="time" id="newStartTime" name="start_time"
+                                value="{{ $addSessionHasErrors ? old('start_time') : '' }}" required>
+                            @if ($addSessionHasErrors)
+                                @error('start_time') <small class="regular-modal-error">{{ $message }}</small> @enderror
+                            @endif
+                        </div>
+                        <div class="regular-modal-field">
+                            <label for="newEndTime">Jam Selesai</label>
+                            <input type="time" id="newEndTime" name="end_time"
+                                value="{{ $addSessionHasErrors ? old('end_time') : '' }}" required>
+                            @if ($addSessionHasErrors)
+                                @error('end_time') <small class="regular-modal-error">{{ $message }}</small> @enderror
+                            @endif
+                        </div>
+                        <div class="regular-modal-field">
+                            <label for="newQuota">Kuota Sesi</label>
+                            <input type="number" id="newQuota" name="quota" min="1"
+                                value="{{ $addSessionHasErrors ? old('quota', 50) : 50 }}" required>
+                            @if ($addSessionHasErrors)
+                                @error('quota') <small class="regular-modal-error">{{ $message }}</small> @enderror
+                            @endif
+                        </div>
+                    </div>
+
+                    @if ($addSessionHasErrors)
+                        <div class="regular-modal-validation">Periksa kembali isian sesi yang belum sesuai.</div>
+                    @endif
+
+                    <div class="regular-modal-actions">
+                        <button type="button" class="regular-btn regular-btn-secondary" id="cancelRegularAddModal">Batal</button>
+                        <button type="submit" class="regular-btn regular-btn-primary"
+                            {{ $selectedDate < now()->toDateString() ? 'disabled' : '' }}>
+                            <span class="material-symbols-rounded">save</span>
+                            Simpan Sesi
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    @endif
+
     {{-- POP UP DETAIL KETIKA ADMIN KLIK TANGGAL YANG ADA EVENTNYA --}}
     <div class="event-detail-modal" id="eventDetailModal" aria-hidden="true">
         <div class="event-detail-backdrop" data-close-event-modal></div>
@@ -583,4 +821,119 @@
     </div>
 @endsection
 
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const addModal = document.getElementById('regularAddSessionModal');
+    const addButton = document.getElementById('addSessionBtn');
 
+    if (addModal && addButton) {
+        const openAdd = () => {
+            addModal.classList.add('is-visible');
+            addModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('regular-modal-open');
+        };
+        const closeAdd = () => {
+            addModal.classList.remove('is-visible');
+            addModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('regular-modal-open');
+        };
+
+        addButton.addEventListener('click', openAdd);
+        document.getElementById('closeRegularAddModal')?.addEventListener('click', closeAdd);
+        document.getElementById('cancelRegularAddModal')?.addEventListener('click', closeAdd);
+        addModal.addEventListener('click', (event) => {
+            if (event.target === addModal) closeAdd();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && addModal.classList.contains('is-visible')) closeAdd();
+        });
+        if (addModal.classList.contains('is-visible')) {
+            document.body.classList.add('regular-modal-open');
+        }
+    }
+
+    // Action form edit mengikuti ID sesi yang diklik, bukan hanya tanggal.
+    const editForm = document.getElementById('regularSlotForm');
+    const editTemplate = editForm?.dataset.updateUrlTemplate;
+    if (editForm && editTemplate) {
+        document.querySelectorAll('.js-open-regular-session').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (button.dataset.slotId) {
+                    editForm.action = editTemplate.replace('__SLOT_ID__', encodeURIComponent(button.dataset.slotId));
+                }
+            });
+        });
+    }
+});
+</script>
+@endpush
+
+
+
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('dailyQuotaForm');
+    if (!form) return;
+
+    const capacity = document.getElementById('capacityPerSession');
+    const button = document.getElementById('applyQuotaAllSessions');
+    const inputs = Array.from(
+        form.querySelectorAll('.js-daily-session-quota')
+    );
+    const total = document.getElementById('dailyQuotaSum');
+
+    function refresh() {
+        const sum = inputs.reduce(
+            (value, input) => value + Number(input.value || 0), 0
+        );
+        total.textContent = sum.toLocaleString('id-ID');
+        inputs.forEach(input => {
+            input.max = capacity.value;
+        });
+    }
+
+    button.addEventListener('click', function () {
+        const value = Number(capacity.value);
+
+        if (!Number.isInteger(value) || value < 1) {
+            alert('Isi kapasitas tribun yang valid.');
+            return;
+        }
+
+        if (inputs.some(input => value < Number(input.min || 0))) {
+            alert('Kapasitas di bawah jumlah tiket terpakai.');
+            return;
+        }
+
+        inputs.forEach(input => {
+            input.value = String(value);
+        });
+        refresh();
+    });
+
+    capacity.addEventListener('input', refresh);
+    inputs.forEach(input => input.addEventListener('input', refresh));
+
+    form.addEventListener('submit', function (event) {
+        const max = Number(capacity.value);
+        const invalid = !Number.isInteger(max) || max < 1 ||
+            inputs.some(input => {
+                const value = Number(input.value);
+                return !Number.isInteger(value) ||
+                    value < Number(input.min || 0) ||
+                    value > max;
+            });
+
+        if (invalid) {
+            event.preventDefault();
+            alert('Periksa kuota setiap sesi sebelum menyimpan.');
+        }
+    });
+
+    refresh();
+});
+</script>
+@endpush

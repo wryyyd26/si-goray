@@ -17,7 +17,7 @@
                 </a>
 
                 <h1>Detail User</h1>
-                <p>Informasi lengkap pengguna yang terdaftar pada sistem.</p>
+                <p>Informasi akun pengguna (identitas sensitif disamarkan).</p>
             </div>
 
         </div>
@@ -51,7 +51,7 @@
                         </div>
 
                         <div class="user-detail-value">
-                            {{ $user['nik'] }}
+                            {{ $user['nik_masked'] }}
                         </div>
                     </div>
 
@@ -64,7 +64,7 @@
                         </div>
 
                         <div class="user-detail-value">
-                            {{ \Carbon\Carbon::parse($user['tanggal_lahir'])->format('d F Y') }}
+                            {{ $user['tanggal_lahir_label'] }}
                         </div>
                     </div>
 
@@ -78,14 +78,16 @@
 
                         <div class="user-detail-value">
 
-                            @if ($user['is_warga_kota'])
+                            @if ($user['is_warga_kota'] === true)
                                 <span class="user-status warga">
                                     Warga Kota
                                 </span>
-                            @else
+                            @elseif ($user['is_warga_kota'] === false)
                                 <span class="user-status non-warga">
                                     Bukan Warga Kota
                                 </span>
+                            @else
+                                <span class="user-status">Belum diverifikasi</span>
                             @endif
 
                         </div>
@@ -168,9 +170,7 @@
                 <h4>Belum Ada Riwayat</h4>
 
                 <p>
-                    Data riwayat registrasi user akan ditampilkan
-                    setelah backend terhubung dengan database.
-                </p>
+                    Jumlah pemesanan tercatat: {{ $bookingCount }}. Lihat rincian pada menu Kelola Pemesanan.
 
             </div>
 

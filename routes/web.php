@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use App\Models\Event;
 use Illuminate\Http\Request;
@@ -228,7 +228,16 @@ Route::post('/pembayaran/konfirmasi', function (Request $request) {
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('admin')->name('admin.')->group(function () {
+// Login Admin menggunakan sesi terpisah dari OTP pengunjung/petugas.
+Route::get('/admin/login', [\App\Http\Controllers\Admin\AdminAuthController::class, 'showLogin'])
+    ->name('admin.login');
+Route::post('/admin/login', [\App\Http\Controllers\Admin\AdminAuthController::class, 'login'])
+    ->name('admin.login.submit');
+
+Route::prefix('admin')->name('admin.')->middleware(\App\Http\Middleware\EnsureSiGorayAdmin::class)->group(function () {
+
+    Route::post('/logout', [\App\Http\Controllers\Admin\AdminAuthController::class, 'logout'])
+        ->name('logout');
 
     /*
     |--------------------------------------------------------------------------
@@ -236,9 +245,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/', function () {
-        return redirect()->route('admin.events.index');
-    })->name('dashboard');
+    Route::get('/', [
+    \App\Http\Controllers\Admin\AdminDashboardController::class,
+    'index',
+])->name('dashboard');
 
     Route::post('/reguler', [
     RegularSlotController::class,
@@ -260,6 +270,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
         RegularSlotController::class,
         'index',
     ])->name('reguler.index');
+
+    // Generate enam sesi 2 jam (08:00–20:00) untuk bulan yang dipilih.
+    Route::post('/reguler/generate-bulanan', [
+        \App\Http\Controllers\Admin\MonthlyRegularSlotController::class,
+        'store',
+    ])->name('reguler.generate-bulanan');
+
+        // Atur kapasitas tribun dan kuota 6 sesi per tanggal.
+    Route::post('/reguler/kuota-harian', [
+        \App\Http\Controllers\Admin\DailyRegularQuotaController::class,
+        'store',
+    ])->name('reguler.kuota-harian.store');
 
     Route::get('/reguler/{date}/edit', [
         RegularSlotController::class,
@@ -290,6 +312,12 @@ Route::put(
     ->whereUuid('slotId')
     ->name('reguler.slots.update');
 
+    // Tarif reguler: sudah berada dalam prefix "admin" dan name "admin.".
+    // Catatan: otorisasi Admin perlu diterapkan setelah mekanisme login Admin siap.
+    Route::put('/reguler/tarif', [\App\Http\Controllers\Admin\RegularTariffController::class, 'update'])
+        ->name('reguler.tarif.update');
+
+
 
     /*
     |--------------------------------------------------------------------------
@@ -298,9 +326,15 @@ Route::put(
     | Sementara menunggu integrasi controller booking Admin.
     */
 
-    Route::get('/booking', function () {
-        return redirect()->route('admin.events.index');
-    })->name('booking.pemesanan');
+    Route::get('/booking', [
+    \App\Http\Controllers\Admin\BookingManagementController::class,
+    'index',
+])->name('booking.pemesanan');
+
+Route::get('/booking/{booking}', [
+    \App\Http\Controllers\Admin\BookingManagementController::class,
+    'show',
+])->whereUuid('booking')->name('booking.show');
 
 
     /*
@@ -310,9 +344,17 @@ Route::put(
     | Sementara menunggu integrasi controller pembayaran Admin.
     */
 
-    Route::get('/payments', function () {
-        return redirect()->route('admin.events.index');
-    })->name('payment.pembayaran');
+
+Route::get('/payments', [
+    \App\Http\Controllers\Admin\PaymentManagementController::class,
+    'index',
+])->name('payment.pembayaran');
+
+Route::get('/payments/{payment}', [
+    \App\Http\Controllers\Admin\PaymentManagementController::class,
+    'show',
+])->whereUuid('payment')->name('payment.show');
+
 
 
     /*
@@ -321,9 +363,10 @@ Route::put(
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/users', function () {
-        return redirect()->route('admin.events.index');
-    })->name('user.index');
+
+Route::get('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'index'])->name('user.index');
+    Route::get('/users/{user}', [\App\Http\Controllers\Admin\AdminUserController::class, 'show'])->whereUuid('user')->name('user.detail');
+
 
 
     /*
@@ -333,8 +376,8 @@ Route::put(
     */
 
     Route::get('/saran-masukan', function () {
-        return redirect()->route('admin.events.index');
-    })->name('saran-masukan.index');
+    return view('admin.saran-masukan.index');
+})->name('saran-masukan.index');
 
  /*
     |--------------------------------------------------------------------------
@@ -348,9 +391,9 @@ Route::put(
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/reports', function () {
-        return redirect()->route('admin.events.index');
-    })->name('report.index');
+   Route::get('/reports', function () {
+    return view('admin.report.index');
+})->name('report.index');
 
 
     /*

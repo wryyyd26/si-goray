@@ -9,12 +9,16 @@ use App\Models\TariffReference;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class EventController extends Controller
 {
+    private const DEFAULT_QUOTA = 200;
+    private const MAX_QUOTA = 200;
+
     /**
-     * Menampilkan daftar event dari database.
+     * Menampilkan daftar event.
      */
     public function index(Request $request)
     {
@@ -33,15 +37,9 @@ class EventController extends Controller
             ])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
-                    $subQuery->where(
-                        'nama_event',
-                        'like',
-                        "%{$search}%"
-                    )->orWhere(
-                        'deskripsi',
-                        'like',
-                        "%{$search}%"
-                    );
+                    $subQuery
+                        ->where('nama_event', 'like', "%{$search}%")
+                        ->orWhere('deskripsi', 'like', "%{$search}%");
                 });
             })
             ->orderBy('nama_event')
@@ -89,21 +87,30 @@ class EventController extends Controller
                     'name' => $event->nama_event,
                     'description' => $event->deskripsi,
                     'poster' => $event->gambar,
+
                     'date' => $schedule?->tanggal
                         ?->format('Y-m-d')
                         ?? today()->toDateString(),
+
                     'start_time' => $schedule
                         ? substr((string) $schedule->jam_mulai, 0, 5)
                         : '--:--',
+
                     'end_time' => $schedule
                         ? substr((string) $schedule->jam_selesai, 0, 5)
                         : '--:--',
+
                     'tariff' => $tariff?->nominal
                         ?? $tarifUmumDefault?->nominal
                         ?? 0,
+
+                    'quota' => $schedule?->kapasitas
+                        ?? self::DEFAULT_QUOTA,
+
                     'sold' => $event->schedules->sum(
                         'kuota_terpakai'
                     ),
+
                     'status' => $statusLabel,
                 ];
             }
@@ -113,16 +120,19 @@ class EventController extends Controller
             'events' => $events,
             'search' => $search,
             'totalEvents' => Event::count(),
+
             'totalActiveEvents' => Event::where(
                 'status',
                 'AKTIF'
             )->count(),
+
             'totalUpcomingEvents' => Event::where(
                 'status',
                 'AKTIF'
             )->whereHas('schedules', function ($query) {
                 $query->whereDate('tanggal', '>', today());
             })->count(),
+
             'totalTicketsSold' => (int) EventSchedule::sum(
                 'kuota_terpakai'
             ),
@@ -130,16 +140,17 @@ class EventController extends Controller
     }
 
     /**
-     * Menampilkan form tambah event.
+     * Form tambah event.
      */
     public function create()
     {
-        return view('admin.event.create');
+        return view('admin.event.create', [
+            'defaultQuota' => self::DEFAULT_QUOTA,
+        ]);
     }
 
     /**
-     * Menyimpan event, jadwal berkapasitas 200 orang,
-     * dan tarif pengunjung umum.
+     * Simpan event, jadwal, dan tarif.
      */
     public function store(Request $request)
     {
@@ -153,10 +164,14 @@ class EventController extends Controller
             : null;
 
         try {
-            DB::transaction(function () use (
-                $data,
-                $posterPath
-            ) {
+            DB::transaction(function () use ($data, $posterPath) {
+
+                $this->assertNoScheduleConflict(
+                    $data['date'],
+                    $data['start_time'],
+                    $data['end_time']
+                );
+
                 $event = Event::create([
                     'nama_event' => $data['name'],
                     'deskripsi' => $data['description'] ?? null,
@@ -168,7 +183,7 @@ class EventController extends Controller
                     'tanggal' => $data['date'],
                     'jam_mulai' => $data['start_time'],
                     'jam_selesai' => $data['end_time'],
-                    'kapasitas' => 200,
+                    'kapasitas' => (int) $data['quota'],
                     'kuota_terpakai' => 0,
                 ]);
 
@@ -180,7 +195,9 @@ class EventController extends Controller
                     'aktif' => true,
                 ]);
             });
+
         } catch (Throwable $exception) {
+
             if ($posterPath) {
                 Storage::disk('public')->delete($posterPath);
             }
@@ -192,12 +209,14 @@ class EventController extends Controller
             ->route('admin.events.index')
             ->with(
                 'success',
-                'Event berhasil disimpan. Kapasitas jadwal: 200 orang.'
+                'Event berhasil disimpan dengan kuota '
+                . $data['quota']
+                . ' tiket.'
             );
     }
 
     /**
-     * Menampilkan form edit event.
+     * Form edit event.
      */
     public function edit(Event $event)
     {
@@ -224,58 +243,35 @@ class EventController extends Controller
                 'name' => $event->nama_event,
                 'description' => $event->deskripsi,
                 'poster' => $event->gambar,
+
                 'date' => $schedule?->tanggal
                     ?->format('Y-m-d')
                     ?? today()->toDateString(),
+
                 'start_time' => $schedule
                     ? substr((string) $schedule->jam_mulai, 0, 5)
                     : '08:00',
+
                 'end_time' => $schedule
                     ? substr((string) $schedule->jam_selesai, 0, 5)
                     : '16:00',
+
+                'quota' => $schedule?->kapasitas
+                    ?? self::DEFAULT_QUOTA,
+
+                'sold' => $schedule?->kuota_terpakai ?? 0,
+
                 'tariff' => $tariff?->nominal ?? 0,
             ],
         ]);
     }
 
     /**
-     * Memperbarui event tanpa mengubah tanggal atau jam
-     * jadwal yang sudah memiliki booking.
+     * Update event tanpa mengganggu booking yang ada.
      */
     public function update(Request $request, Event $event)
     {
         $data = $this->validateEvent($request, false);
-
-        $schedule = $event->schedules()
-            ->orderBy('tanggal')
-            ->orderBy('jam_mulai')
-            ->first();
-
-        if ($schedule && $schedule->bookings()->exists()) {
-            $sameDate = $schedule->tanggal->format('Y-m-d')
-                === $data['date'];
-
-            $sameStart = substr(
-                (string) $schedule->jam_mulai,
-                0,
-                5
-            ) === $data['start_time'];
-
-            $sameEnd = substr(
-                (string) $schedule->jam_selesai,
-                0,
-                5
-            ) === $data['end_time'];
-
-            if (!$sameDate || !$sameStart || !$sameEnd) {
-                return back()
-                    ->withInput()
-                    ->withErrors([
-                        'date' => 'Tanggal atau jam tidak dapat '
-                            . 'diubah karena jadwal sudah memiliki booking.',
-                    ]);
-            }
-        }
 
         $oldPosterPath = $event->gambar;
 
@@ -290,9 +286,69 @@ class EventController extends Controller
             DB::transaction(function () use (
                 $event,
                 $data,
-                $newPosterPath,
-                $schedule
+                $newPosterPath
             ) {
+                $schedule = $event->schedules()
+                    ->orderBy('tanggal')
+                    ->orderBy('jam_mulai')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($schedule) {
+                    // Jangan menurunkan kapasitas di bawah tiket terpakai.
+                    if (
+                        (int) $data['quota']
+                        < (int) $schedule->kuota_terpakai
+                    ) {
+                        throw ValidationException::withMessages([
+                            'quota' => 'Kuota tidak boleh lebih kecil '
+                                . 'daripada jumlah tiket yang sudah terpakai.',
+                        ]);
+                    }
+
+                    $sameDate = $schedule->tanggal->format('Y-m-d')
+                        === $data['date'];
+
+                    $sameStart = substr(
+                        (string) $schedule->jam_mulai,
+                        0,
+                        5
+                    ) === $data['start_time'];
+
+                    $sameEnd = substr(
+                        (string) $schedule->jam_selesai,
+                        0,
+                        5
+                    ) === $data['end_time'];
+
+                    $scheduleChanged = !(
+                        $sameDate && $sameStart && $sameEnd
+                    );
+
+                    // Jadwal yang sudah memiliki booking tidak boleh digeser.
+                    if (
+                        $scheduleChanged
+                        && $schedule->bookings()->exists()
+                    ) {
+                        throw ValidationException::withMessages([
+                            'date' => 'Tanggal atau jam event tidak dapat '
+                                . 'diubah karena sudah memiliki booking.',
+                        ]);
+                    }
+                } else {
+                    $scheduleChanged = true;
+                }
+
+                // Konflik hanya perlu diperiksa jika jadwal berubah.
+                if ($scheduleChanged) {
+                    $this->assertNoScheduleConflict(
+                        $data['date'],
+                        $data['start_time'],
+                        $data['end_time'],
+                        $schedule?->id
+                    );
+                }
+
                 $event->update([
                     'nama_event' => $data['name'],
                     'deskripsi' => $data['description'] ?? null,
@@ -304,13 +360,14 @@ class EventController extends Controller
                         'tanggal' => $data['date'],
                         'jam_mulai' => $data['start_time'],
                         'jam_selesai' => $data['end_time'],
+                        'kapasitas' => (int) $data['quota'],
                     ]);
                 } else {
                     $event->schedules()->create([
                         'tanggal' => $data['date'],
                         'jam_mulai' => $data['start_time'],
                         'jam_selesai' => $data['end_time'],
-                        'kapasitas' => 200,
+                        'kapasitas' => (int) $data['quota'],
                         'kuota_terpakai' => 0,
                     ]);
                 }
@@ -320,7 +377,9 @@ class EventController extends Controller
                     $data['tariff']
                 );
             });
+
         } catch (Throwable $exception) {
+
             if ($newPosterPath) {
                 Storage::disk('public')->delete($newPosterPath);
             }
@@ -340,46 +399,63 @@ class EventController extends Controller
             ->route('admin.events.index')
             ->with(
                 'success',
-                'Informasi event berhasil diperbarui.'
+                'Informasi dan kuota event berhasil diperbarui.'
             );
     }
 
     /**
-     * Validasi input dari form frontend.
+     * Validasi form event.
      */
     private function validateEvent(
         Request $request,
         bool $requireFutureDate
     ): array {
-        $dateRules = ['required', 'date'];
+        $dateRules = ['required', 'date_format:Y-m-d'];
 
         if ($requireFutureDate) {
             $dateRules[] = 'after_or_equal:today';
         }
 
         return $request->validate([
-            'name' => ['required', 'string', 'max:150'],
+            'name' => [
+                'required',
+                'string',
+                'max:150',
+            ],
+
             'description' => [
                 'nullable',
                 'string',
                 'max:2000',
             ],
+
             'poster' => [
                 'nullable',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:2048',
             ],
+
             'date' => $dateRules,
+
             'start_time' => [
                 'required',
                 'date_format:H:i',
             ],
+
             'end_time' => [
                 'required',
                 'date_format:H:i',
                 'after:start_time',
             ],
+
+            'quota' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:' . self::MAX_QUOTA,
+            ],
+
             'tariff' => [
                 'required',
                 'numeric',
@@ -390,7 +466,74 @@ class EventController extends Controller
     }
 
     /**
-     * Mengambil tarif event yang sedang aktif.
+     * Periksa konflik jadwal dengan sesi reguler dan event lain.
+     *
+     * Dua rentang bertabrakan jika:
+     * existing.start < requested.end
+     * dan existing.end > requested.start.
+     *
+     * Jadwal yang selesai tepat saat jadwal baru dimulai
+     * tidak dianggap bertabrakan.
+     */
+    private function assertNoScheduleConflict(
+        string $date,
+        string $startTime,
+        string $endTime,
+        ?string $excludeScheduleId = null
+    ): void {
+        $start = $startTime . ':00';
+        $end = $endTime . ':00';
+
+        // Sesi reguler aktif atau yang sudah memiliki tiket terpakai.
+        $regularConflict = DB::table('regular_slots')
+            ->whereDate('tanggal', $date)
+            ->where('jam_mulai', '<', $end)
+            ->where('jam_selesai', '>', $start)
+            ->where(function ($query) {
+                $query->where('status', 'active')
+                    ->orWhere('kuota_terpakai', '>', 0);
+            })
+            ->exists();
+
+        if ($regularConflict) {
+            throw ValidationException::withMessages([
+                'date' => 'Jadwal event bertabrakan dengan '
+                    . 'sesi tiket reguler pada tanggal tersebut.',
+            ]);
+        }
+
+        // Event lain yang berstatus AKTIF.
+        $eventQuery = DB::table('event_schedules as es')
+            ->join(
+                'events as e',
+                'e.id',
+                '=',
+                'es.event_id'
+            )
+            ->where('e.status', 'AKTIF')
+            ->whereDate('es.tanggal', $date)
+            ->where('es.jam_mulai', '<', $end)
+            ->where('es.jam_selesai', '>', $start);
+
+        // Saat edit, abaikan jadwal yang sedang diedit.
+        if ($excludeScheduleId !== null) {
+            $eventQuery->where(
+                'es.id',
+                '!=',
+                $excludeScheduleId
+            );
+        }
+
+        if ($eventQuery->exists()) {
+            throw ValidationException::withMessages([
+                'date' => 'Jadwal event bertabrakan dengan '
+                    . 'event aktif lainnya.',
+            ]);
+        }
+    }
+
+    /**
+     * Tarif khusus event yang masih berlaku.
      */
     private function activeEventTariff(
         Event $event
@@ -405,8 +548,7 @@ class EventController extends Controller
     }
 
     /**
-     * Mempertahankan riwayat tarif yang sudah digunakan
-     * oleh booking sebelumnya.
+     * Pertahankan referensi tarif booking sebelumnya.
      */
     private function saveEventTariff(
         Event $event,

@@ -6,9 +6,18 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
+use Tests\Concerns\LogsInSiGorayAdmin;
 
 class AdminRegularSlotTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->loginAsSiGorayAdmin();
+    }
+
+    use LogsInSiGorayAdmin;
+
     use DatabaseTransactions;
 
     /**
@@ -94,8 +103,11 @@ class AdminRegularSlotTest extends TestCase
         );
 
         $response->assertRedirect(
-            route('admin.reguler.index')
-        );
+    route('admin.reguler.index', [
+        'month' => '2030-11',
+        'date' => '2030-11-01',
+    ])
+);
 
         $this->assertDatabaseHas('regular_slots', [
             'id' => $slotA,

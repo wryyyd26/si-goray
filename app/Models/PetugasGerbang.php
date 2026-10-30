@@ -51,7 +51,7 @@ class PetugasGerbang extends Model
         );
     }
 
-    /**
+/**
  * Akun yang digunakan petugas untuk autentikasi.
  */
 public function user(): BelongsTo

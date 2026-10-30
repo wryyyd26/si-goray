@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class RegularSlotController extends Controller
 {
@@ -57,12 +58,122 @@ class RegularSlotController extends Controller
         );
 
 
+$month = request()->query('month', now()->format('Y-m'));
+
+if (!is_string($month) ||
+    !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month)) {
+    $month = now()->format('Y-m');
+}
+
+$calendarMonth = \Carbon\Carbon::createFromFormat('!Y-m', $month)
+    ->startOfMonth();
+
+$monthKey = $calendarMonth->format('Y-m');
+
+// Mengelompokkan slot yang sudah diambil dari database.
+$slotsByDate = $slots->groupBy('date');
+
+// Membentuk kalender mulai Senin.
+$calendarCells = [];
+
+$leadingDays = $calendarMonth->dayOfWeekIso - 1;
+
+for ($i = 0; $i < $leadingDays; $i++) {
+    $calendarCells[] = null;
+}
+
+$daysInMonth = $calendarMonth->daysInMonth;
+
+for ($day = 1; $day <= $daysInMonth; $day++) {
+    $date = $calendarMonth->copy()
+        ->day($day)
+        ->format('Y-m-d');
+
+    $calendarCells[] = [
+        'date' => $date,
+        'day' => $day,
+        'slots' => $slotsByDate->get($date, collect())->values(),
+    ];
+}
+
+// Tanggal yang dipilih dari kalender.
+$selectedDate = request()->query('date');
+
+if (
+    $selectedDate &&
+    !preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)
+) {
+    $selectedDate = null;
+}
+
+if (
+    $selectedDate &&
+    !str_starts_with($selectedDate, $monthKey . '-')
+) {
+    $selectedDate = null;
+}
+
+$selectedSlots = $selectedDate
+    ? $slotsByDate->get($selectedDate, collect())->values()
+    : collect();
+
+
+// Data navigasi kalender untuk tampilan Admin.
+$month = request()->query('month', now()->format('Y-m'));
+
+try {
+    $calendarMonth = Carbon::createFromFormat(
+        '!Y-m',
+        $month
+    )->startOfMonth();
+
+    if ($calendarMonth->format('Y-m') !== $month) {
+        throw new \InvalidArgumentException('Format bulan tidak valid.');
+    }
+} catch (\Throwable $e) {
+    $calendarMonth = now()->startOfMonth();
+}
+
+$previousMonth = $calendarMonth->copy()
+    ->subMonth()
+    ->format('Y-m');
+
+$nextMonth = $calendarMonth->copy()
+    ->addMonth()
+    ->format('Y-m');
+
+$calendarMonthLabel = $calendarMonth
+    ->locale('id')
+    ->translatedFormat('F Y');
+
+
+$activeRegularTariff = \App\Models\TariffReference::query()
+    ->where('jenis_pengunjung', 'UMUM')
+    ->whereNull('event_id')
+    ->where('aktif', true)
+    ->whereDate('berlaku_mulai', '<=', today())
+    ->orderByDesc('berlaku_mulai')
+    ->first();
+
+$nonWargaPrice = $activeRegularTariff
+    ? (int) $activeRegularTariff->nominal
+    : null;
+
+
 return view('admin.reguler.tiket-reguler', [
     'slots' => $slots,
     'totalQuota' => $totalQuota,
     'totalUsed' => $totalUsed,
     'totalAvailable' => $totalAvailable,
     'totalRemaining' => $totalAvailable,
+    'previousMonth' => $previousMonth,
+    'nextMonth' => $nextMonth,
+    'calendarMonthLabel' => $calendarMonthLabel,
+    'monthKey' => $monthKey,
+    'calendarCells' => $calendarCells,
+    'selectedDate' => $selectedDate,
+    'selectedSlots' => $selectedSlots,
+    'nonWargaPrice' => $nonWargaPrice,
 ]);
 
     }
@@ -162,10 +273,13 @@ public function store(Request $request)
     ]);
 
     return redirect()
-        ->route('admin.reguler.index')
-        ->with(
-            'success',
-            'Slot reguler berhasil ditambahkan.'
+        ->route('admin.reguler.index', [
+        'month' => substr($data['date'], 0, 7),
+        'date' => $data['date'],
+    ])
+    ->with(
+        'success',
+        'Slot reguler berhasil ditambahkan.'
         );
 }
 
@@ -296,7 +410,7 @@ public function store(Request $request)
             ]);
 
         return redirect()
-            ->route('admin.reguler.index')
+            ->route('admin.reguler.index', ['month' => substr($date, 0, 7), 'date' => $date])
             ->with(
                 'success',
                 'Pengaturan tiket reguler berhasil diperbarui.'
@@ -437,7 +551,7 @@ public function updateById(Request $request, string $slotId)
     }, 3);
 
     return redirect()
-        ->route('admin.reguler.index')
+        ->route('admin.reguler.index', ['month' => \Carbon\Carbon::parse(\Illuminate\Support\Facades\DB::table('regular_slots')->where('id', $slotId)->value('tanggal'))->format('Y-m'), 'date' => \Carbon\Carbon::parse(\Illuminate\Support\Facades\DB::table('regular_slots')->where('id', $slotId)->value('tanggal'))->toDateString()])
         ->with('success', 'Pengaturan slot berhasil diperbarui.');
 }
 

@@ -39,7 +39,7 @@
 
                 <div class="user-stat-content">
                     <span>Total User</span>
-                    <strong>{{ count($users) }}</strong>
+                    <strong>{{ number_format($totalUsers, 0, ",", ".") }}</strong>
                 </div>
 
             </div>
@@ -58,7 +58,7 @@
                     <span>Warga Kota</span>
 
                     <strong>
-                        {{ collect($users)->where('is_warga_kota', true)->count() }}
+                        {{ number_format($wargaCount, 0, ",", ".") }}
                     </strong>
                 </div>
 
@@ -78,7 +78,7 @@
                     <span>Bukan Warga Kota</span>
 
                     <strong>
-                        {{ collect($users)->where('is_warga_kota', false)->count() }}
+                        {{ number_format($nonWargaCount, 0, ",", ".") }}
                     </strong>
                 </div>
 
@@ -104,6 +104,12 @@
                 </div>
 
 
+                {{-- Pencarian server-side berbasis kontak/ID, tanpa NIK terenkripsi --}}
+                <form method="GET" action="{{ route('admin.user.index') }}" style="display:flex;gap:8px;align-items:center">
+                    <input type="search" name="q" value="{{ $search }}" maxlength="100" placeholder="Cari kontak / ID" aria-label="Cari pengguna">
+                    <button type="submit" class="btn-outline">Cari</button>
+                </form>
+
                 {{-- Search --}}
                 <div class="user-search">
 
@@ -111,7 +117,7 @@
                         search
                     </span>
 
-                    <input type="text" id="userSearch" placeholder="Cari berdasarkan NIK..." autocomplete="off">
+                    <input type="text" id="userSearch" placeholder="Filter baris di halaman ini..." autocomplete="off">
 
                 </div>
 
@@ -142,37 +148,37 @@
 
                                 {{-- No --}}
                                 <td>
-                                    {{ $index + 1 }}
+                                    {{ $users->firstItem() + $index }}
                                 </td>
 
 
                                 {{-- NIK --}}
                                 <td>
                                     <span class="user-nik">
-                                        {{ substr($user['nik'], 0, 4) }}
-                                        ****
-                                        {{ substr($user['nik'], -4) }}
+                                        {{ $user['nik_masked'] }}
                                     </span>
                                 </td>
 
 
                                 {{-- Tanggal Lahir --}}
                                 <td>
-                                    {{ \Carbon\Carbon::parse($user['tanggal_lahir'])->format('d M Y') }}
+                                    {{ $user['tanggal_lahir_label'] }}
                                 </td>
 
 
                                 {{-- Status Warga --}}
                                 <td>
 
-                                    @if ($user['is_warga_kota'])
+                                    @if ($user['is_warga_kota'] === true)
                                         <span class="user-status warga">
                                             Warga Kota
                                         </span>
-                                    @else
+                                    @elseif ($user['is_warga_kota'] === false)
                                         <span class="user-status non-warga">
                                             Bukan Warga Kota
                                         </span>
+                                    @else
+                                        <span class="user-status">Belum diverifikasi</span>
                                     @endif
 
                                 </td>
@@ -194,17 +200,6 @@
                                             </span>
                                             Detail User
                                         </a>
-
-                                        <form action="" method="POST" class="user-delete-form"
-                                            onsubmit="return confirm('Yakin ingin menghapus user ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="user-action-btn user-action-btn-delete"
-                                                aria-label="Hapus User">
-                                                <span class="material-symbols-rounded">delete</span>
-                                                Hapus
-                                            </button>
-                                        </form>
                                     </div>    
                                 </td>
                             </tr>
@@ -226,12 +221,12 @@
 
                     </tbody>
 
-                </table>
 
             </div>
 
         </div>
 
+        <div style="margin-top:16px">{{ $users->links() }}</div>
     </div>
 
 @endsection

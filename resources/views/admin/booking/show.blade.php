@@ -123,7 +123,7 @@
                     <div class="booking-info-grid">
 
                         <div class="booking-info-item">
-                            <span>Nama</span>
+                            <span>Kontak Akun</span>
                             <strong>
                                 {{ $booking['user_name'] }}
                             </strong>
@@ -547,7 +547,7 @@
 
                                     <div>
                                         <strong>
-                                            Akses diterima
+                                            {{ $log['result'] }}
                                         </strong>
 
                                         <span>
@@ -555,7 +555,7 @@
                                         </span>
 
                                         <small>
-                                            Petugas:
+                                            Petugas ID:
                                             {{ $log['officer'] }}
                                         </small>
                                     </div>
