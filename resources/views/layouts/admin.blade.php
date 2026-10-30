@@ -106,7 +106,7 @@
                 </a>
 
                 {{-- Kelola Pesanan --}}
-                <a href="{{ route('admin.pemesanan.index') }}"
+                <a href="{{ route('admin.booking.pemesanan') }}"
                     class="menu-item {{ request()->routeIs('admin.pemesanan.*') ? 'active' : '' }}">
                     <span class="material-symbols-rounded">
                         receipt_long
