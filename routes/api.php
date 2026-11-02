@@ -188,6 +188,25 @@ Route::middleware([
     [PengunjungAuthController::class, 'logout']
 );
 
+
+/*
+|--------------------------------------------------------------------------
+| Pendaftaran Identitas Pengunjung
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:create',
+])->post(
+    '/pengunjung/identities',
+    [
+        \App\Http\Controllers\Api\PengunjungIdentityController::class,
+        'store',
+    ]
+)->name('api.pengunjung.identities.store');
+
+
 /*
 |--------------------------------------------------------------------------
 | 6. Kalender Slot Reguler
