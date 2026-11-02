@@ -218,6 +218,7 @@ Route::post('/event/futsal/pesan-tiket', function (Request $request) {
         'event_id' => ['required', 'string', 'max:100'],
         'nama_lengkap' => ['required', 'string', 'max:255'],
         'nik' => ['required', 'digits:16'],
+        'tanggal_lahir' => ['required', 'date', 'before_or_equal:today'],
         'email' => ['required', 'email', 'max:255'],
         'nomor_hp' => ['required', 'string', 'max:20'],
     ]);
@@ -269,6 +270,7 @@ Route::post('/event/futsal/pesan-tiket', function (Request $request) {
         'event_location' => $event['location'] ?? 'GOR A. Yani, Kota Mojokerto',
         'nama_lengkap' => $data['nama_lengkap'],
         'nik' => $data['nik'],
+        'tanggal_lahir' => $data['tanggal_lahir'],
         'email' => $data['email'],
         'nomor_hp' => $data['nomor_hp'],
         'subtotal' => 0,
@@ -345,6 +347,7 @@ Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
         'event_id' => ['required', 'string', 'max:100'],
         'nama_lengkap' => ['required', 'string', 'max:255'],
         'nik' => ['required', 'digits:16'],
+        'tanggal_lahir' => ['required', 'date', 'before_or_equal:today'],
         'alamat_ktp' => ['required', 'string', 'max:1000'],
         'email' => ['required', 'email', 'max:255'],
         'nomor_hp' => ['required', 'string', 'max:20'],
