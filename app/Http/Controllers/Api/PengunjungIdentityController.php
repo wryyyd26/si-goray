@@ -3,15 +3,45 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Identity;
 use App\Services\IdentityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 use RuntimeException;
 
 class PengunjungIdentityController extends Controller
 {
+    /**
+     * Menampilkan identitas milik pengunjung terautentikasi.
+     * Data sensitif tidak dikirim ke frontend.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $identities = Identity::query()
+            ->where('user_id', $request->user()->id)
+            ->orderBy('created_at')
+            ->get(['id', 'status_warga_kota'])
+            ->map(function (Identity $identity): array {
+                return [
+                    'id' => (string) $identity->id,
+                    'status_warga_kota' =>
+                        (bool) $identity->status_warga_kota,
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Daftar identitas berhasil diambil.',
+            'data' => $identities,
+        ]);
+    }
+
+    /**
+     * Mendaftarkan identitas pengunjung.
+     * User ID diperoleh dari token, bukan request frontend.
+     */
     public function store(
         Request $request,
         IdentityService $identityService
@@ -54,7 +84,7 @@ class PengunjungIdentityController extends Controller
             'success' => true,
             'message' => 'Identitas berhasil didaftarkan.',
             'data' => [
-                'id' => $identity->id,
+                'id' => (string) $identity->id,
                 'status_warga_kota' =>
                     (bool) $identity->status_warga_kota,
             ],

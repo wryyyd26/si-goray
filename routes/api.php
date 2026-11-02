@@ -1,34 +1,28 @@
 <?php
 
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\GateAccessController;
 use App\Http\Controllers\Api\GateAuthController;
 use App\Http\Controllers\Api\PaymentCallbackController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PengunjungAuthController;
+use App\Http\Controllers\Api\PengunjungIdentityController;
 use App\Http\Controllers\Api\RegularSlotCalendarController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\EventController;
 
 /*
 |--------------------------------------------------------------------------
 | API SI-GORAY
 |--------------------------------------------------------------------------
-|
-| Endpoint:
-| 1. Pemeriksaan API
-| 2. Booking pengunjung
-| 3. Pembayaran Midtrans
-| 4. Autentikasi petugas gerbang
-| 5. Scan QR Ticket
-| 6. Autentikasi pengunjung
-| 7. Kalender slot reguler
-|
+| Booking, pembayaran, OTP, tiket QR, akses gerbang,
+| event, slot reguler, dan identitas pengunjung.
+|--------------------------------------------------------------------------
 */
 
 /*
 |--------------------------------------------------------------------------
-| 1. Pemeriksaan API
+| Pemeriksaan API
 |--------------------------------------------------------------------------
 */
 
@@ -57,11 +51,10 @@ Route::get('/events/{event}', [
 
 /*
 |--------------------------------------------------------------------------
-| 2. Booking Pengunjung
+| Booking Pengunjung
 |--------------------------------------------------------------------------
 */
 
-// Membuat booking.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:create',
@@ -70,7 +63,6 @@ Route::middleware([
     [BookingController::class, 'store']
 );
 
-// Mengambil riwayat booking milik pengguna.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:read',
@@ -79,7 +71,6 @@ Route::middleware([
     [BookingController::class, 'history']
 );
 
-// Mengambil atau menerbitkan QR Ticket booking.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:read',
@@ -88,7 +79,6 @@ Route::middleware([
     [BookingController::class, 'qrTicket']
 );
 
- // Meregenerasi QR Ticket booking.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:read',
@@ -99,11 +89,10 @@ Route::middleware([
 
 /*
 |--------------------------------------------------------------------------
-| 3. Pembayaran Midtrans
+| Pembayaran Midtrans
 |--------------------------------------------------------------------------
 */
 
-// Membuat transaksi pembayaran untuk booking milik pengguna.
 Route::middleware([
     'auth:sanctum',
 ])->post(
@@ -111,10 +100,8 @@ Route::middleware([
     [PaymentController::class, 'store']
 );
 
-// Callback Midtrans.
-// Tidak menggunakan auth:sanctum karena dipanggil oleh gateway.
-// Validasi signature dan status gateway tetap dilakukan
-// oleh PaymentCallbackController dan service terkait.
+// Callback Midtrans menggunakan verifikasi signature gateway,
+// bukan autentikasi pengguna Sanctum.
 Route::post(
     '/payments/callback',
     [PaymentCallbackController::class, 'receive']
@@ -122,11 +109,10 @@ Route::post(
 
 /*
 |--------------------------------------------------------------------------
-| 4. Autentikasi Petugas Gerbang
+| Autentikasi Petugas Gerbang
 |--------------------------------------------------------------------------
 */
 
-// Meminta OTP petugas.
 Route::middleware([
     'throttle:3,1',
 ])->post(
@@ -134,7 +120,6 @@ Route::middleware([
     [GateAuthController::class, 'requestOtp']
 );
 
-// Memverifikasi OTP petugas.
 Route::middleware([
     'throttle:5,1',
 ])->post(
@@ -142,7 +127,6 @@ Route::middleware([
     [GateAuthController::class, 'verifyOtp']
 );
 
-// Logout petugas dengan token yang memiliki izin scan.
 Route::middleware([
     'auth:sanctum',
     'abilities:gate:scan',
@@ -151,8 +135,6 @@ Route::middleware([
     [GateAuthController::class, 'logout']
 );
 
-// Memindai QR Ticket.
-// Autentikasi dan kemampuan gate:scan wajib diperiksa.
 Route::middleware([
     'auth:sanctum',
     'abilities:gate:scan',
@@ -163,23 +145,20 @@ Route::middleware([
 
 /*
 |--------------------------------------------------------------------------
-| 5. Autentikasi Pengunjung
+| Autentikasi Pengunjung
 |--------------------------------------------------------------------------
 */
 
-// Meminta OTP pengunjung.
 Route::post(
     '/pengunjung/auth/request-otp',
     [PengunjungAuthController::class, 'requestOtp']
 );
 
-// Memverifikasi OTP pengunjung.
 Route::post(
     '/pengunjung/auth/verify-otp',
     [PengunjungAuthController::class, 'verifyOtp']
 );
 
-// Logout pengunjung yang sudah terautentikasi.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:read',
@@ -188,32 +167,36 @@ Route::middleware([
     [PengunjungAuthController::class, 'logout']
 );
 
-
 /*
 |--------------------------------------------------------------------------
-| Pendaftaran Identitas Pengunjung
+| Identitas Pengunjung
 |--------------------------------------------------------------------------
 */
 
+// Mengambil identitas milik pengguna yang login.
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:read',
+])->get(
+    '/pengunjung/identities',
+    [PengunjungIdentityController::class, 'index']
+)->name('api.pengunjung.identities.index');
+
+// Mendaftarkan identitas baru.
 Route::middleware([
     'auth:sanctum',
     'abilities:booking:create',
 ])->post(
     '/pengunjung/identities',
-    [
-        \App\Http\Controllers\Api\PengunjungIdentityController::class,
-        'store',
-    ]
+    [PengunjungIdentityController::class, 'store']
 )->name('api.pengunjung.identities.store');
-
 
 /*
 |--------------------------------------------------------------------------
-| 6. Kalender Slot Reguler
+| Kalender Slot Reguler
 |--------------------------------------------------------------------------
 */
 
-// Menampilkan ketersediaan slot reguler.
 Route::get(
     '/reguler/slots',
     [RegularSlotCalendarController::class, 'index']
