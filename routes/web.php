@@ -375,9 +375,26 @@ Route::get('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'i
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/saran-masukan', function () {
-    return view('admin.saran-masukan.index');
-})->name('saran-masukan.index');
+Route::get(
+    '/saran-masukan',
+    [\App\Http\Controllers\Admin\AdminSaranMasukanController::class, 'index']
+)->name('saran-masukan.index');
+
+Route::get(
+    '/saran-masukan/{saranMasukan}',
+    [\App\Http\Controllers\Admin\AdminSaranMasukanController::class, 'detail']
+)->name('saran-masukan.detail');
+
+Route::patch(
+    '/saran-masukan/{saranMasukan}/status',
+    [\App\Http\Controllers\Admin\AdminSaranMasukanController::class, 'updateStatus']
+)->name('saran-masukan.update-status');
+
+Route::delete(
+    '/saran-masukan/{saranMasukan}',
+    [\App\Http\Controllers\Admin\AdminSaranMasukanController::class, 'destroy']
+)->name('saran-masukan.destroy');
+
 
  /*
     |--------------------------------------------------------------------------

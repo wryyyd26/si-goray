@@ -12,6 +12,23 @@
             </div>
         </div>
 
+        @if (session('success'))
+            <div class="sm-notice" role="status">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="sm-notice sm-notice-error" role="alert">
+                <strong>Filter tidak valid.</strong>
+                <ul>
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="sm-stats">
             <div class="sm-stat">
                 <div class="sm-stat-icon sm-icon-total">
@@ -43,7 +60,7 @@
             <div class="sm-table-heading">
                 <div>
                     <h3>Daftar Pesan Masuk</h3>
-                    <p>Data contoh untuk review tampilan dan alur admin.</p>
+                    <p>Daftar saran dan masukan yang diterima SI-GORAY.</p>
                 </div>
             </div>
 
@@ -51,7 +68,8 @@
                 <div class="sm-search">
                     <span class="material-symbols-rounded">search</span>
                     <input type="search" name="search" value="{{ request('search') }}"
-                        placeholder="Cari nama, email, atau subjek...">
+                        maxlength="100" placeholder="Cari nama, email, atau subjek..."
+                        aria-label="Cari nama, email, atau subjek">
                 </div>
 
                 <select name="category" aria-label="Filter kategori">
@@ -93,7 +111,7 @@
                                 <td>
                                     <div class="sm-sender">
                                         <div class="sm-avatar">
-                                            {{ strtoupper(substr($item['name'], 0, 1)) }}
+                                            {{ mb_strtoupper(mb_substr($item['name'], 0, 1)) }}
                                         </div>
                                         <div>
                                             <strong>{{ $item['name'] }}</strong>
@@ -113,8 +131,6 @@
                                         {{ ucfirst($item['status']) }}
                                     </span>
                                 </td>
-
-                                {{-- 1. KOLOM AKSI PADA TABEL --}}
                                 <td>
                                     <div class="sm-action-group">
                                         <a href="{{ route('admin.saran-masukan.detail', $item['id']) }}"
@@ -123,14 +139,13 @@
                                             <span class="material-symbols-rounded">arrow_forward</span>
                                         </a>
 
-                                        {{-- Aksi Hapus --}}
-                                        <form action=""
+                                        <form action="{{ route('admin.saran-masukan.destroy', $item['id']) }}"
                                             method="POST" class="sm-delete-form"
-                                            onsubmit="return confirm('Yakin ingin menghapus pesan ini?')">
+                                            onsubmit="return confirm('Yakin ingin menghapus pesan ini? Tindakan ini tidak dapat dibatalkan.')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="sm-action-btn sm-action-btn-delete"
-                                                aria-label="Hapus Pesanan">
+                                                aria-label="Hapus Pesan">
                                                 <span class="material-symbols-rounded">delete</span>
                                                 <span>Hapus</span>
                                             </button>
@@ -144,7 +159,7 @@
                                     <div class="sm-empty">
                                         <span class="material-symbols-rounded">inbox</span>
                                         <strong>Pesan tidak ditemukan</strong>
-                                        <p>Coba ubah kata kunci atau filter pencarian.</p>
+                                        <p>Belum ada pesan yang sesuai. Coba ubah kata kunci atau filter pencarian.</p>
                                     </div>
                                 </td>
                             </tr>

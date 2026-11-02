@@ -1,4 +1,3 @@
-
 @extends('layouts.admin')
 
 @section('title', 'Detail Saran & Masukan')
@@ -10,6 +9,23 @@
         <span class="material-symbols-rounded">arrow_back</span>
         Kembali ke daftar pesan
     </a>
+
+    @if (session('success'))
+        <div class="sm-demo-note" role="status">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="sm-demo-note" role="alert">
+            <strong>Perubahan belum dapat disimpan.</strong>
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="sm-detail-heading">
         <div>
@@ -79,14 +95,29 @@
                 <span class="material-symbols-rounded">call</span>
                 <div>
                     <span>WhatsApp</span>
-                    <strong>{{ $saranMasukan['whatsapp'] }}</strong>
+                    <strong>{{ $saranMasukan['whatsapp'] ?: '-' }}</strong>
                 </div>
             </div>
 
-            <div class="sm-demo-note">
-                <span class="material-symbols-rounded">info</span>
-                <p>Status ini masih data dummy. Perubahan status belum disimpan.</p>
-            </div>
+            <form method="POST"
+                  action="{{ route('admin.saran-masukan.update-status', $saranMasukan['id']) }}">
+                @csrf
+                @method('PATCH')
+
+                <div class="sm-info-row">
+                    <label for="status-pesan">Status Pesan</label>
+                    <select id="status-pesan" name="status" required>
+                        <option value="baru" @selected(old('status', $saranMasukan['status']) === 'baru')>Baru</option>
+                        <option value="diproses" @selected(old('status', $saranMasukan['status']) === 'diproses')>Diproses</option>
+                        <option value="selesai" @selected(old('status', $saranMasukan['status']) === 'selesai')>Selesai</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="sm-btn sm-btn-primary">
+                    <span class="material-symbols-rounded">save</span>
+                    Simpan Status
+                </button>
+            </form>
         </aside>
     </div>
 </div>
