@@ -39,18 +39,26 @@
                 </div>
             </div>
 
+            @if ($errors->any())
+                <div class="report-filter-errors" role="alert" style="color:#b91c1c;margin:12px 0;">
+                    @foreach ($errors->all() as $error)
+                        <p>{{ $error }}</p>
+                    @endforeach
+                </div>
+            @endif
+
             <form action="{{ route('admin.report.index') }}" method="GET" class="report-filter-form">
 
                 <div class="report-field">
                     <label for="tanggal_mulai">Tanggal Mulai</label>
-                    <input type="date" id="tanggal_mulai" name="tanggal_mulai" value="{{ $tanggalMulai }}"
-                        max="{{ $tanggalAkhir }}" required>
+                    <input type="date" id="tanggal_mulai" name="tanggal_mulai" value="{{ old('tanggal_mulai', $tanggalMulai) }}"
+                        required>
                 </div>
 
                 <div class="report-field">
                     <label for="tanggal_akhir">Tanggal Akhir</label>
-                    <input type="date" id="tanggal_akhir" name="tanggal_akhir" value="{{ $tanggalAkhir }}"
-                        min="{{ $tanggalMulai }}" required>
+                    <input type="date" id="tanggal_akhir" name="tanggal_akhir" value="{{ old('tanggal_akhir', $tanggalAkhir) }}"
+                        required>
                 </div>
 
                 <div class="report-field">
@@ -126,7 +134,7 @@
                     <p>
                         Periode
                         {{ \Carbon\Carbon::parse($tanggalMulai)->format('d M Y') }}
-                        –
+                        &ndash;
                         {{ \Carbon\Carbon::parse($tanggalAkhir)->format('d M Y') }}
                     </p>
                 </div>
@@ -173,14 +181,14 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="report-status success">
-                                        {{ $item['status_registrasi'] }}
-                                    </span>
+                                    @if ($item['jenis'] === 'registrasi')
+                                        <span class="report-status success">{{ $item['status_registrasi'] }}</span>
+                                    @else
+                                        <span class="report-status neutral">{{ $item['status_registrasi'] }}</span>
+                                    @endif
                                 </td>
                                 <td>
-                                    <span
-                                        class="report-status
-                                    {{ $item['status_tiket'] === 'Sudah Digunakan' ? 'success' : 'pending' }}">
+                                    <span class="report-status {{ $item['status_tiket'] === 'Sudah Digunakan' ? 'success' : 'neutral' }}">
                                         {{ $item['status_tiket'] }}
                                     </span>
                                 </td>
@@ -196,7 +204,7 @@
                                         </span>
                                     @else
                                         <span class="report-status neutral">
-                                            Tidak Ada
+                                            {{ $item['status_pembayaran'] }}
                                         </span>
                                     @endif
                                 </td>
@@ -215,10 +223,14 @@
             </div>
         </div>
 
-        <p class="report-demo-note">
-            <span class="material-symbols-rounded">info</span>
-            Data saat ini merupakan simulasi untuk review UI. Angka belum
-            mencerminkan data operasional SI-GORAY yang sebenarnya.
+        <p class="report-data-note" style="margin-top:16px;display:flex;align-items:flex-start;gap:8px;">
+            <span class="material-symbols-rounded" aria-hidden="true">info</span>
+            <span>
+                Laporan menampilkan data dari database SI-GORAY. Registrasi dihitung berdasarkan tanggal pembuatan akun,
+                tiket digunakan berdasarkan waktu pemindaian gerbang yang berhasil, dan pembayaran berdasarkan
+                tanggal transaksi dibuat (bukan tanggal penyelesaian pembayaran).
+                Tombol ekspor Excel dan PDF belum diaktifkan.
+            </span>
         </p>
 
     </div>

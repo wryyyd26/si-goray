@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use App\Models\Event;
 use Illuminate\Http\Request;
@@ -391,9 +391,10 @@ Route::get('/users', [\App\Http\Controllers\Admin\AdminUserController::class, 'i
     |--------------------------------------------------------------------------
     */
 
-   Route::get('/reports', function () {
-    return view('admin.report.index');
-})->name('report.index');
+   Route::get('/reports', [
+    \App\Http\Controllers\Admin\AdminReportController::class,
+    'index'
+])->name('report.index');
 
 
     /*
