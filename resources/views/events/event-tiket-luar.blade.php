@@ -25,7 +25,7 @@
         }
 
         if ($gambarEvent && !str_starts_with($gambarEvent, 'http')) {
-            $gambarEvent = 'http://192.168.37.247:8000/'
+            $gambarEvent = 'http://192.168.37.199:8000/'
                 . ltrim($gambarEvent, '/');
         }
     @endphp

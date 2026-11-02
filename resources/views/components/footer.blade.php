@@ -49,14 +49,36 @@
             <p>Jl. Gajah Mada No.149,<br>Mergelo, Balongsari, Kec.<br>Magersari, Kota Mojokerto,<br>Jawa Timur 61314</p>
         </div>
 
-        <!-- Kolum 4: Peta -->
-        <div class="footer-col map-col">
-            <!-- Gunakan imej peta tangkapan skrin atau iframe Google Maps -->
-            <img src="{{ asset('storage/images/peta-mojokerto.png') }}" alt="Peta Lokasi" class="map-image">
-        </div>
-    </div>
+            <!-- KOLOM 4: GOOGLE MAPS -->
+            <div class="footer-col map-col">
+                <h3>Lokasi GOR A. Yani</h3>
 
-    <div class="footer-bottom">
-        <p>Copyright sigoray.go.id 2026</p>
-    </div>
+                <div class="map-wrapper">
+                    <iframe
+                        src="https://maps.google.com/maps?q=-7.4711254,112.4398327&z=18&output=embed"
+                        width="100%"
+                        height="220"
+                        style="border: 0;"
+                        allowfullscreen
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        title="Lokasi GOR A. Yani Mojokerto">
+                    </iframe>
+                </div>
+
+                <a
+                    href="https://maps.app.goo.gl/oQz6vdyLz3duyock8"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="map-direction">
+                    <span class="material-symbols-rounded">location_on</span>
+                    Lihat Petunjuk Arah
+                </a>
+            </div>
+
+        </div>
+
+        <div class="footer-bottom">
+            <p>Copyright sigoray.go.id 2026</p>
+        </div>
 </footer>

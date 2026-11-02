@@ -13,7 +13,7 @@
         <div class="hero-content">
             <h1>
                 Beli Tiket Event Jadi Lebih Mudah & Praktis
-                di GOR A. Yani Kota Mojokerto
+                di GOR Seni Majapahit Kota Mojokerto
             </h1>
 
             <p>
@@ -38,7 +38,7 @@
         <div class="hero-image">
             <img
                 src="{{ asset('storage/images/vektor-gor.png') }}"
-                alt="Ilustrasi GOR A. Yani Kota Mojokerto">
+                alt="Ilustrasi GOR Seni Majapahit Kota Mojokerto">
         </div>
 
     </div>
@@ -173,7 +173,6 @@
 @endforelse
 
         </div>
-
         {{-- Tombol menuju seluruh event --}}
         {{-- Tombol hanya tampil jika ada event --}}
 @if(isset($events) && $events->isNotEmpty())
@@ -183,7 +182,6 @@
         </a>
     </div>
 @endif
-
     </div>
 </section>
 

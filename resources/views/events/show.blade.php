@@ -23,7 +23,7 @@
     if ($image && str_starts_with($image, 'http://localhost:8000/')) {
         $image = str_replace(
             'http://localhost:8000/',
-            'http://192.168.37.247:8000/',
+            'http://192.168.37.199:8000/',
             $image
         );
     } elseif ($image

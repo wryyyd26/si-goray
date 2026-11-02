@@ -12,7 +12,7 @@
                 <span class="about-label">TENTANG SI-GORAY</span>
                 <h1>Kenali SI-GORAY Lebih Dekat</h1>
                 <p>
-                    SI-GORAY adalah platform resmi untuk pembelian e-ticket dan reservasi fasilitas di GOR A. Yani, Kota Mojokerto. Kami hadir untuk memberikan akses kegiatan olahraga, seni, dan budaya yang cepat, aman, dan transparan dalam satu genggaman.
+                    SI-GORAY adalah platform resmi untuk pembelian e-ticket dan reservasi fasilitas di GOR Seni Majapahit, Kota Mojokerto. Kami hadir untuk memberikan akses kegiatan olahraga, seni, dan budaya yang cepat, aman, dan transparan dalam satu genggaman.
                 </p>
                 <a href="/events" class="about-button">
                     Jelajahi Event

@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\RegularSlotController;
 use Illuminate\Support\Facades\Http;
-
-
+use App\Http\Controllers\Admin\ArGuideController;
+use App\Http\Controllers\ArGuidePublicController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +23,7 @@ Route::get('/', function () {
 
     try {
         $response = Http::timeout(10)
-            ->get('http://192.168.37.247:8000/api/events');
+            ->get('http://192.168.37.199:8000/api/events');
 
         if ($response->successful()) {
             // Hapus UTF-8 BOM dari awal respons API.
@@ -47,7 +47,7 @@ Route::get('/', function () {
                         if (str_starts_with($image, 'http://localhost:8000/')) {
                             $image = str_replace(
                                 'http://localhost:8000/',
-                                'http://192.168.37.247:8000/',
+                                'http://192.168.37.199:8000/',
                                 $image
                             );
                         }
@@ -76,7 +76,7 @@ Route::get('/', function () {
 
 Route::get('/events/{id}', function ($id) {
     $response = Http::timeout(10)
-        ->get('http://192.168.37.247:8000/api/events');
+        ->get('http://192.168.37.199:8000/api/events');
 
     if (!$response->successful()) {
         abort(502, 'API event tidak dapat diakses.');
@@ -102,7 +102,7 @@ Route::get('/events/{id}', function ($id) {
     if (str_starts_with($image, 'http://localhost:8000/')) {
         $image = str_replace(
             'http://localhost:8000/',
-            'http://192.168.37.247:8000/',
+            'http://192.168.37.199:8000/',
             $image
         );
     }
@@ -126,7 +126,7 @@ Route::get('/event/futsal/pesan-tiket', function (Request $request) {
     }
 
     $response = Http::timeout(10)
-        ->get('http://192.168.37.247:8000/api/events');
+        ->get('http://192.168.37.199:8000/api/events');
 
     if (!$response->successful()) {
         abort(502, 'Server API event tidak dapat diakses.');
@@ -152,7 +152,7 @@ Route::get('/event/futsal/pesan-tiket', function (Request $request) {
     if (str_starts_with($event['image'], 'http://localhost:8000/')) {
         $event['image'] = str_replace(
             'http://localhost:8000/',
-            'http://192.168.37.247:8000/',
+            'http://192.168.37.199:8000/',
             $event['image']
         );
     }
@@ -177,7 +177,7 @@ Route::get('/event/futsal/pesan-tiket', function (Request $request) {
     }
 
     $response = Http::timeout(10)
-        ->get('http://192.168.37.247:8000/api/events');
+        ->get('http://192.168.37.199:8000/api/events');
 
     if (!$response->successful()) {
         abort(502, 'API event tidak dapat diakses.');
@@ -203,7 +203,7 @@ Route::get('/event/futsal/pesan-tiket', function (Request $request) {
     if (str_starts_with($event['image'], 'http://localhost:8000/')) {
         $event['image'] = str_replace(
             'http://localhost:8000/',
-            'http://192.168.37.247:8000/',
+            'http://192.168.37.199:8000/',
             $event['image']
         );
     }
@@ -223,7 +223,7 @@ Route::post('/event/futsal/pesan-tiket', function (Request $request) {
     ]);
 
     $response = Http::timeout(10)
-        ->get('http://192.168.37.247:8000/api/events');
+        ->get('http://192.168.37.199:8000/api/events');
 
     if (!$response->successful()) {
         return back()->withInput()
@@ -254,7 +254,7 @@ Route::post('/event/futsal/pesan-tiket', function (Request $request) {
     if (str_starts_with($image, 'http://localhost:8000/')) {
         $image = str_replace(
             'http://localhost:8000/',
-            'http://192.168.37.247:8000/',
+            'http://192.168.37.199:8000/',
             $image
         );
     }
@@ -296,7 +296,7 @@ Route::get('/event/futsal/detail-pemesanan-warga', function () {
 
 Route::get('/events/{id}/pesan-tiket-luar', function ($id) {
     $response = Http::timeout(10)
-        ->get('http://192.168.37.247:8000/api/events');
+        ->get('http://192.168.37.199:8000/api/events');
 
     if (!$response->successful()) {
         abort(502, 'API event tidak dapat diakses.');
@@ -328,7 +328,7 @@ Route::get('/events/{id}/pesan-tiket-luar', function ($id) {
             'http://localhost:8000/',
             'http://127.0.0.1:8000/',
         ],
-        'http://192.168.37.247:8000/',
+        'http://192.168.37.199:8000/',
         $image
     );
 
@@ -351,7 +351,7 @@ Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
     ]);
 
     $response = Http::timeout(10)->get(
-        'http://192.168.37.247:8000/api/events'
+        'http://192.168.37.199:8000/api/events'
     );
 
     if (!$response->successful()) {
@@ -388,16 +388,19 @@ Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
 
     $image = str_replace(
         'http://localhost:8000/',
-        'http://192.168.37.247:8000/',
+        'http://192.168.37.199:8000/',
         $image
     );
 
     // Ambil harga numerik dari data event API.
-$subtotal = (float) ($pemesan['subtotal'] ?? $subtotal ?? 0);
+// Ambil harga numerik dari API.
+$harga = (float) ($event['price_amount'] ?? 0);
 
-$biayaLayanan = (float) ($pemesan['biaya_layanan'] ?? $biayaLayanan ?? 0);
+// Biaya layanan.
+$biayaLayanan = 1000;
 
-$total = $subtotal + $biayaLayanan;
+// Hitung total pembayaran.
+$total = $harga + $biayaLayanan;
        
 $request->session()->put('detail_pemesanan', [
     'event_id' => $event['id'],
@@ -442,7 +445,7 @@ Route::get('/events', function (Request $request) {
 
     try {
         $response = \Illuminate\Support\Facades\Http::timeout(10)
-            ->get('http://192.168.37.247:8000/api/events', [
+            ->get('http://192.168.37.199:8000/api/events', [
                 'q' => $search,
             ]);
 
@@ -643,6 +646,18 @@ Route::post('/pembayaran/midtrans', function (Request $request) {
     return back();
 
 })->name('pembayaran.midtrans');
+
+// Panduan publik SI-GORAY
+Route::prefix('panduan-ar')
+    ->name('guides.')
+    ->group(function () {
+        Route::get('/', [ArGuidePublicController::class, 'index'])
+            ->name('index');
+
+        Route::get('/{slug}', [ArGuidePublicController::class, 'show'])
+            ->name('show');
+    });
+
 
 /*
 |--------------------------------------------------------------------------
