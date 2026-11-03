@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Booking;
 use App\Models\PaymentGatewayCallback;
 use App\Models\PaymentTransaction;
+use App\Models\QrTicket;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Midtrans\Config;
@@ -12,12 +13,21 @@ use RuntimeException;
 
 class MidtransCallbackService
 {
-    
+    /**
+     * QrTicketService dibuat opsional agar pemanggilan langsung yang sudah
+     * ada tetap kompatibel. Jika tidak diberikan, service diambil dari
+     * container Laravel saat QR perlu diterbitkan.
+     */
     public function __construct(
-        private MidtransStatusGateway $gateway
+        private MidtransStatusGateway $gateway,
+        private ?QrTicketService $qrTicketService = null
     ) {
     }
 
+    /**
+     * Memverifikasi notifikasi Midtrans, memperbarui status pembayaran,
+     * mengonfirmasi booking, dan menerbitkan QR secara idempoten.
+     */
     public function receive(array $payload): array
     {
         $required = [
@@ -48,13 +58,15 @@ class MidtransCallbackService
             );
         }
 
-        // Verifikasi signature notifikasi masuk.
+        /*
+         * Verifikasi signature notifikasi masuk.
+         */
         $expected = hash(
             'sha512',
             $payload['order_id']
-            . $payload['status_code']
-            . $payload['gross_amount']
-            . $serverKey
+                . $payload['status_code']
+                . $payload['gross_amount']
+                . $serverKey
         );
 
         if (!hash_equals($expected, $payload['signature_key'])) {
@@ -65,11 +77,9 @@ class MidtransCallbackService
 
         $orderId = $payload['order_id'];
 
-        // Periksa bahwa order dikenal SI-GORAY.
-        $exists = PaymentTransaction::where(
-            'kode_bayar',
-            $orderId
-        )->exists();
+        $exists = PaymentTransaction::query()
+            ->where('kode_bayar', $orderId)
+            ->exists();
 
         if (!$exists) {
             throw new InvalidArgumentException(
@@ -78,11 +88,8 @@ class MidtransCallbackService
         }
 
         /*
-         * Ambil status terpercaya dari Midtrans.
-         * Request HTTP dilakukan di luar DB transaction.
-         *
-         * Jika Midtrans mengembalikan 404/timeout,
-         * jangan mengubah status pembayaran.
+         * Ambil status terbaru dari Midtrans di luar transaksi database.
+         * Jika gateway gagal atau timeout, status lokal tidak diubah.
          */
         Config::$serverKey = $serverKey;
         Config::$isProduction = (bool) config(
@@ -90,11 +97,9 @@ class MidtransCallbackService
             false
         );
 
-    $gateway = $this->gateway->getStatus($orderId);
+        $gateway = $this->gateway->getStatus($orderId);
 
-        if (
-            (string) ($gateway->order_id ?? '') !== $orderId
-        ) {
+        if ((string) ($gateway->order_id ?? '') !== $orderId) {
             throw new RuntimeException(
                 'Order ID gateway tidak sesuai.'
             );
@@ -114,19 +119,16 @@ class MidtransCallbackService
             );
         }
 
-        $status = (string) (
-            $gateway->transaction_status ?? ''
-        );
-
-        $statusCode = (string) (
-            $gateway->status_code ?? ''
-        );
-
+        $status = (string) ($gateway->transaction_status ?? '');
+        $statusCode = (string) ($gateway->status_code ?? '');
         $fraud = strtolower(
             (string) ($gateway->fraud_status ?? '')
         );
 
-        // Kategori hasil berdasarkan status terbaru gateway.
+        /*
+         * Hanya status gateway yang telah diverifikasi yang boleh
+         * mengubah status transaksi lokal.
+         */
         $nextStatus = match ($status) {
             'settlement' => $statusCode === '200'
                 ? 'SUCCESS'
@@ -140,7 +142,6 @@ class MidtransCallbackService
             'deny' => 'FAILED',
             'cancel' => 'CANCELLED',
             'expire' => 'EXPIRED',
-
             default => null,
         };
 
@@ -150,11 +151,9 @@ class MidtransCallbackService
             $gatewayAmount,
             $status,
             $nextStatus
-        ) {
-            $payment = PaymentTransaction::where(
-                'kode_bayar',
-                $orderId
-            )
+        ): array {
+            $payment = PaymentTransaction::query()
+                ->where('kode_bayar', $orderId)
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -167,11 +166,13 @@ class MidtransCallbackService
                 );
             }
 
-            // Simpan salinan payload tanpa signature.
+            /*
+             * Simpan payload untuk audit, tetapi jangan menyimpan signature.
+             */
             $safePayload = $payload;
             unset($safePayload['signature_key']);
 
-            PaymentGatewayCallback::create([
+            PaymentGatewayCallback::query()->create([
                 'transaction_id' => $payment->id,
                 'status_callback' => $status,
                 'signature_valid' => true,
@@ -179,15 +180,47 @@ class MidtransCallbackService
                 'received_at' => now(),
             ]);
 
-            // Callback berulang: jangan proses ulang.
+            /*
+             * Callback berulang untuk status yang sama.
+             * Jika pembayaran sudah SUCCESS, pastikan QR yang semestinya
+             * tersedia tidak dibuat dua kali. Ini juga membantu pemulihan
+             * booking lama yang sudah SUCCESS tetapi belum memiliki QR.
+             */
             if ($payment->status_pembayaran === $nextStatus) {
+                if ($nextStatus === 'SUCCESS') {
+                    $booking = Booking::query()
+                        ->whereKey($payment->booking_id)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+                    if ($booking->status_booking !== 'CONFIRMED') {
+                        return [
+                            'status' => $payment->status_pembayaran,
+                            'updated' => false,
+                            'requires_review' => true,
+                        ];
+                    }
+
+                    $qrResult = $this->ensureQrTicket($booking);
+
+                    if ($qrResult['requires_review']) {
+                        return [
+                            'status' => $payment->status_pembayaran,
+                            'updated' => false,
+                            'requires_review' => true,
+                        ];
+                    }
+                }
+
                 return [
                     'status' => $payment->status_pembayaran,
                     'updated' => false,
                 ];
             }
 
-            // Status final tidak boleh ditimpa sembarangan.
+            /*
+             * Status final tidak boleh ditimpa oleh callback lain.
+             */
             if ($payment->status_pembayaran !== 'PENDING') {
                 return [
                     'status' => $payment->status_pembayaran,
@@ -196,7 +229,10 @@ class MidtransCallbackService
                 ];
             }
 
-            // Pending, fraud challenge, atau status asing.
+            /*
+             * Status pending, fraud challenge, atau status gateway yang
+             * tidak dikenal tidak mengonfirmasi booking.
+             */
             if ($nextStatus === null) {
                 return [
                     'status' => 'PENDING',
@@ -204,24 +240,50 @@ class MidtransCallbackService
                 ];
             }
 
-            $booking = Booking::whereKey($payment->booking_id)
+            $booking = Booking::query()
+                ->whereKey($payment->booking_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($nextStatus === 'SUCCESS' &&
-                $booking->status_booking !== 'DRAFT' &&
-                $booking->status_booking !== 'CONFIRMED') {
+            if (
+                $nextStatus === 'SUCCESS' &&
+                !in_array(
+                    $booking->status_booking,
+                    ['DRAFT', 'CONFIRMED'],
+                    true
+                )
+            ) {
                 throw new RuntimeException(
                     'Status booking perlu pemeriksaan manual.'
                 );
             }
 
+            /*
+             * Perbarui pembayaran dan konfirmasi booking dalam transaksi
+             * database yang sama dengan penerbitan QR.
+             */
             $payment->status_pembayaran = $nextStatus;
             $payment->save();
 
             if ($nextStatus === 'SUCCESS') {
                 $booking->status_booking = 'CONFIRMED';
                 $booking->save();
+
+                /*
+                 * Jika tidak ada riwayat QR, terbitkan QR pertama.
+                 * Jika QR aktif sudah ada, gunakan QR yang sama.
+                 * Jika ada riwayat QR tetapi tidak ada QR aktif, jangan
+                 * menerbitkan ulang otomatis; perlu pemeriksaan manual.
+                 */
+                $qrResult = $this->ensureQrTicket($booking);
+
+                if ($qrResult['requires_review']) {
+                    return [
+                        'status' => $nextStatus,
+                        'updated' => true,
+                        'requires_review' => true,
+                    ];
+                }
             }
 
             return [
@@ -231,12 +293,53 @@ class MidtransCallbackService
         });
     }
 
+    /**
+     * Memastikan booking memiliki QR aktif tanpa membuat duplikat.
+     *
+     * @return array{created: bool, requires_review: bool}
+     */
+    private function ensureQrTicket(Booking $booking): array
+    {
+        $hasActiveQr = QrTicket::query()
+            ->where('booking_id', $booking->id)
+            ->where('status_qr', 'AKTIF')
+            ->exists();
+
+        if ($hasActiveQr) {
+            return [
+                'created' => false,
+                'requires_review' => false,
+            ];
+        }
+
+        $hasQrHistory = QrTicket::query()
+            ->where('booking_id', $booking->id)
+            ->exists();
+
+        if ($hasQrHistory) {
+            return [
+                'created' => false,
+                'requires_review' => true,
+            ];
+        }
+
+        $service = $this->qrTicketService
+            ?? app(QrTicketService::class);
+
+        $service->generate($booking);
+
+        return [
+            'created' => true,
+            'requires_review' => false,
+        ];
+    }
+
+    /**
+     * Normalisasi nominal agar perbandingan tidak terpengaruh format desimal.
+     */
     private function amount(string $value): string
     {
-        if (!preg_match(
-            '/^\d+(\.\d{1,2})?$/',
-            $value
-        )) {
+        if (!preg_match('/^\d+(\.\d{1,2})?$/', $value)) {
             throw new InvalidArgumentException(
                 'Format nominal tidak valid.'
             );

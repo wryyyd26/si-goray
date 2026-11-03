@@ -32,6 +32,10 @@ use RuntimeException;
 
 use Tests\TestCase;
 
+use App\Models\QrTicket;
+
+use Laravel\Sanctum\Sanctum;
+
 class PaymentCallbackTest extends TestCase
 
 {
@@ -275,6 +279,37 @@ class PaymentCallbackTest extends TestCase
             $payment->fresh()->status_pembayaran
 
         );
+        // Pastikan QR otomatis dibuat setelah pembayaran sukses.
+        $qr = QrTicket::query()
+            ->where('booking_id', $payment->booking_id)
+            ->first();
+
+        $this->assertNotNull($qr);
+        $this->assertSame('AKTIF', $qr->status_qr);
+        $this->assertNotSame('PENDING', $qr->payload_signed);
+
+        // Pastikan QR dikirim melalui API riwayat booking.
+        Sanctum::actingAs(
+            $payment->booking->user,
+            ['booking:read']
+        );
+
+        $this->getJson('/api/bookings/history')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath(
+                'data.0.active_qr_ticket.id',
+                $qr->id
+            )
+            ->assertJsonPath(
+                'data.0.active_qr_ticket.status_qr',
+                'AKTIF'
+            )
+            ->assertJsonPath(
+                'data.0.active_qr_ticket.payload_signed',
+                $qr->payload_signed
+            );
+
 
         $this->assertSame(
 

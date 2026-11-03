@@ -77,7 +77,7 @@
                         <h2>{{ $event['price'] }}</h2>
                     </div>
 
-                    <a href="#" class="detail-book-button">
+                    <a href="{{ route('events.show') }}" class="detail-book-button">
                         Pesan Tiket Sekarang
                     </a>
                 </div>

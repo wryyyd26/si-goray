@@ -84,21 +84,17 @@
 
                 <strong>PESAN TIKET EVENT</strong>
 
-                <button
-                    type="button"
-                    class="ticket-category-button active"
-                    data-category="warga"
-                    aria-pressed="true">
+                <a
+                    href="{{ route('events.pesan-tiket') }}"
+                    class="ticket-category-button active">
                     Warga Kota Mojokerto
-                </button>
+                </a>
 
-                <button
-                    type="button"
-                    class="ticket-category-button"
-                    data-category="luar"
-                    aria-pressed="false">
+                <a
+                    href="{{ route('events.pesan-tiket-luar') }}"
+                    class="ticket-category-button">
                     Luar Warga Kota Mojokerto
-                </button>
+                </a>
 
                 <small>Pilih Sesuai NIK Wilayah</small>
 

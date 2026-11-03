@@ -195,37 +195,300 @@ if (themeToggle) {
     });
 }
 
+/* TIKET REGULER — popup detail dan navigasi halaman Atur Slot */
 /* =====================================================
-TIKET REGULER MODAL ATUR SLOT 
+   TIKET REGULER — TAHAP 1: POPUP DETAIL SLOT
+   Ganti blok JavaScript Tiket Reguler lama dengan blok ini.
 ===================================================== */
 document.addEventListener("DOMContentLoaded", () => {
-    const modal = document.getElementById("regularSlotModal");
-    const openButton = document.getElementById("openRegularModal");
-    const closeButton = document.getElementById("closeRegularModal");
-    const cancelButton = document.getElementById("cancelRegularModal");
+    const calendarGrid = document.querySelector(".regular-calendar-grid");
+    const modal = document.getElementById("regularDetailModal");
 
-    if (!modal) return;
+    if (!calendarGrid || !modal) return;
 
-    const openModal = () => {
+    const dateLabel = document.getElementById("regularDetailDate");
+    const sessionCount = document.getElementById("regularDetailSessionCount");
+    const quotaTotal = document.getElementById("regularDetailQuota");
+    const usedTotal = document.getElementById("regularDetailUsed");
+    const percentageLabel = document.getElementById("regularDetailPercentage");
+    const progressBar = document.getElementById("regularDetailProgressBar");
+    const remainingLabel = document.getElementById("regularDetailRemaining");
+    const sessionList = document.getElementById("regularDetailSessionList");
+    const eventWarning = document.getElementById("regularDetailEventWarning");
+    const eventSection = document.getElementById("regularDetailEventSection");
+    const eventList = document.getElementById("regularDetailEventList");
+    const configureButton = document.getElementById("regularDetailConfigure");
+    const closeButtons = [
+        document.getElementById("closeRegularDetailModal"),
+        document.getElementById("closeRegularDetailFooter"),
+    ].filter(Boolean);
+
+    const numberFormatter = new Intl.NumberFormat("id-ID");
+    let lastTrigger = null;
+    let activeDate = null;
+
+    const toNumber = (value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const parseArray = (value, attributeName) => {
+        try {
+            const parsed = JSON.parse(value || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.error(`Gagal membaca ${attributeName} kalender:`, error);
+            return [];
+        }
+    };
+
+    const makeElement = (tag, className, text) => {
+        const element = document.createElement(tag);
+        if (className) element.className = className;
+        if (text !== undefined && text !== null)
+            element.textContent = String(text);
+        return element;
+    };
+
+    const getSessionStatus = (session) => {
+        if ((session.status || "active") === "inactive") {
+            return { label: "Nonaktif", className: "is-inactive" };
+        }
+
+        const quota = toNumber(session.quota);
+        const used = toNumber(session.used);
+        const remaining = Math.max(quota - used, 0);
+
+        if (remaining <= 0) return { label: "Habis", className: "is-full" };
+        if (quota > 0 && used / quota >= 0.8) {
+            return { label: "Hampir habis", className: "is-warning" };
+        }
+        return { label: "Aktif", className: "is-active" };
+    };
+
+    const renderSessions = (sessions) => {
+        sessionList.replaceChildren();
+
+        if (sessions.length === 0) {
+            sessionList.appendChild(
+                makeElement(
+                    "div",
+                    "regular-detail-empty",
+                    "Belum ada sesi reguler yang dikonfigurasi pada tanggal ini.",
+                ),
+            );
+            return;
+        }
+
+        // Pertahankan urutan session_number (urutan penambahan), bukan urutan jam.
+        const orderedSessions = [...sessions].sort(
+            (a, b) => toNumber(a.session_number) - toNumber(b.session_number),
+        );
+
+        orderedSessions.forEach((session, index) => {
+            const quota = toNumber(session.quota);
+            const used = toNumber(session.used);
+            const remaining = Math.max(quota - used, 0);
+            const status = getSessionStatus(session);
+            const card = makeElement(
+                "article",
+                `regular-detail-session-item ${status.className}`,
+            );
+            const info = makeElement("div", "regular-detail-session-info");
+            const heading = makeElement(
+                "div",
+                "regular-detail-session-heading",
+            );
+            const title = makeElement(
+                "strong",
+                "",
+                `Sesi ${session.session_number ?? index + 1}`,
+            );
+            const badge = makeElement(
+                "span",
+                `regular-detail-status ${status.className}`,
+                status.label,
+            );
+            const time = makeElement(
+                "span",
+                "regular-detail-session-time",
+                `${session.start_time || "--:--"}–${session.end_time || "--:--"} WIB`,
+            );
+            const stats = makeElement(
+                "small",
+                "regular-detail-session-stats",
+                `Terjual ${numberFormatter.format(used)} · Kuota ${numberFormatter.format(quota)} · Tersisa ${numberFormatter.format(remaining)}`,
+            );
+
+            heading.append(title, badge);
+            info.append(heading, time, stats);
+            card.appendChild(info);
+            sessionList.appendChild(card);
+        });
+    };
+
+    const appendEventInfo = (container, label, value) => {
+        const item = makeElement("div", "regular-detail-event-info");
+        item.append(
+            makeElement("span", "regular-detail-event-label", label),
+            makeElement(
+                "strong",
+                "regular-detail-event-value",
+                value !== undefined && value !== null && value !== ""
+                    ? value
+                    : "Belum tersedia",
+            ),
+        );
+        container.appendChild(item);
+    };
+
+    const renderEvents = (events) => {
+        eventList.replaceChildren();
+        eventSection.hidden = events.length === 0;
+        eventWarning.hidden = events.length === 0;
+
+        events.forEach((event, index) => {
+            const card = makeElement("article", "regular-detail-event-card");
+            const name =
+                event.nama_event ||
+                event.name ||
+                event.judul ||
+                `Event ${index + 1}`;
+            card.appendChild(makeElement("h4", "", name));
+
+            if (event.deskripsi || event.description) {
+                card.appendChild(
+                    makeElement(
+                        "p",
+                        "regular-detail-event-description",
+                        event.deskripsi || event.description,
+                    ),
+                );
+            }
+
+            const grid = makeElement("div", "regular-detail-event-grid");
+            const start = event.jam_mulai || event.start_time;
+            const end = event.jam_selesai || event.end_time;
+            appendEventInfo(
+                grid,
+                "Waktu pelaksanaan",
+                start
+                    ? `${start} – ${end || "Belum tersedia"}`
+                    : "Belum tersedia",
+            );
+
+            const tariff = event.tariff;
+            appendEventInfo(
+                grid,
+                "Tarif event",
+                tariff !== undefined && tariff !== null && tariff !== ""
+                    ? `Rp ${numberFormatter.format(toNumber(tariff))}`
+                    : "Belum diatur",
+            );
+            appendEventInfo(grid, "Kuota event", event.kuota ?? event.quota);
+            appendEventInfo(grid, "Tiket terjual", event.terjual ?? event.sold);
+
+            const status =
+                event.status_label || event.status || "Status belum tersedia";
+            card.append(
+                grid,
+                makeElement("span", "regular-detail-event-status", status),
+            );
+            eventList.appendChild(card);
+        });
+    };
+
+    const openModal = (trigger) => {
+        const date = trigger.dataset.date;
+        if (!date) return;
+
+        const slots = parseArray(trigger.dataset.slots, "data-slots");
+        const events = parseArray(trigger.dataset.events, "data-events");
+        const hasEvent = trigger.dataset.hasEvent === "1" || events.length > 0;
+        activeDate = date;
+
+        if (configureButton) {
+            configureButton.disabled = hasEvent;
+            configureButton.title = hasEvent
+                ? "Tanggal Event tidak menyediakan pengaturan tiket reguler."
+                : "Buka halaman pengaturan sesi dan tarif untuk tanggal ini.";
+        }
+
+        const totalQuota = slots.reduce(
+            (sum, item) => sum + toNumber(item.quota),
+            0,
+        );
+        const totalUsed = slots.reduce(
+            (sum, item) => sum + toNumber(item.used),
+            0,
+        );
+        const totalRemaining = Math.max(totalQuota - totalUsed, 0);
+        const percentage =
+            totalQuota > 0
+                ? Math.min(Math.round((totalUsed / totalQuota) * 100), 100)
+                : 0;
+
+        dateLabel.textContent = trigger.dataset.dateLabel || date;
+        sessionCount.textContent = numberFormatter.format(slots.length);
+        quotaTotal.textContent = numberFormatter.format(totalQuota);
+        usedTotal.textContent = numberFormatter.format(totalUsed);
+        percentageLabel.textContent = `${percentage}%`;
+        progressBar.style.width = `${percentage}%`;
+        remainingLabel.textContent = `Sisa kuota: ${numberFormatter.format(totalRemaining)}`;
+
+        renderSessions(slots);
+        renderEvents(events);
+
+        // Event menutup seluruh penjualan reguler pada tanggal tersebut.
+        if (hasEvent && events.length === 0) {
+            eventWarning.hidden = false;
+        }
+
         modal.classList.add("is-visible");
         modal.setAttribute("aria-hidden", "false");
         document.body.classList.add("regular-modal-open");
+        lastTrigger = trigger;
+        document.getElementById("closeRegularDetailModal")?.focus();
     };
 
     const closeModal = () => {
         modal.classList.remove("is-visible");
         modal.setAttribute("aria-hidden", "true");
         document.body.classList.remove("regular-modal-open");
+        lastTrigger?.focus();
     };
 
-    openButton?.addEventListener("click", openModal);
-    closeButton?.addEventListener("click", closeModal);
-    cancelButton?.addEventListener("click", closeModal);
+    calendarGrid.addEventListener("click", (event) => {
+        const day = event.target.closest(".regular-calendar-day");
+        if (!day || !calendarGrid.contains(day)) return;
+
+        event.preventDefault();
+        calendarGrid
+            .querySelectorAll(".regular-calendar-day.is-selected")
+            .forEach((item) => {
+                item.classList.remove("is-selected");
+                item.removeAttribute("aria-current");
+            });
+        day.classList.add("is-selected");
+        day.setAttribute("aria-current", "date");
+        openModal(day);
+    });
+
+    configureButton?.addEventListener("click", () => {
+        if (!activeDate || configureButton.disabled) return;
+        const template = configureButton.dataset.routeTemplate || "";
+        if (!template.includes("__DATE__")) return;
+        window.location.assign(
+            template.replace("__DATE__", encodeURIComponent(activeDate)),
+        );
+    });
+
+    closeButtons.forEach((button) =>
+        button.addEventListener("click", closeModal),
+    );
 
     modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
+        if (event.target === modal) closeModal();
     });
 
     document.addEventListener("keydown", (event) => {
@@ -233,243 +496,185 @@ document.addEventListener("DOMContentLoaded", () => {
             closeModal();
         }
     });
-
-    // Kunci scroll halaman ketika modal terbuka.
-    if (modal.classList.contains("is-visible")) {
-        document.body.classList.add("regular-modal-open");
-    }
 });
 
-// MEMBUKA DAN MENUTUP POP UP DETAIL EVENT
+/* =====================================================
+   SI-GORAY — HALAMAN ATUR SLOT REGULER
+   Tambahkan blok ini ke resources/js/admin.js.
+===================================================== */
 document.addEventListener("DOMContentLoaded", () => {
-    const modal = document.getElementById("eventDetailModal");
+    const form = document.getElementById("regularConfigurationForm");
+    const sessionList = document.getElementById("regularConfigSessionList");
+    const addButton = document.getElementById("addRegularSession");
 
-    if (!modal) return;
+    if (!form || !sessionList || !addButton) return;
 
-    const modalDate = document.getElementById("eventModalDate");
-    const modalBody = document.getElementById("eventModalBody");
-    const closeButtons = modal.querySelectorAll("[data-close-event-modal]");
+    let nextIndex = sessionList.querySelectorAll("[data-session-card]").length;
+    const numberFormatter = new Intl.NumberFormat("id-ID");
 
-    const formatDate = (dateString) => {
-        const date = new Date(`${dateString}T00:00:00`);
-
-        return new Intl.DateTimeFormat("id-ID", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-        }).format(date);
+    const timeToMinutes = (value) => {
+        if (!/^\d{2}:\d{2}$/.test(value || "")) return null;
+        const [hours, minutes] = value.split(":").map(Number);
+        return hours * 60 + minutes;
     };
 
-    const addInfoCard = (container, label, value) => {
-        const card = document.createElement("div");
-        card.className = "event-detail-card";
-
-        const cardLabel = document.createElement("span");
-        cardLabel.className = "event-detail-card-label";
-        cardLabel.textContent = label;
-
-        const cardValue = document.createElement("div");
-        cardValue.className = "event-detail-card-value";
-        cardValue.textContent =
-            value !== null && value !== undefined && value !== ""
-                ? value
-                : "Belum tersedia";
-
-        card.append(cardLabel, cardValue);
-        container.appendChild(card);
+    const minutesToTime = (value) => {
+        if (value < 0 || value >= 24 * 60) return "";
+        const hours = Math.floor(value / 60)
+            .toString()
+            .padStart(2, "0");
+        const minutes = (value % 60).toString().padStart(2, "0");
+        return `${hours}:${minutes}`;
     };
 
-    const openModal = (dateString, events) => {
-        modalDate.textContent = formatDate(dateString);
-        modalBody.replaceChildren();
+    const getNextSessionTime = () => {
+        const endInputs = [
+            ...sessionList.querySelectorAll('input[name$="[end_time]"]'),
+        ];
+        const latestEnd = endInputs
+            .map((input) => timeToMinutes(input.value))
+            .filter((value) => value !== null)
+            .reduce((max, value) => Math.max(max, value), 20 * 60);
 
-        if (!events.length) {
-            const empty = document.createElement("div");
-            empty.className = "event-detail-empty";
-            empty.textContent =
-                "Belum ada rincian event yang tersedia untuk tanggal ini.";
+        const start = latestEnd;
+        const end = latestEnd + 120;
+        return {
+            start: minutesToTime(start),
+            end: minutesToTime(end),
+        };
+    };
 
-            modalBody.appendChild(empty);
-        } else {
-            events.forEach((event, index) => {
-                const section = document.createElement("section");
-                section.className = "event-detail-card";
+    const getNextSessionNumber = () => {
+        const numbers = [
+            ...sessionList.querySelectorAll("[data-session-number]"),
+        ].map((input) => Number(input.value) || 0);
+        return Math.max(0, ...numbers) + 1;
+    };
 
-                const heading = document.createElement("div");
-                heading.className = "event-detail-card-value";
-                heading.textContent =
-                    event.nama_event ||
-                    event.name ||
-                    event.judul ||
-                    `Event ${index + 1}`;
+    const createSessionCard = ({ index, number, start, end }) => {
+        const card = document.createElement("article");
+        card.className = "regular-config-session-card is-new-session";
+        card.dataset.sessionCard = "";
 
-                const description = document.createElement("p");
-                description.className = "event-detail-card-label";
-                description.style.marginTop = "8px";
-                description.textContent =
-                    event.deskripsi ||
-                    event.description ||
-                    "Tidak ada deskripsi event.";
+        card.innerHTML = `
+            <div class="regular-config-session-card-header">
+                <div>
+                    <span class="regular-config-session-kicker">SESI ${number}</span>
+                    <h3 data-session-title>Sesi tambahan</h3>
+                </div>
+                <span class="regular-config-session-used">
+                    <span class="material-symbols-rounded">confirmation_number</span>
+                    Terpakai: ${numberFormatter.format(0)}
+                </span>
+            </div>
 
-                section.append(heading, description);
-                modalBody.appendChild(section);
+            <input type="hidden" name="sessions[${index}][id]" value="">
+            <input type="hidden" name="sessions[${index}][is_new]" value="1">
+            <input type="hidden" name="sessions[${index}][session_number]" value="${number}" data-session-number>
+            <input type="hidden" value="0" data-session-used>
 
-                const grid = document.createElement("div");
-                grid.className = "event-detail-grid";
+            <div class="regular-config-session-fields">
+                <div class="regular-config-field">
+                    <label for="session_${index}_start">Jam Mulai</label>
+                    <input type="time" id="session_${index}_start"
+                        name="sessions[${index}][start_time]" value="${start}" required>
+                </div>
+                <div class="regular-config-field">
+                    <label for="session_${index}_end">Jam Selesai</label>
+                    <input type="time" id="session_${index}_end"
+                        name="sessions[${index}][end_time]" value="${end}" required>
+                </div>
+                <div class="regular-config-field">
+                    <label for="session_${index}_quota">Kuota Sesi</label>
+                    <input type="number" id="session_${index}_quota"
+                        name="sessions[${index}][quota]" min="0" value="" placeholder="Masukkan kuota" required>
+                    <small>Kuota diisi oleh admin.</small>
+                </div>
+                <div class="regular-config-field">
+                    <label for="session_${index}_status">Status Sesi</label>
+                    <select id="session_${index}_status" name="sessions[${index}][status]" required>
+                        <option value="active" selected>Aktif</option>
+                        <option value="inactive">Nonaktif</option>
+                    </select>
+                </div>
+            </div>
+        `;
 
-                addInfoCard(
-                    grid,
-                    "Waktu Pelaksanaan",
-                    event.jam_mulai || event.start_time
-                        ? `${event.jam_mulai || event.start_time} – ${
-                              event.jam_selesai ||
-                              event.end_time ||
-                              "Belum tersedia"
-                          }`
-                        : "Belum tersedia",
-                );
+        return card;
+    };
 
-                addInfoCard(grid, "Lokasi", event.lokasi || event.location);
+    addButton.addEventListener("click", () => {
+        const number = getNextSessionNumber();
+        const times = getNextSessionTime();
+        const card = createSessionCard({
+            index: nextIndex,
+            number,
+            start: times.start,
+            end: times.end,
+        });
 
-                addInfoCard(grid, "Kuota", event.kuota ?? event.quota);
+        sessionList.appendChild(card);
+        nextIndex += 1;
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        card.querySelector('input[type="time"]')?.focus({
+            preventScroll: true,
+        });
+    });
 
-                addInfoCard(
-                    grid,
-                    "Sisa Kuota",
-                    event.sisa_kuota ?? event.remaining,
-                );
+    // Mencegah kuota sesi yang sudah terpakai diturunkan dari sisi browser.
+    sessionList.addEventListener("input", (event) => {
+        const quotaInput = event.target.closest('input[name$="[quota]"]');
+        if (!quotaInput) return;
 
-                modalBody.appendChild(grid);
+        const card = quotaInput.closest("[data-session-card]");
+        const usedInput = card?.querySelector("[data-session-used]");
+        if (!usedInput) return;
 
-                const status = document.createElement("span");
-                status.className = "event-detail-status";
-                status.textContent =
-                    event.status_label ||
-                    event.status ||
-                    "Status belum tersedia";
+        const used = Number(usedInput.value) || 0;
+        quotaInput.min = String(used);
+    });
 
-                modalBody.appendChild(status);
-            });
+    form.addEventListener("submit", (event) => {
+        const cards = [...sessionList.querySelectorAll("[data-session-card]")];
+        if (cards.length === 0) {
+            event.preventDefault();
+            window.alert("Minimal harus ada satu sesi reguler.");
+            return;
         }
 
-        modal.classList.add("is-open");
-        modal.setAttribute("aria-hidden", "false");
-        document.body.style.overflow = "hidden";
-    };
+        const intervals = cards
+            .map((card) => ({
+                start:
+                    card.querySelector('input[name$="[start_time]"]')?.value ||
+                    "",
+                end:
+                    card.querySelector('input[name$="[end_time]"]')?.value ||
+                    "",
+            }))
+            .sort((a, b) => a.start.localeCompare(b.start));
 
-    const closeModal = () => {
-        modal.classList.remove("is-open");
-        modal.setAttribute("aria-hidden", "true");
-        document.body.style.overflow = "";
-    };
-
-    document
-        .querySelectorAll('.regular-calendar-day[data-has-event="1"]')
-        .forEach((dayElement) => {
-            dayElement.addEventListener("click", (event) => {
+        for (let index = 0; index < intervals.length; index += 1) {
+            const current = intervals[index];
+            if (
+                !current.start ||
+                !current.end ||
+                current.end <= current.start
+            ) {
                 event.preventDefault();
-
-                try {
-                    const events = JSON.parse(
-                        dayElement.dataset.events || "[]",
-                    );
-
-                    const dateMatch = dayElement
-                        .getAttribute("aria-label")
-                        ?.match(/—/);
-
-                    const url = new URL(dayElement.href);
-                    const selectedDate = url.searchParams.get("date");
-
-                    if (selectedDate) {
-                        openModal(selectedDate, events);
-                    }
-                } catch (error) {
-                    console.error("Gagal memuat rincian event:", error);
-                }
-            });
-        });
-
-    closeButtons.forEach((button) => {
-        button.addEventListener("click", closeModal);
-    });
-
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && modal.classList.contains("is-open")) {
-            closeModal();
+                window.alert(
+                    "Periksa jam mulai dan jam selesai. Jam selesai harus setelah jam mulai.",
+                );
+                return;
+            }
+            if (index > 0 && current.start < intervals[index - 1].end) {
+                event.preventDefault();
+                window.alert(
+                    "Terdapat sesi dengan jadwal yang saling bertumpuk. Periksa kembali jam setiap sesi.",
+                );
+                return;
+            }
         }
     });
-});
-
-// POP UP DETAIL SLOT HARIAN
-document.addEventListener("DOMContentLoaded", function () {
-    const modal = document.getElementById("regularSlotModal");
-
-    if (!modal) return;
-
-    const slotIdInput = document.getElementById("regularSlotId");
-    const startInput = document.getElementById("regularStartTime");
-    const endInput = document.getElementById("regularEndTime");
-    const quotaInput = document.getElementById("regularQuota");
-    const statusInput = document.getElementById("regularStatus");
-    const usedLabel = document.getElementById("regularUsedCount");
-    const sessionLabel = document.getElementById("regularModalSessionNumber");
-
-    const openModal = () => {
-        modal.classList.add("is-visible");
-        modal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("regular-modal-open");
-    };
-
-    const closeModal = () => {
-        modal.classList.remove("is-visible");
-        modal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("regular-modal-open");
-    };
-
-    document.querySelectorAll(".js-open-regular-session").forEach((button) => {
-        button.addEventListener("click", () => {
-            slotIdInput.value = button.dataset.slotId || "";
-            startInput.value = button.dataset.startTime || "";
-            endInput.value = button.dataset.endTime || "";
-            quotaInput.value = button.dataset.quota || "0";
-            quotaInput.min = button.dataset.used || "0";
-            statusInput.value = button.dataset.status || "active";
-
-            usedLabel.textContent = Number(
-                button.dataset.used || 0,
-            ).toLocaleString("id-ID");
-
-            sessionLabel.textContent = button.dataset.sessionNumber || "1";
-
-            openModal();
-        });
-    });
-
-    document
-        .getElementById("closeRegularModal")
-        ?.addEventListener("click", closeModal);
-
-    document
-        .getElementById("cancelRegularModal")
-        ?.addEventListener("click", closeModal);
-
-    modal.addEventListener("click", (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
-
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && modal.classList.contains("is-visible")) {
-            closeModal();
-        }
-    });
-
-    if (modal.classList.contains("is-visible")) {
-        document.body.classList.add("regular-modal-open");
-    }
 });
 
 // SEARCH USER

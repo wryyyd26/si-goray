@@ -122,7 +122,7 @@ class QrTicketTest extends TestCase
         $service = app(QrTicketService::class);
         $qr = $service->generate($this->buatBooking());
 
-        $this->travel(3)->hours();
+        $this->travelTo($qr->waktu_expired->copy()->addSecond());
         try {
             $hasil = $service->validate($qr->payload_signed);
             $this->assertFalse($hasil['valid']);

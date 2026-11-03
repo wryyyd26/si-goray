@@ -12,23 +12,26 @@ use Throwable;
 
 class PaymentService
 {
-    
     public function __construct(
         private MidtransSnapGateway $gateway
     ) {
     }
 
+    /**
+     * Membuat transaksi pembayaran untuk booking.
+     *
+     * Alur:
+     * 1. Validasi booking dan buat transaksi PENDING.
+     * 2. Meminta Snap Token dari Midtrans.
+     * 3. Menyimpan Snap Token ke database.
+     */
     public function createPayment(string $bookingId): array
     {
         /*
-         * TAHAP 1
-         * Validasi dan reservasi transaksi di database.
-         *
-         * Semua request untuk booking yang sama
-         * menggunakan lockForUpdate().
+         * TAHAP 1:
+         * Validasi booking dan reservasi transaksi.
          */
         $result = DB::transaction(function () use ($bookingId) {
-
             $booking = Booking::with(['identity', 'tariff'])
                 ->whereKey($bookingId)
                 ->lockForUpdate()
@@ -52,14 +55,18 @@ class PaymentService
                 );
             }
 
-            if ($booking->identity->status_warga_kota === null) {
+            if (
+                $booking->identity->status_warga_kota === null
+            ) {
                 throw new InvalidArgumentException(
                     'Status warga kota belum divalidasi.'
                 );
             }
 
-            if (!$booking->retribusi_diperlukan ||
-                $booking->identity->status_warga_kota) {
+            if (
+                !$booking->retribusi_diperlukan ||
+                $booking->identity->status_warga_kota
+            ) {
                 throw new InvalidArgumentException(
                     'Booking ini tidak memerlukan pembayaran.'
                 );
@@ -80,9 +87,7 @@ class PaymentService
             }
 
             /*
-             * Periksa pembayaran PENDING.
-             * Jangan membuat transaksi baru jika
-             * booking masih memiliki transaksi PENDING.
+             * Gunakan kembali transaksi PENDING yang masih berlaku.
              */
             $pending = PaymentTransaction::where(
                 'booking_id',
@@ -92,17 +97,20 @@ class PaymentService
                 ->first();
 
             if ($pending) {
-
                 if (!$pending->snap_token) {
                     throw new InvalidArgumentException(
-                        'Transaksi lama belum memiliki Snap Token. Perlu rekonsiliasi pembayaran.'
+                        'Transaksi lama belum memiliki Snap Token. '
+                        . 'Perlu rekonsiliasi pembayaran.'
                     );
                 }
 
-                if (!$pending->expired_at ||
-                    $pending->expired_at->isPast()) {
+                if (
+                    !$pending->expired_at ||
+                    $pending->expired_at->isPast()
+                ) {
                     throw new InvalidArgumentException(
-                        'Batas pembayaran telah lewat. Status gateway harus diperiksa terlebih dahulu.'
+                        'Batas pembayaran telah lewat. '
+                        . 'Status gateway harus diperiksa terlebih dahulu.'
                     );
                 }
 
@@ -113,31 +121,31 @@ class PaymentService
             }
 
             /*
-             * * BR-4: Maksimal 3 kali retry dalam 24 jam.
- *
- * 1 pembayaran awal + 3 retry = 4 transaksi.
- * Transaksi PENDING sudah diperiksa sebelumnya,
- * sehingga retry hanya dilakukan ketika tidak
- * ada transaksi yang masih PENDING.
-
+             * BR-4:
+             * Maksimal 3 kali retry dalam 24 jam.
+             *
+             * 1 pembayaran awal + 3 retry = 4 transaksi.
              */
             $jumlahPercobaan = PaymentTransaction::where(
-    'booking_id',
-    $booking->id
-)
-    ->where('created_at', '>=', now()->subHours(24))
-    ->count();
+                'booking_id',
+                $booking->id
+            )
+                ->where(
+                    'created_at',
+                    '>=',
+                    now()->subHours(24)
+                )
+                ->count();
 
-    if ($jumlahPercobaan >= 4) {
-    throw new InvalidArgumentException(
-        'Batas maksimal 3 kali retry pembayaran dalam 24 jam telah tercapai.'
-    );
+            if ($jumlahPercobaan >= 4) {
+                throw new InvalidArgumentException(
+                    'Batas maksimal 3 kali retry pembayaran '
+                    . 'dalam 24 jam telah tercapai.'
+                );
             }
 
             /*
-             * Buat transaksi baru.
-             * Status PENDING akan menjaga unique
-             * constraint pending_booking_id.
+             * Buat transaksi PENDING sebelum menghubungi Midtrans.
              */
             $payment = PaymentTransaction::create([
                 'booking_id' => $booking->id,
@@ -160,19 +168,16 @@ class PaymentService
         $payment = $result['transaction'];
 
         /*
-         * Jika transaksi lama sudah punya token,
-         * kembalikan token yang tersimpan.
-         * Laravel mendekripsinya melalui cast model.
+         * Jika transaksi lama masih berlaku,
+         * kembalikan data transaksi beserta Snap Token.
          */
         if ($result['existing']) {
             return $this->formatResponse($payment);
         }
 
         /*
-         * TAHAP 2
-         * Hubungi Midtrans di luar transaksi database.
-         * Jadi lock database tidak ditahan selama
-         * menunggu HTTP response dari Midtrans.
+         * TAHAP 2:
+         * Siapkan konfigurasi Midtrans.
          */
         $serverKey = config('midtrans.server_key');
 
@@ -183,10 +188,12 @@ class PaymentService
         }
 
         Config::$serverKey = $serverKey;
+
         Config::$isProduction = (bool) config(
             'midtrans.is_production',
             false
         );
+
         Config::$isSanitized = true;
 
         $startTime = $payment->created_at
@@ -217,20 +224,18 @@ class PaymentService
                     'unit' => 'hour',
                 ],
             ]);
-
         } catch (Throwable $e) {
-
             /*
-             * Jangan langsung set FAILED!
+             * Jangan langsung mengubah status menjadi FAILED.
              *
-             * Bisa saja Midtrans sudah membuat order,
-             * tetapi respons HTTP terputus.
-             * Biarkan PENDING untuk rekonsiliasi.
+             * Midtrans mungkin sudah membuat transaksi,
+             * tetapi responsnya gagal diterima aplikasi.
              */
             report($e);
 
             throw new RuntimeException(
-                'Status pembuatan pembayaran belum dapat dipastikan. Periksa transaksi sebelum mencoba lagi.',
+                'Status pembuatan pembayaran belum dapat dipastikan. '
+                . 'Periksa transaksi sebelum mencoba lagi.',
                 0,
                 $e
             );
@@ -238,13 +243,14 @@ class PaymentService
 
         if (!is_string($snapToken) || $snapToken === '') {
             throw new RuntimeException(
-                'Midtrans tidak mengembalikan Snap Token. Transaksi perlu diperiksa.'
+                'Midtrans tidak mengembalikan Snap Token. '
+                . 'Transaksi perlu diperiksa.'
             );
         }
 
         /*
-         * TAHAP 3
-         * Simpan token setelah Midtrans merespons.
+         * TAHAP 3:
+         * Simpan Snap Token setelah respons Midtrans diterima.
          */
         $payment = DB::transaction(function () use (
             $payment,
@@ -256,9 +262,12 @@ class PaymentService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedPayment->status_pembayaran !== 'PENDING') {
+            if (
+                $lockedPayment->status_pembayaran !== 'PENDING'
+            ) {
                 throw new RuntimeException(
-                    'Status pembayaran sudah berubah saat membuat token.'
+                    'Status pembayaran sudah berubah '
+                    . 'saat membuat token.'
                 );
             }
 
@@ -274,6 +283,9 @@ class PaymentService
         return $this->formatResponse($payment);
     }
 
+    /**
+     * Menyeragamkan format respons transaksi pembayaran.
+     */
     private function formatResponse(
         PaymentTransaction $payment
     ): array {
