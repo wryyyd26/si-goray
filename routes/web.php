@@ -72,7 +72,8 @@ Route::get('/', function () {
     return view('home', compact('events'));
 })->name('home');
 
-
+Route::view('/activity-reguler', 'activity-reguler')
+    ->name('activity.reguler');
 
 Route::get('/events/{id}', function ($id) {
     $response = Http::timeout(10)
@@ -366,7 +367,7 @@ Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
 
     $body = preg_replace('/^\xEF\xBB\xBF/', '', $response->body());
     $payload = json_decode($body, true);
-    
+
     $event = collect($payload['data'] ?? [])->first(
         fn ($item) => (string) ($item['id'] ?? '') === (string) $data['event_id']
     );
