@@ -2,7 +2,7 @@
 <section class="reservation-section">
     <div class="reservation-container">
         <div class="reservation-content">
-            <h2>Ingin Reservasi GOR A.Yani ?</h2>
+            <h2>Ingin Reservasi GOR Seni Majapahit ?</h2>
             <p>Cocok untuk turnament, pameran, konser atau acara besar anda. Hubungi kami untuk lebih lanjut.</p>
             <a href="/contact" class="btn-hubungi">Hubungi Kami</a>
         </div>
@@ -18,8 +18,8 @@
     <div class="footer-container">
         <!-- Kolum 1: Logo & Info -->
         <div class="footer-col">
-            <img src="{{ asset('storage/images/Logo-Si-goray.png') }}" alt="SI-GORAY Logo" class="footer-logo">
-            <p class="footer-text">Sistem Informasi E-Ticket<br>GOR A.Yani</p>
+            <img src="{{ asset('storage/images/Logo-Maja-tix.png') }}" alt="MAJA-TIX Logo" class="footer-logo">
+            <p class="footer-text">Sistem Informasi E-Ticket<br>GOR Seni Majapahit</p>
             <div class="social-icons">
                 <a href="#" class="sosmed-link" aria-label="Facebook">
                     <i class="fi fi-brands-facebook"></i>
@@ -51,7 +51,7 @@
 
             <!-- KOLOM 4: GOOGLE MAPS -->
             <div class="footer-col map-col">
-                <h3>Lokasi GOR A. Yani</h3>
+                <h3>Lokasi GOR Seni Majapahit</h3>
 
                 <div class="map-wrapper">
                     <iframe

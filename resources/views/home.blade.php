@@ -37,7 +37,7 @@
 
         <div class="hero-image">
             <img
-                src="{{ asset('storage/images/vektor-gor.png') }}"
+                src="{{ asset('storage/images/Vector-Gor.png') }}"
                 alt="Ilustrasi GOR Seni Majapahit Kota Mojokerto">
         </div>
 

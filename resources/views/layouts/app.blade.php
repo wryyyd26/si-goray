@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png"
           href="{{ asset('storage/images/logo-web.png') }}">
 
-    <title>@yield('title', 'SI-GORAY')</title>
+    <title>@yield('title', 'MAJA-TIX')</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

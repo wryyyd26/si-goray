@@ -13,7 +13,7 @@
                 <h1>Ada Pertanyaan? Hubungi Kami</h1>
                 <p>
                     Kami siap menerima pertanyaan, saran, maupun masukan
-                    mengenai layanan SI-GORAY.
+                    mengenai layanan MAJA-TIX.
                 </p>
             </div>
         </section>
@@ -34,7 +34,7 @@
                         <div class="contact-info-icon">✉</div>
                         <div>
                             <h3>Email</h3>
-                            <p>info@si-goray.com</p>
+                            <p>info@MAJA-TIX.com</p>
                         </div>
                     </div>
 

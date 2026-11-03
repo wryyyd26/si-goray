@@ -83,7 +83,7 @@
             {{-- Informasi Event --}}
             <div class="detail-event-info">
 
-                <span class="events-eyebrow">SI-GORAY EVENT</span>
+                <span class="events-eyebrow">MAJA-TIX EVENT</span>
 
                 <h1>{{ $title }}</h1>
 

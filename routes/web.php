@@ -366,7 +366,7 @@ Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
 
     $body = preg_replace('/^\xEF\xBB\xBF/', '', $response->body());
     $payload = json_decode($body, true);
-
+    
     $event = collect($payload['data'] ?? [])->first(
         fn ($item) => (string) ($item['id'] ?? '') === (string) $data['event_id']
     );

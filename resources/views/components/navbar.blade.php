@@ -4,8 +4,8 @@
         <!-- LOGO -->
         <a href="{{ route('home') }}" class="navbar-brand">
             <img
-                src="{{ asset('storage/images/Logo-Si-goray.png') }}"
-                alt="SI-GORAY Logo"
+                src="{{ asset('storage/images/Logo-Maja-tix.png') }}"
+                alt="MAJA-TIX Logo"
                 class="logo">
         </a>
 
@@ -79,7 +79,7 @@
                     <div class="notification-header">
                         <div>
                             <h3>Notifikasi</h3>
-                            <p>Informasi terbaru SI-GORAY</p>
+                            <p>Informasi terbaru MAJA-TIX</p>
                         </div>
 
                         <button

@@ -27,7 +27,7 @@
             {{-- Header --}}
             <section class="events-page-heading">
                 <div>
-                    <span class="events-eyebrow">SI-GORAY EVENT</span>
+                    <span class="events-eyebrow">MAJA-TIX EVENT</span>
                     <h1>Jelajahi Semua Event</h1>
                     <p>
                         Temukan dan ikuti berbagai event menarik
@@ -264,3 +264,5 @@
 
     @include('components.footer')
 @endsection
+
+

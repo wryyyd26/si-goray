@@ -400,7 +400,7 @@
 
     {{-- FOOTER --}}
     <footer class="payment-footer">
-        <span>© {{ date('Y') }} SI-GORAY</span>
+        <span>© {{ date('Y') }} MAJA-TIX</span>
         <span>Informasi pembayaran dan pesanan tiket</span>
     </footer>
 
