@@ -10,6 +10,32 @@
         $selectedDate = $selectedDate ?? request('date');
         $modalSlot = $selectedSlots->firstWhere('id', old('slot_id')) ?? $selectedSlots->first();
         $addSessionHasErrors = $errors->any() && old('_form') === 'add_session';
+
+        // PRIORITAS EVENT: jika tanggal memiliki event AKTIF, kalender menampilkan event.
+        // Data slot reguler tidak dihapus dan tidak diubah.
+        $eventMonth = \Carbon\CarbonImmutable::createFromFormat('!Y-m', $monthKey);
+        $calendarEvents = \Illuminate\Support\Facades\DB::table('event_schedules as es')
+            ->join('events as e', 'e.id', '=', 'es.event_id')
+            ->where('e.status', 'AKTIF')
+            ->whereBetween('es.tanggal', [
+                $eventMonth->startOfMonth()->toDateString(),
+                $eventMonth->endOfMonth()->toDateString(),
+            ])
+            ->orderBy('es.tanggal')
+            ->orderBy('es.jam_mulai')
+            ->get([
+                'es.tanggal', 'es.event_id', 'es.jam_mulai', 'es.jam_selesai',
+                'e.nama_event',
+            ])
+            ->groupBy(fn ($item) => substr((string) $item->tanggal, 0, 10));
+
+        $selectedDayHasEvent = $selectedDate && $calendarEvents->has($selectedDate);
+        $eventsForJs = $calendarEvents->map(fn ($items) => $items->map(fn ($item) => [
+            'title' => (string) $item->nama_event,
+            'start' => substr((string) $item->jam_mulai, 0, 5),
+            'end' => substr((string) $item->jam_selesai, 0, 5),
+            'url' => route('events.show', ['event' => $item->event_id]),
+        ])->values()->all())->all();
     @endphp
 
     <div class="regular-page">
@@ -128,6 +154,8 @@
                                     $cellSlots = collect($cell['slots'] ?? []);
                                     $cellSelected = $cell['date'] === $selectedDate;
                                     $cellIsToday = $cell['date'] === now()->toDateString();
+                                    $cellEvents = $calendarEvents->get($cell['date'], collect());
+                                    $cellHasEvent = $cellEvents->isNotEmpty();
 
                                     $cellQuota = $cellSlots->sum(fn($item) => (int) ($item['quota'] ?? 0));
                                     $cellUsed = $cellSlots->sum(fn($item) => (int) ($item['used'] ?? 0));
@@ -152,11 +180,18 @@
                                         $cellStatusClass = 'available';
                                     }
                                 @endphp
+                                @if ($cellHasEvent)
+                                    <button type="button" style="width:100%;text-align:left;cursor:pointer;font:inherit;"
+                                        class="regular-calendar-day has-slot status-available js-show-event-day {{ $cellIsToday ? 'is-today' : '' }}"
+                                        data-event-date="{{ $cell['date'] }}"
+                                        aria-label="Lihat event tanggal {{ $cell['date'] }}">
+                                @else
 
                                 <a href="{{ route('admin.reguler.index', ['month' => $monthKey, 'date' => $cell['date']]) }}"
                                     class="regular-calendar-day {{ $cellSlots->isNotEmpty() ? 'has-slot status-' . $cellStatusClass : 'no-slot' }} {{ $cellSelected ? 'is-selected' : '' }} {{ $cellIsToday ? 'is-today' : '' }}"
                                     aria-label="{{ \Carbon\Carbon::parse($cell['date'])->locale('id')->translatedFormat('d F Y') }} — {{ $cellStatusLabel }}"
                                     @if ($cellSelected) aria-current="date" @endif>
+                                @endif
 
                                     <div class="regular-calendar-day-top">
                                         <span class="regular-calendar-day-number">{{ $cell['day'] }}</span>
@@ -166,13 +201,25 @@
                                                 <span class="regular-calendar-today-label">Hari ini</span>
                                             @endif
 
-                                            @if ($cellSlots->contains(fn($item) => ($item['status'] ?? 'active') === 'active'))
+                                            @if (!$cellHasEvent && $cellSlots->contains(fn($item) => ($item['status'] ?? 'active') === 'active'))
                                                 <span class="calendar-status-badge active">Active</span>
                                             @endif
                                         </div>
                                     </div>
 
-                                    @if ($cellSlots->isNotEmpty())
+                                    @if ($cellHasEvent)
+                                         <span class="regular-calendar-cell-status status-available">EVENT</span>
+                                         <div class="regular-calendar-day-metrics">
+                                             <strong>{{ $cellEvents->first()->nama_event }}</strong>
+                                             @if ($cellEvents->count() > 1)
+                                                 <span>+{{ $cellEvents->count() - 1 }} jadwal event</span>
+                                             @endif
+                                         </div>
+                                         <span class="regular-calendar-unconfigured">
+                                             <span class="material-symbols-rounded">visibility</span>
+                                             Lihat Event
+                                         </span>
+                                    @elseif ($cellSlots->isNotEmpty())
                                         <span class="regular-calendar-cell-status status-{{ $cellStatusClass }}">
                                             {{ $cellStatusLabel }}
                                         </span>
@@ -193,16 +240,32 @@
                                             Belum diatur
                                         </span>
                                     @endif
-                                </a>
-                            @endif
+                                    @if ($cellHasEvent)
+                                     </button>
+                                 @else
+                                     </a>
+                                 @endif
+                             @endif
                         @endforeach
                     </div>
                 </div>
 
 
                 {{-- DETAIL TANGGAL TERPILIH --}}
-                <section class="regular-calendar-detail" aria-live="polite">
-                    @if ($selectedDate && $selectedSlots->isNotEmpty())
+                                 <section class="regular-calendar-detail" aria-live="polite">
+                     @if ($selectedDayHasEvent)
+                         <div class="regular-calendar-no-slot">
+                             <div class="regular-calendar-no-slot-icon">
+                                 <span class="material-symbols-rounded">event</span>
+                             </div>
+                             <div>
+                                 <span class="regular-calendar-overline">TANGGAL EVENT</span>
+                                 <h3>Jadwal reguler digantikan event</h3>
+                                 <p>Silakan klik tanggal event pada kalender untuk memilih Lihat Event.</p>
+                             </div>
+                         </div>
+                     @endif
+                    @if ($selectedDate && !$selectedDayHasEvent && $selectedSlots->isNotEmpty())
                         @php
                             $selectedQuota = $selectedSlots->sum(fn($item) => (int) ($item['quota'] ?? 0));
                             $selectedUsed = $selectedSlots->sum(fn($item) => (int) ($item['used'] ?? 0));
@@ -338,7 +401,7 @@
                         </form>
                     @endif
 
-                    @if ($selectedDate)
+                    @if ($selectedDate && !$selectedDayHasEvent)
                         {{-- PENGATURAN KUOTA HARIAN --}}
 @php
     $dailySchedule = [
@@ -587,7 +650,7 @@
     </div>
 
     {{-- MODAL: SATU MODAL DIPAKAI UNTUK MENGATUR SESI YANG DIPILIH --}}
-    @if ($selectedDate && $selectedSlots->isNotEmpty())
+    @if ($selectedDate && !$selectedDayHasEvent && $selectedSlots->isNotEmpty())
         <div class="regular-modal-overlay {{ $errors->any() && ! $addSessionHasErrors && old('_form') !== 'daily_quota' ? 'is-visible' : '' }}" id="regularSlotModal"
             aria-hidden="{{ $errors->any() && ! $addSessionHasErrors && old('_form') !== 'daily_quota' ? 'false' : 'true' }}">
 
@@ -707,7 +770,7 @@
 
 
     {{-- MODAL TAMBAH SESI: menggunakan gaya modal Admin yang sama dengan tombol Atur. --}}
-    @if ($selectedDate)
+    @if ($selectedDate && !$selectedDayHasEvent)
         <div class="regular-modal-overlay {{ $addSessionHasErrors ? 'is-visible' : '' }}"
             id="regularAddSessionModal" aria-hidden="{{ $addSessionHasErrors ? 'false' : 'true' }}">
             <section class="regular-modal" role="dialog" aria-modal="true" aria-labelledby="regularAddModalTitle">
@@ -824,6 +887,58 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // Gunakan modal detail event yang sudah tersedia, tanpa mengubah CSS.
+    const calendarEvents = @json($eventsForJs);
+    const eventModal = document.getElementById('eventDetailModal');
+    const eventBody = document.getElementById('eventModalBody');
+    const eventDateLabel = document.getElementById('eventModalDate');
+    let lastEventTrigger = null;
+
+    const closeEvent = () => {
+        if (!eventModal) return;
+        eventModal.classList.remove('is-visible', 'is-open');
+        eventModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('regular-modal-open');
+        lastEventTrigger?.focus();
+    };
+
+    document.querySelectorAll('.js-show-event-day').forEach((button) => {
+        button.addEventListener('click', () => {
+            const date = button.dataset.eventDate;
+            const events = calendarEvents[date] || [];
+            if (!eventModal || !eventBody || !events.length) return;
+            lastEventTrigger = button;
+            eventDateLabel.textContent = new Date(date + 'T12:00:00').toLocaleDateString(
+                'id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+            );
+            eventBody.replaceChildren();
+            events.forEach((item) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'regular-session-item';
+                const heading = document.createElement('strong');
+                heading.textContent = item.title;
+                const time = document.createElement('p');
+                time.textContent = item.start + '–' + item.end + ' WIB';
+                const link = document.createElement('a');
+                link.href = item.url;
+                link.className = 'regular-btn regular-btn-primary';
+                link.textContent = 'Lihat Event';
+                wrapper.append(heading, time, link);
+                eventBody.appendChild(wrapper);
+            });
+            eventModal.classList.add('is-visible', 'is-open');
+            eventModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('regular-modal-open');
+            eventModal.querySelector('[data-close-event-modal]')?.focus();
+        });
+    });
+    eventModal?.querySelectorAll('[data-close-event-modal]').forEach((button) => {
+        button.addEventListener('click', closeEvent);
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && eventModal?.classList.contains('is-open')) closeEvent();
+    });
+
     const addModal = document.getElementById('regularAddSessionModal');
     const addButton = document.getElementById('addSessionBtn');
 

@@ -190,6 +190,30 @@ class BookingService
                 /*
                  * Slot yang dinonaktifkan admin tidak dapat dipesan.
                  */
+                /*
+
+                /*
+                 * PRIORITAS EVENT SEHARI PENUH
+                 *
+                 * Jika terdapat event AKTIF pada tanggal slot,
+                 * seluruh sesi reguler tanggal tersebut
+                 * tidak boleh menerima booking baru.
+                 *
+                 * Slot dan riwayat booking lama tidak dihapus.
+                 */
+                $eventPadaTanggal = DB::table('event_schedules as es')
+                    ->join('events as e', 'e.id', '=', 'es.event_id')
+                    ->where('e.status', 'AKTIF')
+                    ->whereDate('es.tanggal', $regularSlot->tanggal)
+                    ->exists();
+
+                if ($eventPadaTanggal) {
+                    throw new InvalidArgumentException(
+                        'Tanggal ini digunakan untuk event. '
+                        . 'Pemesanan tiket reguler tidak tersedia. '
+                        . 'Silakan lihat event pada tanggal tersebut.'
+                    );
+}
                 if ($regularSlot->status !== 'active') {
                     throw new InvalidArgumentException(
                         'Slot reguler sedang tidak tersedia.'

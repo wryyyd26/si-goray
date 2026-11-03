@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use App\Models\Event;
 use Illuminate\Http\Request;
@@ -18,16 +18,20 @@ Route::get('/', function () {
     return view('home');
 })->name('home');
 
-Route::view('/events/detail', 'events.show')
-    ->name('events.show');
+Route::get(
+    '/events/detail',
+    [\App\Http\Controllers\Web\EventPageController::class, 'show']
+)->name('events.show');
 
-Route::get('/event/futsal/pesan-tiket', function () {
-    return view('events.event-tiket');
-})->name('events.pesan-tiket');
+Route::get(
+    '/event/futsal/pesan-tiket',
+    [\App\Http\Controllers\Web\EventPageController::class, 'formWarga']
+)->name('events.pesan-tiket');
 
-Route::get('/event/futsal/pesan-tiket-luar', function () {
-    return view('events.event-tiket-luar');
-})->name('events.pesan-tiket-luar');
+Route::get(
+    '/event/futsal/pesan-tiket-luar',
+    [\App\Http\Controllers\Web\EventPageController::class, 'formLuar']
+)->name('events.pesan-tiket-luar');
 
 // FORM WARGA KOTA
 Route::post('/event/futsal/pesan-tiket', function (Request $request) {
@@ -77,18 +81,18 @@ Route::get('/events', function (Request $request) {
     $search = trim((string) $request->query('q', ''));
 
     try {
-        $response = \Illuminate\Support\Facades\Http::timeout(10)
-            ->get('http://192.168.37.242:8000/api/events', [
-                'q' => $search,
-            ]);
+$response = app(
+    \App\Http\Controllers\Api\EventController::class
+)->index($request);
 
-        if (!$response->successful()) {
-            throw new \RuntimeException(
-                'API event mengembalikan HTTP ' . $response->status()
-            );
-        }
+if ($response->getStatusCode() !== 200) {
+    throw new \RuntimeException(
+        'Gagal mengambil data event.'
+    );
+}
 
-        $payload = $response->json();
+$payload = $response->getData(true);
+
 
         if (
             !is_array($payload) ||
@@ -105,7 +109,7 @@ Route::get('/events', function (Request $request) {
                     'id' => $event['id'] ?? '',
                     'title' => $event['title'] ?? 'Event',
                     'description' => $event['description'] ?? '',
-                    'image' => $event['image_url']
+                    'image' => $event['image']
                         ?? $event['image']
                         ?? 'images/events/futsal.jpg',
                     'category' => $event['category'] ?? 'Event',

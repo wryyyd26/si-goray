@@ -160,6 +160,66 @@ $nonWargaPrice = $activeRegularTariff
     : null;
 
 
+/*
+ * PRIORITAS EVENT PER TANGGAL
+ * Event AKTIF menggantikan tampilan reguler
+ * untuk seluruh tanggal event.
+ */
+$awalBulan = $calendarMonth->copy()
+    ->startOfMonth()
+    ->toDateString();
+
+$akhirBulan = $calendarMonth->copy()
+    ->endOfMonth()
+    ->toDateString();
+
+$eventDays = DB::table('event_schedules as es')
+    ->join('events as e', 'e.id', '=', 'es.event_id')
+    ->where('e.status', 'AKTIF')
+    ->whereBetween('es.tanggal', [
+        $awalBulan,
+        $akhirBulan,
+    ])
+    ->orderBy('es.tanggal')
+    ->orderBy('es.jam_mulai')
+    ->get([
+        'es.tanggal',
+        'es.event_id',
+        'e.nama_event',
+    ])
+    ->groupBy('tanggal')
+    ->map(function ($events) {
+        $event = $events->first();
+
+        return [
+            'id' => (string) $event->event_id,
+            'title' => $event->nama_event,
+            'count' => $events->count(),
+        ];
+    });
+
+foreach ($calendarCells as &$cell) {
+    if ($cell === null) {
+        continue;
+    }
+
+    $event = $eventDays->get($cell['date']);
+
+    if ($event) {
+        $cell['event'] = $event;
+        $cell['type'] = 'EVENT';
+
+        // Hanya menyembunyikan slot pada kalender.
+        // Tidak menghapus data regular_slots.
+        $cell['slots'] = [];
+    }
+}
+unset($cell);
+
+if ($selectedDate && $eventDays->has($selectedDate)) {
+    $selectedSlots = collect();
+}
+
 return view('admin.reguler.tiket-reguler', [
     'slots' => $slots,
     'totalQuota' => $totalQuota,

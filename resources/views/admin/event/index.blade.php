@@ -259,18 +259,21 @@
                                             Atur
                                         </a>
 
-                                        <form action="{{ route('admin.events.destroy', $event['id']) }}" method="POST"
-                                            class="event-delete-form"
-                                            onsubmit="return confirm('Yakin ingin menghapus event ini?')">
-                                            @csrf
-                                            @method('DELETE')
+<div class="event-delete-form">
+    <button
+        type="button"
+        class="event-action-delete"
+        aria-label="Hapus event {{ $event['name'] }} - belum tersedia"
+        title="Penghapusan event belum tersedia"
+        aria-disabled="true"
+        onclick="return false;"
+        style="cursor: not-allowed;"
+    >
+        <span class="material-symbols-rounded">delete</span>
+        Hapus
+    </button>
+</div>
 
-                                            <button type="submit" class="event-action-delete"
-                                                aria-label="Hapus event {{ $event['name'] }}">
-                                                <span class="material-symbols-rounded">delete</span>
-                                                Hapus
-                                            </button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>

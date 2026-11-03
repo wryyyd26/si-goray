@@ -4,6 +4,17 @@
 
 @include('components.navbar')
 
+@php
+    // Jadwal pertama hanya digunakan sebagai ringkasan tampilan.
+    // Pemilihan event_schedule_id untuk booking harus dilakukan secara eksplisit.
+    $jadwalRingkasan = collect($eventData['schedules'] ?? [])->first();
+    $tanggalRingkasan = $jadwalRingkasan['date'] ?? null;
+    $jamMulaiRingkasan = $jadwalRingkasan['start_time'] ?? null;
+    $jamSelesaiRingkasan = $jadwalRingkasan['end_time'] ?? null;
+    $jumlahJadwal = count($eventData['schedules'] ?? []);
+    $deskripsiParagraf = collect(preg_split('/\R\s*\R/u', trim((string) ($eventData['description'] ?? ''))))->filter(fn ($teks) => trim($teks) !== '');
+@endphp
+
 <main class="event-detail-page">
 
     {{-- DETAIL EVENT --}}
@@ -12,26 +23,41 @@
         {{-- POSTER EVENT --}}
         <div class="event-main-image">
             <img
-                src="{{ asset('storage/images/events/futsal.jpg') }}"
-                alt="Poster Kompetisi Olahraga Antar Sekolah">
+                src="{{ $eventData['image'] ?? asset('images/events/futsal.jpg') }}"
+                alt="Poster {{ $eventData['title'] ?? 'Event' }}">
         </div>
 
         {{-- PANEL TIKET --}}
         <aside class="event-ticket-panel">
 
             <div class="ticket-summary">
-                <h2>Futsal</h2>
-                <p>Pertandingan Antar Sekolah</p>
+                <h2>{{ $eventData['title'] ?? 'Event' }}</h2>
+                <p>{{ $eventData['category'] ?? 'Event' }}</p>
 
                 <ul class="event-meta">
                     <li>
                         <span class="material-symbols-rounded">calendar_month</span>
-                        <span>Kamis, 27 Agustus 2026</span>
+                        <span>
+                            @if ($tanggalRingkasan)
+                                {{ \Carbon\Carbon::parse($tanggalRingkasan)->locale('id')->translatedFormat('l, d F Y') }}
+                                @if ($jumlahJadwal > 1)
+                                    (jadwal terdekat; tersedia {{ $jumlahJadwal }} jadwal)
+                                @endif
+                            @else
+                                Jadwal belum tersedia
+                            @endif
+                        </span>
                     </li>
 
                     <li>
                         <span class="material-symbols-rounded">schedule</span>
-                        <span>15.00 WIB</span>
+                        <span>
+                            @if ($jamMulaiRingkasan)
+                                {{ $jamMulaiRingkasan }}@if ($jamSelesaiRingkasan) - {{ $jamSelesaiRingkasan }}@endif WIB
+                            @else
+                                Jam belum tersedia
+                            @endif
+                        </span>
                     </li>
 
                     <li>
@@ -41,7 +67,7 @@
 
                     <li>
                         <span class="material-symbols-rounded">confirmation_number</span>
-                        <span>Kuota Event: Sisa 24 dari 200 Tiket</span>
+                        <span>Kuota Event: Sisa {{ (int) ($eventData['remaining'] ?? 0) }} dari {{ (int) ($eventData['total'] ?? 0) }} Tiket</span>
                     </li>
                 </ul>
 
@@ -69,7 +95,7 @@
                         class="non-citizen-button"
                         data-category="luar"
                         aria-pressed="false">
-                        Rp25.000
+                        {{ $eventData['price'] ?? 'Tarif belum tersedia' }}
                     </button>
 
                     <span>NIK Luar Kota Mojokerto</span>
@@ -85,13 +111,13 @@
                 <strong>PESAN TIKET EVENT</strong>
 
                 <a
-                    href="{{ route('events.pesan-tiket') }}"
+                    href="{{ route('events.pesan-tiket', ['event' => $eventData['id']]) }}"
                     class="ticket-category-button active">
                     Warga Kota Mojokerto
                 </a>
 
                 <a
-                    href="{{ route('events.pesan-tiket-luar') }}"
+                    href="{{ route('events.pesan-tiket-luar', ['event' => $eventData['id']]) }}"
                     class="ticket-category-button">
                     Luar Warga Kota Mojokerto
                 </a>
@@ -109,20 +135,13 @@
 
         <h2>Deskripsi Event</h2>
 
-        <p>
-            Tunjukkan Dukunganmu! Jadilah Saksi Sejarah Rivalitas dan
-            Sportivitas Pelajar Terbaik Mojokerto!
-        </p>
-
-        <p>
-            Siapkan gemuruh dan semangatmu! Kompetisi Olahraga Antar
-            Sekolah kembali hadir di GOR A. Yani Kota Mojokerto.
-            Pertandingan futsal paling bergengsi tahun ini akan
-            mempertemukan tim-tim tangguh dari berbagai SMP dan
-            SMA/SMK se-Kota Mojokerto. Mereka siap bertarung
-            habis-habisan di lapangan demi membawa pulang piala
-            kehormatan dan mengharumkan nama sekolah mereka!
-        </p>
+        @forelse ($deskripsiParagraf as $paragraf)
+            @if (trim($paragraf) !== '')
+                <p>{{ $paragraf }}</p>
+            @endif
+        @empty
+            <p>Deskripsi event belum tersedia.</p>
+        @endforelse
 
     </section>
 

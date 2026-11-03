@@ -102,7 +102,7 @@
                         </div>
 
                         <div class="event-action">
-                            <a href="{{ route('events.show') }}" class="book-ticket">
+                            <a href="{{ route('events.show', ['event' => $event['id']]) }}" class="book-ticket">
                                 <span class="ticket-icon">🎟</span>
                                 Pesan Tiket
                             </a>

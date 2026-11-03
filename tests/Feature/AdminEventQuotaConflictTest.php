@@ -94,10 +94,12 @@ class AdminEventQuotaConflictTest extends TestCase
         ]);
     }
 
-    public function test_event_bentrok_dengan_slot_reguler_ditolak(): void
+    public function test_event_boleh_menggantikan_slot_reguler_belum_terpakai(): void
     {
+        $slotId = (string) Str::uuid();
+
         DB::table('regular_slots')->insert([
-            'id' => (string) Str::uuid(),
+            'id' => $slotId,
             'tanggal' => self::DATE,
             'jam_mulai' => '09:00:00',
             'jam_selesai' => '11:00:00',
@@ -109,17 +111,70 @@ class AdminEventQuotaConflictTest extends TestCase
         $response = $this->post(
             route('admin.events.store'),
             $this->payload([
-                'name' => 'Event Bentrok Reguler',
+                'name' => 'Event Menggantikan Reguler',
+            ])
+        );
+
+        $response->assertRedirect(route('admin.events.index'));
+        $this->assertDatabaseHas('events', [
+            'nama_event' => 'Event Menggantikan Reguler',
+            'status' => 'AKTIF',
+        ]);
+
+        // Slot reguler disimpan utuh; hanya disembunyikan di API kalender.
+        $this->assertDatabaseHas('regular_slots', [
+            'id' => $slotId,
+            'kuota_terpakai' => 0,
+            'status' => 'active',
+        ]);
+
+        $date = \Carbon\CarbonImmutable::parse(self::DATE);
+        $calendar = $this->getJson(route('api.reguler.slots', [
+            'month' => $date->month,
+            'year' => $date->year,
+        ]));
+
+        $calendar->assertOk();
+        $this->assertFalse(
+            collect($calendar->json('slots') ?? [])
+                ->contains(fn ($slot) => $slot['id'] === $slotId)
+        );
+        $this->assertTrue(
+            collect($calendar->json('event_days') ?? [])
+                ->contains(fn ($day) => $day['date'] === self::DATE)
+        );
+    }
+
+    public function test_event_ditolak_jika_kuota_reguler_sudah_terpakai(): void
+    {
+        $slotId = (string) Str::uuid();
+
+        DB::table('regular_slots')->insert([
+            'id' => $slotId,
+            'tanggal' => self::DATE,
+            'jam_mulai' => '09:00:00',
+            'jam_selesai' => '11:00:00',
+            'kapasitas' => 200,
+            'kuota_terpakai' => 1,
+            'status' => 'active',
+        ]);
+
+        $response = $this->post(
+            route('admin.events.store'),
+            $this->payload([
+                'name' => 'Event Bentrok Booking Reguler',
             ])
         );
 
         $response->assertSessionHasErrors('date');
-
         $this->assertDatabaseMissing('events', [
-            'nama_event' => 'Event Bentrok Reguler',
+            'nama_event' => 'Event Bentrok Booking Reguler',
+        ]);
+        $this->assertDatabaseHas('regular_slots', [
+            'id' => $slotId,
+            'kuota_terpakai' => 1,
         ]);
     }
-
     public function test_event_bentrok_dengan_event_lain_ditolak(): void
     {
         // Membuat event pertama melalui controller asli.

@@ -3,17 +3,46 @@
 @section('content')
 @include('components.navbar')
 
+@php
+$eventId = $event['id'] ?? '';
+$namaEvent = $event['title'] ?? 'Event';
+$deskripsiEvent = $event['description'] ?? 'Belum ada deskripsi event.';
+$gambarEvent = $event['image'] ?? $event['image_url'] ?? '';
+$kategoriEvent = $event['category'] ?? 'Event';
+$jadwal = $event['schedules'][0] ?? [];
+
+$tanggalEvent = $jadwal['date'] ?? null;
+$waktuEvent = $jadwal['start_time'] ?? null;
+
+$hargaEvent = $event['price'] ?? null;
+
+if ($hargaEvent === null || $hargaEvent === '') {
+$hargaAmount = (float) ($event['price_amount'] ?? 0);
+
+$hargaEvent = $hargaAmount > 0
+? 'Rp ' . number_format($hargaAmount, 0, ',', '.')
+: 'Harga belum tersedia';
+}
+
+if ($gambarEvent && !str_starts_with($gambarEvent, 'http')) {
+$gambarEvent = 'http://192.168.37.199:8000/'
+. ltrim($gambarEvent, '/');
+}
+@endphp
+
 <main class="booking-page">
     <div class="booking-container">
 
         {{-- HEADER FORM --}}
         <div class="booking-header">
-            <a href="{{ route('events.show') }}" class="booking-back">
+            <a
+                href="{{ route('events.show', ['id' => $eventId]) }}"
+                class="booking-back">
                 ← Kembali ke Detail Event
             </a>
 
             <h1>Form Pembelian Tiket</h1>
-            <p>Lengkapi data diri untuk memesan tiket Futsal.</p>
+            <p>Lengkapi data diri sesuai identitas KTP.</p>
         </div>
 
         <div class="booking-content">
@@ -21,32 +50,41 @@
             {{-- INFORMASI EVENT --}}
             <section class="booking-event-info">
                 <img
-                    src="{{ asset('storage/images/events/futsal.jpg') }}"
-                    alt="Poster Kompetisi Olahraga Antar Sekolah"
-                >
+                    src="{{ $gambarEvent ?: asset('images/events/futsal.jpg') }}"
+                    alt="Poster {{ $namaEvent }}"
+                    onerror="this.onerror=null;this.src='{{ asset('images/events/futsal.jpg') }}';">
 
                 <div class="booking-event-text">
-                    <h2>Futsal</h2>
-                    <p>Pertandingan Antar Sekolah</p>
+                    <h2>{{ $namaEvent }}</h2>
+                    <p>{{ $deskripsiEvent }}</p>
+
+                    <p>
+                        <span class="material-symbols-rounded">category</span>
+                        {{ $kategoriEvent }}
+                    </p>
 
                     <p>
                         <span class="material-symbols-rounded">calendar_month</span>
-                        Kamis, 27 Agustus 2026
+                        @if ($tanggalEvent)
+                        {{ \Illuminate\Support\Carbon::parse($tanggalEvent)->translatedFormat('l, d F Y') }}
+                        @else
+                        Jadwal belum tersedia
+                        @endif
                     </p>
 
                     <p>
                         <span class="material-symbols-rounded">schedule</span>
-                        15.00 WIB
+                        {{ $waktuEvent ? substr($waktuEvent, 0, 5) . ' WIB' : 'Waktu belum tersedia' }}
                     </p>
 
                     <p>
                         <span class="material-symbols-rounded">location_on</span>
-                        GOR A. Yani
+                        {{ $event['location'] ?? 'GOR A. Yani, Kota Mojokerto' }}
                     </p>
 
                     <div class="booking-price">
                         <span>Tiket Warga Luar Kota Mojokerto</span>
-                        <strong>Rp25.000</strong>
+                        <strong>{{ $hargaEvent }}</strong>
                     </div>
                 </div>
             </section>
@@ -54,21 +92,34 @@
             {{-- FORM PEMESANAN --}}
             <section class="booking-form-section">
                 <h2>Form Pemesanan Tiket</h2>
-                <p>Lengkapi data diri sesuai identitas KTP.</p>
+                <p>Isi data sesuai identitas diri yang valid.</p>
 
-                {{-- PESAN VALIDASI --}}
-                @if ($errors->any())
-                    <div class="booking-error">
-                        <ul>
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
+                {{-- PESAN ERROR --}}
+                @if (session('error'))
+                <div class="booking-error">
+                    {{ session('error') }}
+                </div>
                 @endif
 
-                <form action="#" method="POST">
+                @if ($errors->any())
+                <div class="booking-error">
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+
+                <form
+                    action="{{ route('events.pesan-tiket-luar.simpan') }}"
+                    method="POST">
                     @csrf
+
+                    <input
+                        type="hidden"
+                        name="event_id"
+                        value="{{ $eventId }}">
 
                     {{-- NAMA LENGKAP --}}
                     <div class="form-group">
@@ -78,10 +129,10 @@
                             id="nama_lengkap"
                             name="nama_lengkap"
                             value="{{ old('nama_lengkap') }}"
-                            placeholder="Nama Lengkap"
+                            placeholder="Nama lengkap sesuai KTP"
                             autocomplete="name"
-                            required
-                        >
+                            maxlength="255"
+                            required>
                     </div>
 
                     {{-- NIK --}}
@@ -92,14 +143,25 @@
                             id="nik"
                             name="nik"
                             value="{{ old('nik') }}"
-                            placeholder="NIK (KTP)"
+                            placeholder="Masukkan 16 digit NIK"
                             inputmode="numeric"
                             minlength="16"
                             maxlength="16"
                             pattern="[0-9]{16}"
                             title="NIK harus terdiri dari 16 digit angka."
-                            required
-                        >
+                            required>
+                    </div>
+
+                    {{-- TANGGAL LAHIR --}}
+                    <div class="form-group">
+                        <label for="tanggal_lahir">Tanggal Lahir</label>
+                        <input
+                            type="date"
+                            id="tanggal_lahir"
+                            name="tanggal_lahir"
+                            value="{{ old('tanggal_lahir') }}"
+                            max="{{ date('Y-m-d') }}"
+                            required>
                     </div>
 
                     {{-- ALAMAT KTP --}}
@@ -108,10 +170,10 @@
                         <textarea
                             id="alamat_ktp"
                             name="alamat_ktp"
-                            placeholder="Alamat sesuai KTP"
+                            placeholder="Masukkan alamat sesuai KTP"
                             rows="3"
-                            required
-                        >{{ old('alamat_ktp') }}</textarea>
+                            maxlength="1000"
+                            required>{{ old('alamat_ktp') }}</textarea>
                     </div>
 
                     {{-- EMAIL --}}
@@ -122,10 +184,10 @@
                             id="email"
                             name="email"
                             value="{{ old('email') }}"
-                            placeholder="Email"
+                            placeholder="nama@email.com"
                             autocomplete="email"
-                            required
-                        >
+                            maxlength="255"
+                            required>
                     </div>
 
                     {{-- NOMOR HP --}}
@@ -136,15 +198,15 @@
                             id="nomor_hp"
                             name="nomor_hp"
                             value="{{ old('nomor_hp') }}"
-                            placeholder="Nomor Handphone"
+                            placeholder="Contoh: 081234567890"
                             autocomplete="tel"
-                            required
-                        >
+                            maxlength="20"
+                            required>
                     </div>
 
                     {{-- TOMBOL PESAN --}}
                     <button type="submit" class="booking-submit">
-                        Pesan Ticket
+                        Pesan Tiket
                     </button>
                 </form>
             </section>

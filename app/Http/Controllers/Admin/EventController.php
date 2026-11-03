@@ -485,13 +485,17 @@ class EventController extends Controller
         $end = $endTime . ':00';
 
         // Sesi reguler aktif atau yang sudah memiliki tiket terpakai.
-        $regularConflict = DB::table('regular_slots')
-            ->whereDate('tanggal', $date)
-            ->where('jam_mulai', '<', $end)
-            ->where('jam_selesai', '>', $start)
+        $regularConflict = DB::table('regular_slots as rs')
+            ->whereDate('rs.tanggal', $date)
             ->where(function ($query) {
-                $query->where('status', 'active')
-                    ->orWhere('kuota_terpakai', '>', 0);
+                // Jangan menimpa slot yang pernah memiliki booking.
+                // Kuota terpakai tetap dicek sebagai pengaman tambahan.
+                $query->where('rs.kuota_terpakai', '>', 0)
+                    ->orWhereExists(function ($bookings) {
+                        $bookings->selectRaw('1')
+                            ->from('bookings as b')
+                            ->whereColumn('b.regular_slot_id', 'rs.id');
+                    });
             })
             ->exists();
 
