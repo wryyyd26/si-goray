@@ -201,3 +201,12 @@ Route::get(
     '/reguler/slots',
     [RegularSlotCalendarController::class, 'index']
 )->name('api.reguler.slots');
+
+// Jalur non-retribusi PRD: setelah booking DRAFT dibuat.
+Route::middleware([
+    'auth:sanctum',
+    'abilities:booking:create',
+])->post(
+    '/bookings/{booking}/confirm-free',
+    [\App\Http\Controllers\Api\FreeBookingConfirmationController::class, 'store']
+)->name('api.bookings.confirm-free');
