@@ -191,8 +191,6 @@ class BookingService
                  * Slot yang dinonaktifkan admin tidak dapat dipesan.
                  */
                 /*
-
-                /*
                  * PRIORITAS EVENT SEHARI PENUH
                  *
                  * Jika terdapat event AKTIF pada tanggal slot,
@@ -213,7 +211,8 @@ class BookingService
                         . 'Pemesanan tiket reguler tidak tersedia. '
                         . 'Silakan lihat event pada tanggal tersebut.'
                     );
-}
+                }
+
                 if ($regularSlot->status !== 'active') {
                     throw new InvalidArgumentException(
                         'Slot reguler sedang tidak tersedia.'
@@ -261,6 +260,36 @@ class BookingService
                 if (!$eventSchedule) {
                     throw new InvalidArgumentException(
                         'Event schedule tidak ditemukan.'
+                    );
+                }
+
+                /*
+                 * Pastikan event masih AKTIF dan jadwal belum berakhir.
+                 * Pemeriksaan dilakukan di transaksi yang sama setelah
+                 * lockForUpdate pada event_schedule, bukan hanya di UI.
+                 */
+                $eventIsActive = DB::table('events')
+                    ->where('id', $eventSchedule->event_id)
+                    ->where('status', 'AKTIF')
+                    ->exists();
+
+                if (!$eventIsActive) {
+                    throw new InvalidArgumentException(
+                        'Event tidak aktif atau tidak tersedia.'
+                    );
+                }
+
+                $scheduleDate = \Illuminate\Support\Carbon::parse(
+                    $eventSchedule->tanggal
+                )->toDateString();
+                $scheduleEnd = \Illuminate\Support\Carbon::parse(
+                    $scheduleDate . ' ' . (string) $eventSchedule->jam_selesai,
+                    config('app.timezone')
+                );
+
+                if ($scheduleEnd->lte(now())) {
+                    throw new InvalidArgumentException(
+                        'Jadwal event sudah berakhir dan tidak dapat dipesan.'
                     );
                 }
 
