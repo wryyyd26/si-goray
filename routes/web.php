@@ -11,6 +11,14 @@ use App\Http\Controllers\ArGuidePublicController;
 use App\Http\Controllers\Api\EventController as ApiEventController;
 use App\Http\Controllers\Web\EventPageController;
 
+// PENGUNJUNG WEB AUTH (OTP existing, Laravel session; tidak mengubah UI)
+Route::prefix('pengunjung/web-auth')->name('pengunjung.web-auth.')->group(function () {
+    Route::post('/request-otp', [\App\Http\Controllers\Web\PengunjungWebAuthController::class, 'requestOtp'])->name('request-otp');
+    Route::post('/verify-otp', [\App\Http\Controllers\Web\PengunjungWebAuthController::class, 'verifyOtp'])->name('verify-otp');
+    Route::get('/status', [\App\Http\Controllers\Web\PengunjungWebAuthController::class, 'status'])->name('status');
+    Route::post('/logout', [\App\Http\Controllers\Web\PengunjungWebAuthController::class, 'logout'])->name('logout');
+});
+
 /* Frontend pengunjung SI-GORAY */
 Route::get('/', function (Request $request) {
     $events = collect();
