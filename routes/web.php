@@ -19,6 +19,24 @@ Route::prefix('pengunjung/web-auth')->name('pengunjung.web-auth.')->group(functi
     Route::post('/logout', [\App\Http\Controllers\Web\PengunjungWebAuthController::class, 'logout'])->name('logout');
 });
 
+// Penghubung sesi login pengunjung ke IdentityService dan BookingService.
+// Semua route tetap dilindungi CSRF oleh middleware web.
+\Illuminate\Support\Facades\Route::middleware('auth:web')
+    ->prefix('pengunjung/web-booking')
+    ->name('pengunjung.web-booking.')
+    ->group(function () {
+        \Illuminate\Support\Facades\Route::get('/identities',
+            [\App\Http\Controllers\Web\PengunjungWebBookingController::class, 'identities'])
+            ->name('identities');
+        \Illuminate\Support\Facades\Route::post('/identities',
+            [\App\Http\Controllers\Web\PengunjungWebBookingController::class, 'registerIdentity'])
+            ->name('identities.store');
+        \Illuminate\Support\Facades\Route::post('/bookings',
+            [\App\Http\Controllers\Web\PengunjungWebBookingController::class, 'createBooking'])
+            ->name('bookings.store');
+    });
+
+
 /* Frontend pengunjung SI-GORAY */
 Route::get('/', function (Request $request) {
     $events = collect();
