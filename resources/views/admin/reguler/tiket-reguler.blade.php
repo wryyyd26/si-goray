@@ -8,8 +8,6 @@
         // Normalisasi data sesi dari controller untuk komponen tampilan Admin.
         $selectedSlots = collect($selectedSlots ?? []);
         $selectedDate = $selectedDate ?? request('date');
-        $modalSlot = $selectedSlots->firstWhere('id', old('slot_id')) ?? $selectedSlots->first();
-        $addSessionHasErrors = $errors->any() && old('_form') === 'add_session';
 
         // PRIORITAS EVENT: jika tanggal memiliki event AKTIF, kalender menampilkan event.
         // Data slot reguler tidak dihapus dan tidak diubah.
@@ -29,13 +27,6 @@
             ])
             ->groupBy(fn ($item) => substr((string) $item->tanggal, 0, 10));
 
-        $selectedDayHasEvent = $selectedDate && $calendarEvents->has($selectedDate);
-        $eventsForJs = $calendarEvents->map(fn ($items) => $items->map(fn ($item) => [
-            'title' => (string) $item->nama_event,
-            'start' => substr((string) $item->jam_mulai, 0, 5),
-            'end' => substr((string) $item->jam_selesai, 0, 5),
-            'url' => route('events.show', ['event' => $item->event_id]),
-        ])->values()->all())->all();
     @endphp
 
     <div class="regular-page">
@@ -135,7 +126,6 @@
                     <span><i class="regular-calendar-legend-dot is-warning"></i>Hampir habis</span>
                     <span><i class="regular-calendar-legend-dot is-full"></i>Habis</span>
                     <span><i class="regular-calendar-legend-dot is-inactive"></i>Nonaktif</span>
-                    <span><i class="regular-calendar-legend-dot is-unconfigured"></i>Belum diatur</span>
                 </div>
 
                 <div class="regular-calendar-scroll">
@@ -152,11 +142,24 @@
                             @else
                                 @php
                                     $cellSlots = collect($cell['slots'] ?? []);
-                                    $cellSelected = $cell['date'] === $selectedDate;
-                                    $cellIsToday = $cell['date'] === now()->toDateString();
-                                    $cellEvents = $calendarEvents->get($cell['date'], collect());
+
+                                    // Controller adalah sumber utama; query event aktif menjaga
+                                    // prioritas EVENT jika calendarCells belum menyertakan event.
+                                    $cellEvents = collect($cell['events'] ?? []);
+                                    if ($cellEvents->isEmpty()) {
+                                        $cellEvents = $calendarEvents->get($cell['date'], collect());
+                                    }
+                                    $cellEvents = $cellEvents->map(function ($item) {
+                                        $event = (array) $item;
+                                        $event['nama_event'] = $event['nama_event'] ?? $event['title'] ?? $event['name'] ?? 'Event';
+                                        $event['jam_mulai'] = $event['jam_mulai'] ?? $event['start_time'] ?? $event['start'] ?? null;
+                                        $event['jam_selesai'] = $event['jam_selesai'] ?? $event['end_time'] ?? $event['end'] ?? null;
+                                        return $event;
+                                    });
                                     $cellHasEvent = $cellEvents->isNotEmpty();
 
+                                    $cellSelected = $cell['date'] === $selectedDate;
+                                    $cellIsToday = $cell['date'] === now()->toDateString();
                                     $cellQuota = $cellSlots->sum(fn($item) => (int) ($item['quota'] ?? 0));
                                     $cellUsed = $cellSlots->sum(fn($item) => (int) ($item['used'] ?? 0));
                                     $cellRemaining = max($cellQuota - $cellUsed, 0);
@@ -180,18 +183,17 @@
                                         $cellStatusClass = 'available';
                                     }
                                 @endphp
-                                @if ($cellHasEvent)
-                                    <button type="button" style="width:100%;text-align:left;cursor:pointer;font:inherit;"
-                                        class="regular-calendar-day has-slot status-available js-show-event-day {{ $cellIsToday ? 'is-today' : '' }}"
-                                        data-event-date="{{ $cell['date'] }}"
-                                        aria-label="Lihat event tanggal {{ $cell['date'] }}">
-                                @else
-
                                 <a href="{{ route('admin.reguler.index', ['month' => $monthKey, 'date' => $cell['date']]) }}"
-                                    class="regular-calendar-day {{ $cellSlots->isNotEmpty() ? 'has-slot status-' . $cellStatusClass : 'no-slot' }} {{ $cellSelected ? 'is-selected' : '' }} {{ $cellIsToday ? 'is-today' : '' }}"
-                                    aria-label="{{ \Carbon\Carbon::parse($cell['date'])->locale('id')->translatedFormat('d F Y') }} — {{ $cellStatusLabel }}"
+                                    class="regular-calendar-day {{ $cellHasEvent ? 'has-slot status-event' : ($cellSlots->isNotEmpty() ? 'has-slot status-' . $cellStatusClass : 'no-slot') }} {{ $cellSelected ? 'is-selected' : '' }} {{ $cellIsToday ? 'is-today' : '' }}"
+                                    data-date="{{ $cell['date'] }}"
+                                    data-date-label="{{ \Carbon\Carbon::parse($cell['date'])->locale('id')->translatedFormat('l, d F Y') }}"
+                                    data-has-event="{{ $cellHasEvent ? '1' : '0' }}"
+                                    data-slots="{{ $cellSlots->values()->toJson() }}"
+                                    data-events="{{ $cellEvents->values()->toJson() }}"
+                                    aria-haspopup="dialog"
+                                    aria-controls="regularDetailModal"
+                                    aria-label="{{ $cellHasEvent ? 'Lihat Event' : 'Lihat slot reguler' }} tanggal {{ $cell['date'] }}"
                                     @if ($cellSelected) aria-current="date" @endif>
-                                @endif
 
                                     <div class="regular-calendar-day-top">
                                         <span class="regular-calendar-day-number">{{ $cell['day'] }}</span>
@@ -201,7 +203,9 @@
                                                 <span class="regular-calendar-today-label">Hari ini</span>
                                             @endif
 
-                                            @if (!$cellHasEvent && $cellSlots->contains(fn($item) => ($item['status'] ?? 'active') === 'active'))
+                                            @if ($cellHasEvent)
+                                                <span class="calendar-status-badge event">Event</span>
+                                            @elseif ($cellSlots->contains(fn ($item) => ($item['status'] ?? 'active') === 'active'))
                                                 <span class="calendar-status-badge active">Active</span>
                                             @endif
                                         </div>
@@ -210,7 +214,7 @@
                                     @if ($cellHasEvent)
                                          <span class="regular-calendar-cell-status status-available">EVENT</span>
                                          <div class="regular-calendar-day-metrics">
-                                             <strong>{{ $cellEvents->first()->nama_event }}</strong>
+                                             <strong>{{ data_get($cellEvents->first(), 'nama_event', 'Event') }}</strong>
                                              @if ($cellEvents->count() > 1)
                                                  <span>+{{ $cellEvents->count() - 1 }} jadwal event</span>
                                              @endif
@@ -240,815 +244,104 @@
                                             Belum diatur
                                         </span>
                                     @endif
-                                    @if ($cellHasEvent)
-                                     </button>
-                                 @else
-                                     </a>
-                                 @endif
-                             @endif
+
+                                </a>
+                            @endif
                         @endforeach
                     </div>
                 </div>
 
 
-                {{-- DETAIL TANGGAL TERPILIH --}}
-                                 <section class="regular-calendar-detail" aria-live="polite">
-                     @if ($selectedDayHasEvent)
-                         <div class="regular-calendar-no-slot">
-                             <div class="regular-calendar-no-slot-icon">
-                                 <span class="material-symbols-rounded">event</span>
-                             </div>
-                             <div>
-                                 <span class="regular-calendar-overline">TANGGAL EVENT</span>
-                                 <h3>Jadwal reguler digantikan event</h3>
-                                 <p>Silakan klik tanggal event pada kalender untuk memilih Lihat Event.</p>
-                             </div>
-                         </div>
-                     @endif
-                    @if ($selectedDate && !$selectedDayHasEvent && $selectedSlots->isNotEmpty())
-                        @php
-                            $selectedQuota = $selectedSlots->sum(fn($item) => (int) ($item['quota'] ?? 0));
-                            $selectedUsed = $selectedSlots->sum(fn($item) => (int) ($item['used'] ?? 0));
-                            $selectedRemaining = max($selectedQuota - $selectedUsed, 0);
-                            $selectedPercentage =
-                                $selectedQuota > 0 ? min((int) round(($selectedUsed / $selectedQuota) * 100), 100) : 0;
-
-                            if ($selectedSlots->every(fn($item) => ($item['status'] ?? '') === 'inactive')) {
-                                $selectedStatusClass = 'inactive';
-                            } elseif ($selectedRemaining <= 0) {
-                                $selectedStatusClass = 'full';
-                            } elseif ($selectedPercentage >= 80) {
-                                $selectedStatusClass = 'warning';
-                            } else {
-                                $selectedStatusClass = 'available';
-                            }
-                        @endphp
-
-                        <div class="regular-calendar-detail-title">
-                            <span class="material-symbols-rounded">event</span>
-                            <div>
-                                <span class="regular-calendar-overline">DETAIL SLOT HARIAN</span>
-                                <h3>{{ \Carbon\Carbon::parse($selectedDate)->locale('id')->translatedFormat('l, d F Y') }}
-                                </h3>
-                                <p>{{ $selectedSlots->count() }} sesi terdaftar</p>
-                            </div>
-                        </div>
-
-                        <div class="regular-calendar-detail-stats">
-                            <div class="regular-calendar-detail-stat">
-                                <span>Total kuota</span>
-                                <strong>{{ number_format($selectedQuota, 0, ',', '.') }}</strong>
-                            </div>
-                            <div class="regular-calendar-detail-stat">
-                                <span>Sudah terpakai</span>
-                                <strong>{{ number_format($selectedUsed, 0, ',', '.') }}</strong>
-                            </div>
-                            <div class="regular-calendar-detail-stat">
-                                <span>Sisa kuota</span>
-                                <strong>{{ number_format($selectedRemaining, 0, ',', '.') }}</strong>
-                            </div>
-                        </div>
-
-                        <div class="regular-calendar-detail-footer">
-                            <div class="regular-calendar-detail-usage">
-                                <div class="regular-calendar-detail-usage-heading">
-                                    <span>Penggunaan kuota</span>
-                                    <strong>{{ $selectedPercentage }}%</strong>
-                                </div>
-                                <div class="regular-calendar-detail-progress">
-                                    <span class="status-{{ $selectedStatusClass }}"
-                                        style="width: {{ $selectedPercentage }}%"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- FORM PENGATURAN TARIF (SATU KOTAK KARTU BESAR) --}}
-                        <form action="{{ route('admin.reguler.tarif.update') }}" method="POST" class="regular-price-card">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="month" value="{{ $monthKey }}">
-                            <input type="hidden" name="date" value="{{ $selectedDate }}">
-
-                            <div class="regular-price-card-header">
-                                <div class="regular-price-icon">
-                                    <span class="material-symbols-rounded">payments</span>
-                                </div>
-                                <div>
-                                    <h3>Pengaturan Tarif Tiket</h3>
-                                    <p>Atur tarif kunjungan berdasarkan kategori warga dan non-warga.</p>
-                                </div>
-                            </div>
-
-                            <div class="regular-price-body">
-                                <div class="regular-price-grid">
-
-                                    {{-- TARIF WARGA KOTA (TERKUNCI / READONLY) --}}
-                                    <div class="form-group is-locked">
-                                        <div class="form-group-header">
-                                            <label for="warga_price">Tarif Warga Kota</label>
-                                            <span class="locked-badge" title="Tidak dapat diubah oleh admin">
-                                                <span class="material-symbols-rounded">lock</span>
-                                                Terkunci
-                                            </span>
-                                        </div>
-
-                                        <div class="price-input-wrapper readonly">
-                                            <span class="price-prefix">Rp</span>
-                                            <input type="number" id="warga_price" name="warga_price" value="0"
-                                                readonly tabindex="-1" aria-readonly="true">
-                                            <span class="price-lock-icon" aria-hidden="true">
-                                                <span class="material-symbols-rounded">lock</span>
-                                            </span>
-                                        </div>
-
-                                        <small>Tarif default gratis (Rp0) dan dikunci oleh sistem.</small>
-                                    </div>
-
-                                    {{-- TARIF NON-WARGA / LUAR KOTA (DAPAT DIATUR ADMIN) --}}
-                                    <div class="form-group">
-                                        <div class="form-group-header">
-                                            <label for="non_warga_price">Tarif Non-Warga / Luar Kota</label>
-                                        </div>
-
-                                        <div class="price-input-wrapper">
-                                            <span class="price-prefix">Rp</span>
-                                            <input type="number" id="non_warga_price" name="non_warga_price"
-                                                min="1" step="500"
-                                                value="{{ old('non_warga_price', $nonWargaPrice) }}"
-                                                placeholder="Masukkan tarif" required>
-                                        </div>
-
-                                        {{-- Pesan ditampilkan jika referensi tarif reguler belum aktif. --}}
-                                        @if (($nonWargaPrice ?? null) === null)
-                                            <small class="text-warning">
-                                                Belum ada tarif reguler aktif. Silakan tentukan nominal sesuai kebijakan yang berlaku.
-                                            </small>
-                                        @endif
-
-                                        <small>Tarif berbayar sesuai ketentuan admin.</small>
-                                    </div>
-
-                                </div>
-
-                                {{-- TOMBOL SIMPAN DI DALAM KARTU --}}
-                                <div class="regular-price-actions">
-                                    <button type="submit" class="regular-btn regular-btn-primary">
-                                        <span class="material-symbols-rounded">save</span>
-                                        Simpan Tarif
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    @endif
-
-                    @if ($selectedDate && !$selectedDayHasEvent)
-                        {{-- PENGATURAN KUOTA HARIAN --}}
-@php
-    $dailySchedule = [
-        ['08:00', '10:00'],
-        ['10:00', '12:00'],
-        ['12:00', '14:00'],
-        ['14:00', '16:00'],
-        ['16:00', '18:00'],
-        ['18:00', '20:00'],
-    ];
-    $dailyQuotaErrors = $errors->any()
-        && old('_form') === 'daily_quota';
-@endphp
-
-<div class="regular-session-card" style="margin-bottom:18px">
-    <div class="regular-session-card-header">
-        <div class="regular-session-heading-left">
-            <div class="regular-session-icon">
-                <span class="material-symbols-rounded">groups</span>
-            </div>
-            <div>
-                <h3>Pengaturan Kuota Harian</h3>
-                <p>
-                    {{ \Carbon\Carbon::parse($selectedDate)
-                        ->translatedFormat('d F Y') }}
-                    · Kapasitas berlaku untuk setiap sesi
-                </p>
+                {{-- Detail tanggal sekarang ditampilkan melalui popup. --}}
             </div>
         </div>
     </div>
 
-    <form
-        id="dailyQuotaForm"
-        method="POST"
-        action="{{ route('admin.reguler.kuota-harian.store') }}"
-        class="regular-session-body"
-    >
-        @csrf
-
-        <input type="hidden" name="_form" value="daily_quota">
-        <input type="hidden" name="date" value="{{ $selectedDate }}">
-
-        <div class="regular-price-grid">
-            <div class="form-group">
-                <label for="capacityPerSession">
-                    Kapasitas Tribun per Sesi
-                </label>
-                <input
-                    type="number"
-                    id="capacityPerSession"
-                    name="capacity_per_session"
-                    value="{{ old('capacity_per_session', 200) }}"
-                    min="1"
-                    max="100000"
-                    required
-                >
-                <small>
-                    Contoh: 200 pengunjung untuk setiap sesi.
-                </small>
-            </div>
-
-            <div class="form-group">
-                <label>Pengaturan Cepat</label>
-                <button
-                    id="applyQuotaAllSessions"
-                    type="button"
-                    class="regular-btn regular-btn-secondary"
-                >
-                    <span class="material-symbols-rounded">done_all</span>
-                    Terapkan ke 6 Sesi
-                </button>
-                <small>
-                    Kamu masih bisa mengubah kuota tiap sesi.
-                </small>
-            </div>
-        </div>
-
-        <div class="regular-session-list" style="margin-top:16px">
-            @foreach ($dailySchedule as $i => $time)
-                @php
-                    $savedSlot = $selectedSlots->first(
-                        fn ($s) =>
-                            substr((string) ($s['start_time'] ?? ''), 0, 5)
-                                === $time[0]
-                            &&
-                            substr((string) ($s['end_time'] ?? ''), 0, 5)
-                                === $time[1]
-                    );
-                    $used = (int) ($savedSlot['used'] ?? 0);
-                    $quota = (int) ($savedSlot['quota'] ?? 200);
-                @endphp
-
-                <div class="regular-session-item">
-                    <div class="regular-session-info">
-                        <strong>Sesi {{ $i + 1 }}</strong>
-                        <span>
-                            {{ $time[0] }}–{{ $time[1] }} WIB
-                        </span>
-                        <small>
-                            Terpakai: {{ $used }}
-                            {{ $savedSlot ? '' : ' · Belum disimpan' }}
-                        </small>
-                    </div>
-
-                    <label for="dailyQuota{{ $i }}">Kuota</label>
-
-                    <input
-                        type="number"
-                        id="dailyQuota{{ $i }}"
-                        name="quotas[{{ $i }}]"
-                        class="js-daily-session-quota"
-                        value="{{ old('quotas.'.$i, $quota) }}"
-                        min="{{ $used }}"
-                        max="100000"
-                        style="max-width:110px"
-                        required
-                    >
+    {{-- POPUP DETAIL SLOT: dipakai untuk tanggal reguler maupun tanggal Event. --}}
+    <div class="regular-modal-overlay regular-detail-overlay" id="regularDetailModal" aria-hidden="true">
+        <section class="regular-modal regular-detail-modal" role="dialog" aria-modal="true"
+            aria-labelledby="regularDetailTitle" aria-describedby="regularDetailDate">
+            <div class="regular-modal-header">
+                <div>
+                    <span class="regular-modal-eyebrow">MANAJEMEN TIKET REGULER</span>
+                    <h2 id="regularDetailTitle">Detail Slot Reguler</h2>
+                    <p id="regularDetailDate">Tanggal yang dipilih</p>
                 </div>
-            @endforeach
-        </div>
-
-        <p style="margin-top:14px">
-            Total alokasi tiket sehari:
-            <strong id="dailyQuotaSum">0</strong>
-            <small>
-                (Jumlah seluruh sesi, bukan kapasitas serentak.)
-            </small>
-        </p>
-
-        @if ($dailyQuotaErrors)
-            <div class="regular-alert regular-alert-error" role="alert">
-                <strong>Kuota belum berhasil disimpan.</strong>
-                @foreach ($errors->all() as $error)
-                    <p>{{ $error }}</p>
-                @endforeach
-            </div>
-        @endif
-
-        <div class="regular-price-actions" style="margin-top:18px">
-            <button
-                type="submit"
-                class="regular-btn regular-btn-primary"
-                @disabled($selectedDate < now()->toDateString())
-            >
-                <span class="material-symbols-rounded">save</span>
-                Simpan Kuota Tanggal Ini
-            </button>
-        </div>
-    </form>
-</div>
-{{-- DAFTAR SESI HARIAN --}}
-                        <div class="regular-session-card">
-                            {{-- HEADER KARTU + TOMBOL TAMBAH SESI --}}
-                            <div class="regular-session-card-header">
-                                <div class="regular-session-heading-left">
-                                    <div class="regular-session-icon">
-                                        <span class="material-symbols-rounded">schedule</span>
-                                    </div>
-                                    <div>
-                                        <h3>Daftar Sesi Harian</h3>
-                                        <p>Atur dan kelola waktu sesi kunjungan untuk tanggal ini.</p>
-                                    </div>
-                                </div>
-
-                                <button type="button" class="regular-btn regular-btn-primary" id="addSessionBtn">
-                                    <span class="material-symbols-rounded">add</span>
-                                    Tambah Sesi
-                                </button>
-                            </div>
-
-                            <div class="regular-session-body">
-                                <div class="regular-session-list">
-                                    {{-- Enam posisi sesi selalu tampil. Slot yang belum dibuat bukan slot aktif. --}}
-                                    @foreach ([
-                                        ['08:00', '10:00'],
-                                        ['10:00', '12:00'],
-                                        ['12:00', '14:00'],
-                                        ['14:00', '16:00'],
-                                        ['16:00', '18:00'],
-                                        ['18:00', '20:00'],
-                                    ] as $defaultSession)
-                                        @php
-                                            $session = $selectedSlots->first(function ($item) use ($defaultSession) {
-                                                return substr((string) ($item['start_time'] ?? ''), 0, 5) === $defaultSession[0]
-                                                    && substr((string) ($item['end_time'] ?? ''), 0, 5) === $defaultSession[1];
-                                            });
-                                            $sessionQuota = (int) ($session['quota'] ?? 0);
-                                            $sessionUsed = (int) ($session['used'] ?? 0);
-                                            $sessionRemaining = max(0, $sessionQuota - $sessionUsed);
-                                            $sessionStatus = $session['status'] ?? 'inactive';
-                                        @endphp
-                                        <article class="regular-session-item">
-                                            <div class="regular-session-info">
-                                                <strong>Sesi {{ $loop->iteration }}</strong>
-                                                <span>{{ $defaultSession[0] }}–{{ $defaultSession[1] }} WIB</span>
-                                                @if ($session)
-                                                    <small>
-                                                        Kuota {{ number_format($sessionQuota, 0, ',', '.') }}
-                                                        · Terpakai {{ number_format($sessionUsed, 0, ',', '.') }}
-                                                        · Sisa {{ number_format($sessionRemaining, 0, ',', '.') }}
-                                                    </small>
-                                                @else
-                                                    <small>Kuota belum diatur · Belum tersedia untuk booking</small>
-                                                @endif
-                                            </div>
-                                            @if ($session)
-                                                <span class="regular-calendar-cell-status status-{{ $sessionStatus === 'inactive' ? 'inactive' : ($sessionRemaining <= 0 ? 'full' : 'available') }}">
-                                                    {{ $sessionStatus === 'inactive' ? 'Nonaktif' : ($sessionRemaining <= 0 ? 'Habis' : 'Aktif') }}
-                                                </span>
-                                                <button type="button"
-                                                    class="regular-btn regular-btn-primary js-open-regular-session"
-                                                    data-slot-id="{{ $session['id'] }}"
-                                                    data-session-number="{{ $loop->iteration }}"
-                                                    data-start-time="{{ $session['start_time'] }}"
-                                                    data-end-time="{{ $session['end_time'] }}"
-                                                    data-quota="{{ $sessionQuota }}"
-                                                    data-used="{{ $sessionUsed }}"
-                                                    data-status="{{ $sessionStatus }}">
-                                                    <span class="material-symbols-rounded">tune</span>
-                                                    Atur
-                                                </button>
-                                            @else
-                                                <span class="regular-calendar-cell-status status-unconfigured">Belum diatur</span>
-                                            @endif
-                                        </article>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <div class="regular-calendar-no-slot">
-                            <div class="regular-calendar-no-slot-icon">
-                                <span class="material-symbols-rounded">touch_app</span>
-                            </div>
-                            <div>
-                                <span class="regular-calendar-overline">PILIH TANGGAL</span>
-                                <h3>Pilih tanggal pada kalender</h3>
-                                <p>Pilih tanggal untuk melihat semua sesi, total kuota, jumlah terpakai, dan sisa kuota.</p>
-                            </div>
-                        </div>
-                    @endif
-
-                </section>
-            </div>
-        </div>
-    </div>
-
-    {{-- MODAL: SATU MODAL DIPAKAI UNTUK MENGATUR SESI YANG DIPILIH --}}
-    @if ($selectedDate && !$selectedDayHasEvent && $selectedSlots->isNotEmpty())
-        <div class="regular-modal-overlay {{ $errors->any() && ! $addSessionHasErrors && old('_form') !== 'daily_quota' ? 'is-visible' : '' }}" id="regularSlotModal"
-            aria-hidden="{{ $errors->any() && ! $addSessionHasErrors && old('_form') !== 'daily_quota' ? 'false' : 'true' }}">
-
-            <section class="regular-modal" role="dialog" aria-modal="true" aria-labelledby="regularModalTitle">
-
-                <div class="regular-modal-header">
-                    <div>
-                        <span class="regular-modal-eyebrow">MANAJEMEN TIKET REGULER</span>
-                        <h2 id="regularModalTitle">
-                            Atur Sesi
-                            <span id="regularModalSessionNumber">{{ $modalSlot['session_number'] ?? 1 }}</span>
-                        </h2>
-                        <p>{{ \Carbon\Carbon::parse($selectedDate)->locale('id')->translatedFormat('l, d F Y') }}</p>
-                    </div>
-
-                    <button type="button" class="regular-modal-close" id="closeRegularModal" aria-label="Tutup modal">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
-                </div>
-
-                <form action="{{ route('admin.reguler.slots.update', ['slotId' => $modalSlot['id']]) }}"
-                    data-update-url-template="{{ route('admin.reguler.slots.update', ['slotId' => '__SLOT_ID__']) }}"
-                    method="POST" class="regular-modal-form" id="regularSlotForm">
-
-                    @csrf
-                    @method('PUT')
-
-                    <input type="hidden" name="month" value="{{ $monthKey }}">
-                    <input type="hidden" name="date" value="{{ $selectedDate }}">
-                    <input type="hidden" name="slot_id" id="regularSlotId"
-                        value="{{ old('slot_id', $modalSlot['id'] ?? '') }}">
-
-                    <div class="regular-modal-notice">
-                        <span class="material-symbols-rounded">info</span>
-                        <p>
-                            Perubahan akan diproses untuk sesi yang dipilih.
-                            Pastikan jadwal dan kuota sudah sesuai sebelum menyimpan.
-                        </p>
-                    </div>
-
-                    <div class="regular-modal-fields">
-                        <div class="regular-modal-field">
-                            <label for="regularStartTime">Jam Mulai</label>
-                            <input type="time" id="regularStartTime" name="start_time"
-                                value="{{ old('start_time', $modalSlot['start_time'] ?? '') }}" required>
-                            @error('start_time')
-                                <small class="regular-modal-error">{{ $message }}</small>
-                            @enderror
-                        </div>
-
-                        <div class="regular-modal-field">
-                            <label for="regularEndTime">Jam Selesai</label>
-                            <input type="time" id="regularEndTime" name="end_time"
-                                value="{{ old('end_time', $modalSlot['end_time'] ?? '') }}" required>
-                            @error('end_time')
-                                <small class="regular-modal-error">{{ $message }}</small>
-                            @enderror
-                        </div>
-
-                        <div class="regular-modal-field">
-                            <label for="regularQuota">Kuota Sesi</label>
-                            <input type="number" id="regularQuota" name="quota"
-                                min="{{ max(0, (int) ($modalSlot['used'] ?? 0)) }}"
-                                value="{{ old('quota', $modalSlot['quota'] ?? 0) }}" required>
-
-                            <small>
-                                Tiket terpakai:
-                                <span id="regularUsedCount">
-                                    {{ number_format((int) ($modalSlot['used'] ?? 0), 0, ',', '.') }}
-                                </span>
-                            </small>
-
-                            @error('quota')
-                                <small class="regular-modal-error">{{ $message }}</small>
-                            @enderror
-                        </div>
-
-                        <div class="regular-modal-field">
-                            <label for="regularStatus">Status Sesi</label>
-                            <select id="regularStatus" name="status" required>
-                                <option value="active"
-                                    {{ old('status', $modalSlot['status'] ?? 'active') === 'active' ? 'selected' : '' }}>
-                                    Aktif
-                                </option>
-                                <option value="inactive"
-                                    {{ old('status', $modalSlot['status'] ?? 'active') === 'inactive' ? 'selected' : '' }}>
-                                    Nonaktif
-                                </option>
-                            </select>
-
-                            @error('status')
-                                <small class="regular-modal-error">{{ $message }}</small>
-                            @enderror
-                        </div>
-                    </div>
-
-                    @if ($errors->any())
-                        <div class="regular-modal-validation">
-                            Periksa kembali isian yang masih salah sebelum menyimpan.
-                        </div>
-                    @endif
-
-                    <div class="regular-modal-actions">
-                        <button type="button" class="regular-btn regular-btn-secondary" id="cancelRegularModal">
-                            Batal
-                        </button>
-
-                        <button type="submit" class="regular-btn regular-btn-primary">
-                            <span class="material-symbols-rounded">save</span>
-                            Simpan Perubahan
-                        </button>
-                    </div>
-                </form>
-            </section>
-        </div>
-    @endif
-
-
-    {{-- MODAL TAMBAH SESI: menggunakan gaya modal Admin yang sama dengan tombol Atur. --}}
-    @if ($selectedDate && !$selectedDayHasEvent)
-        <div class="regular-modal-overlay {{ $addSessionHasErrors ? 'is-visible' : '' }}"
-            id="regularAddSessionModal" aria-hidden="{{ $addSessionHasErrors ? 'false' : 'true' }}">
-            <section class="regular-modal" role="dialog" aria-modal="true" aria-labelledby="regularAddModalTitle">
-                <div class="regular-modal-header">
-                    <div>
-                        <span class="regular-modal-eyebrow">MANAJEMEN TIKET REGULER</span>
-                        <h2 id="regularAddModalTitle">Tambah Sesi</h2>
-                        <p>{{ \Carbon\Carbon::parse($selectedDate)->locale('id')->translatedFormat('l, d F Y') }}</p>
-                    </div>
-                    <button type="button" class="regular-modal-close" id="closeRegularAddModal" aria-label="Tutup modal tambah sesi">
-                        <span class="material-symbols-rounded">close</span>
-                    </button>
-                </div>
-
-                <form action="{{ route('admin.reguler.store') }}" method="POST" class="regular-modal-form" id="regularAddSessionForm">
-                    @csrf
-                    <input type="hidden" name="_form" value="add_session">
-                    <input type="hidden" name="month" value="{{ $monthKey }}">
-                    <input type="hidden" name="date" value="{{ $selectedDate }}">
-
-                    @if ($selectedDate < now()->toDateString())
-                        <div class="regular-modal-notice">
-                            <span class="material-symbols-rounded">info</span>
-                            <p>Tanggal ini sudah berlalu. Backend hanya menerima sesi baru untuk hari ini atau tanggal berikutnya.</p>
-                        </div>
-                    @endif
-
-                    <div class="regular-modal-fields">
-                        <div class="regular-modal-field">
-                            <label for="newStartTime">Jam Mulai</label>
-                            <input type="time" id="newStartTime" name="start_time"
-                                value="{{ $addSessionHasErrors ? old('start_time') : '' }}" required>
-                            @if ($addSessionHasErrors)
-                                @error('start_time') <small class="regular-modal-error">{{ $message }}</small> @enderror
-                            @endif
-                        </div>
-                        <div class="regular-modal-field">
-                            <label for="newEndTime">Jam Selesai</label>
-                            <input type="time" id="newEndTime" name="end_time"
-                                value="{{ $addSessionHasErrors ? old('end_time') : '' }}" required>
-                            @if ($addSessionHasErrors)
-                                @error('end_time') <small class="regular-modal-error">{{ $message }}</small> @enderror
-                            @endif
-                        </div>
-                        <div class="regular-modal-field">
-                            <label for="newQuota">Kuota Sesi</label>
-                            <input type="number" id="newQuota" name="quota" min="1"
-                                value="{{ $addSessionHasErrors ? old('quota', 50) : 50 }}" required>
-                            @if ($addSessionHasErrors)
-                                @error('quota') <small class="regular-modal-error">{{ $message }}</small> @enderror
-                            @endif
-                        </div>
-                    </div>
-
-                    @if ($addSessionHasErrors)
-                        <div class="regular-modal-validation">Periksa kembali isian sesi yang belum sesuai.</div>
-                    @endif
-
-                    <div class="regular-modal-actions">
-                        <button type="button" class="regular-btn regular-btn-secondary" id="cancelRegularAddModal">Batal</button>
-                        <button type="submit" class="regular-btn regular-btn-primary"
-                            {{ $selectedDate < now()->toDateString() ? 'disabled' : '' }}>
-                            <span class="material-symbols-rounded">save</span>
-                            Simpan Sesi
-                        </button>
-                    </div>
-                </form>
-            </section>
-        </div>
-    @endif
-
-    {{-- POP UP DETAIL KETIKA ADMIN KLIK TANGGAL YANG ADA EVENTNYA --}}
-    <div class="event-detail-modal" id="eventDetailModal" aria-hidden="true">
-        <div class="event-detail-backdrop" data-close-event-modal></div>
-
-        <section class="event-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="eventModalTitle">
-
-            <div class="event-detail-header">
-                <div class="event-detail-heading">
-                    <span class="material-symbols-rounded event-detail-icon">
-                        event
-                    </span>
-
-                    <div>
-                        <span class="event-detail-eyebrow">INFORMASI EVENT</span>
-                        <h2 id="eventModalTitle">Detail Event</h2>
-                        <p id="eventModalDate">Tanggal event</p>
-                    </div>
-                </div>
-
-                <button type="button" class="event-modal-close" aria-label="Tutup pop-up" data-close-event-modal>
+                <button type="button" class="regular-modal-close" id="closeRegularDetailModal"
+                    aria-label="Tutup detail slot">
                     <span class="material-symbols-rounded">close</span>
                 </button>
             </div>
 
-            <div class="event-detail-body" id="eventModalBody">
-                <!-- Detail event diisi melalui JavaScript -->
+            <div class="regular-detail-body">
+                <div class="regular-detail-event-warning" id="regularDetailEventWarning" hidden>
+                    <span class="material-symbols-rounded" aria-hidden="true">event_busy</span>
+                    <div>
+                        <strong>Tanggal memiliki Event</strong>
+                        <p>Seluruh penjualan tiket reguler pada tanggal ini ditutup. Informasi sesi ditampilkan sebagai
+                            referensi.</p>
+                    </div>
+                </div>
+
+                <div class="regular-detail-stats" aria-live="polite">
+                    <div class="regular-detail-stat">
+                        <span>Total sesi</span>
+                        <strong id="regularDetailSessionCount">0</strong>
+                    </div>
+                    <div class="regular-detail-stat">
+                        <span>Total kuota</span>
+                        <strong id="regularDetailQuota">0</strong>
+                    </div>
+                    <div class="regular-detail-stat">
+                        <span>Tiket terjual</span>
+                        <strong id="regularDetailUsed">0</strong>
+                    </div>
+                </div>
+
+                <div class="regular-detail-usage">
+                    <div class="regular-detail-usage-heading">
+                        <span>Penggunaan kuota</span>
+                        <strong id="regularDetailPercentage">0%</strong>
+                    </div>
+                    <div class="regular-detail-progress" aria-hidden="true">
+                        <span id="regularDetailProgressBar"></span>
+                    </div>
+                    <small id="regularDetailRemaining">Sisa kuota: 0</small>
+                </div>
+
+                <section class="regular-detail-section" aria-labelledby="regularDetailSessionsHeading">
+                    <div class="regular-detail-section-heading">
+                        <div>
+                            <h3 id="regularDetailSessionsHeading">Daftar Sesi</h3>
+                            <p>Ringkasan jam operasional, kuota, dan status setiap sesi.</p>
+                        </div>
+                    </div>
+                    <div class="regular-detail-session-list" id="regularDetailSessionList"></div>
+                </section>
+
+                <section class="regular-detail-section" id="regularDetailEventSection"
+                    aria-labelledby="regularDetailEventHeading" hidden>
+                    <div class="regular-detail-section-heading">
+                        <div>
+                            <h3 id="regularDetailEventHeading">Informasi Event</h3>
+                            <p>Event yang berlangsung pada tanggal ini.</p>
+                        </div>
+                    </div>
+                    <div class="regular-detail-event-list" id="regularDetailEventList"></div>
+                </section>
             </div>
 
-            <div class="event-detail-footer">
-                <span class="event-detail-note">
-                    <span class="material-symbols-rounded">info</span>
-                    Tanggal ini menggunakan jalur pemesanan event.
-                </span>
-
-                <button type="button" class="event-modal-button" data-close-event-modal>
+            <div class="regular-modal-actions regular-detail-actions">
+                <button type="button" class="regular-btn regular-btn-secondary" id="closeRegularDetailFooter">
                     Tutup
+                </button>
+                {{-- URL tanggal akan diisi oleh JavaScript sesuai kalender yang dipilih. --}}
+                <button type="button" class="regular-btn regular-btn-primary" id="regularDetailConfigure"
+                    data-route-template="{{ route('admin.reguler.edit', ['date' => '__DATE__']) }}">
+                    <span class="material-symbols-rounded">settings</span>
+                    Atur Slot
                 </button>
             </div>
         </section>
     </div>
 @endsection
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Gunakan modal detail event yang sudah tersedia, tanpa mengubah CSS.
-    const calendarEvents = @json($eventsForJs);
-    const eventModal = document.getElementById('eventDetailModal');
-    const eventBody = document.getElementById('eventModalBody');
-    const eventDateLabel = document.getElementById('eventModalDate');
-    let lastEventTrigger = null;
-
-    const closeEvent = () => {
-        if (!eventModal) return;
-        eventModal.classList.remove('is-visible', 'is-open');
-        eventModal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('regular-modal-open');
-        lastEventTrigger?.focus();
-    };
-
-    document.querySelectorAll('.js-show-event-day').forEach((button) => {
-        button.addEventListener('click', () => {
-            const date = button.dataset.eventDate;
-            const events = calendarEvents[date] || [];
-            if (!eventModal || !eventBody || !events.length) return;
-            lastEventTrigger = button;
-            eventDateLabel.textContent = new Date(date + 'T12:00:00').toLocaleDateString(
-                'id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
-            );
-            eventBody.replaceChildren();
-            events.forEach((item) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'regular-session-item';
-                const heading = document.createElement('strong');
-                heading.textContent = item.title;
-                const time = document.createElement('p');
-                time.textContent = item.start + '–' + item.end + ' WIB';
-                const link = document.createElement('a');
-                link.href = item.url;
-                link.className = 'regular-btn regular-btn-primary';
-                link.textContent = 'Lihat Event';
-                wrapper.append(heading, time, link);
-                eventBody.appendChild(wrapper);
-            });
-            eventModal.classList.add('is-visible', 'is-open');
-            eventModal.setAttribute('aria-hidden', 'false');
-            document.body.classList.add('regular-modal-open');
-            eventModal.querySelector('[data-close-event-modal]')?.focus();
-        });
-    });
-    eventModal?.querySelectorAll('[data-close-event-modal]').forEach((button) => {
-        button.addEventListener('click', closeEvent);
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && eventModal?.classList.contains('is-open')) closeEvent();
-    });
-
-    const addModal = document.getElementById('regularAddSessionModal');
-    const addButton = document.getElementById('addSessionBtn');
-
-    if (addModal && addButton) {
-        const openAdd = () => {
-            addModal.classList.add('is-visible');
-            addModal.setAttribute('aria-hidden', 'false');
-            document.body.classList.add('regular-modal-open');
-        };
-        const closeAdd = () => {
-            addModal.classList.remove('is-visible');
-            addModal.setAttribute('aria-hidden', 'true');
-            document.body.classList.remove('regular-modal-open');
-        };
-
-        addButton.addEventListener('click', openAdd);
-        document.getElementById('closeRegularAddModal')?.addEventListener('click', closeAdd);
-        document.getElementById('cancelRegularAddModal')?.addEventListener('click', closeAdd);
-        addModal.addEventListener('click', (event) => {
-            if (event.target === addModal) closeAdd();
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && addModal.classList.contains('is-visible')) closeAdd();
-        });
-        if (addModal.classList.contains('is-visible')) {
-            document.body.classList.add('regular-modal-open');
-        }
-    }
-
-    // Action form edit mengikuti ID sesi yang diklik, bukan hanya tanggal.
-    const editForm = document.getElementById('regularSlotForm');
-    const editTemplate = editForm?.dataset.updateUrlTemplate;
-    if (editForm && editTemplate) {
-        document.querySelectorAll('.js-open-regular-session').forEach((button) => {
-            button.addEventListener('click', () => {
-                if (button.dataset.slotId) {
-                    editForm.action = editTemplate.replace('__SLOT_ID__', encodeURIComponent(button.dataset.slotId));
-                }
-            });
-        });
-    }
-});
-</script>
-@endpush
-
-
-
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('dailyQuotaForm');
-    if (!form) return;
-
-    const capacity = document.getElementById('capacityPerSession');
-    const button = document.getElementById('applyQuotaAllSessions');
-    const inputs = Array.from(
-        form.querySelectorAll('.js-daily-session-quota')
-    );
-    const total = document.getElementById('dailyQuotaSum');
-
-    function refresh() {
-        const sum = inputs.reduce(
-            (value, input) => value + Number(input.value || 0), 0
-        );
-        total.textContent = sum.toLocaleString('id-ID');
-        inputs.forEach(input => {
-            input.max = capacity.value;
-        });
-    }
-
-    button.addEventListener('click', function () {
-        const value = Number(capacity.value);
-
-        if (!Number.isInteger(value) || value < 1) {
-            alert('Isi kapasitas tribun yang valid.');
-            return;
-        }
-
-        if (inputs.some(input => value < Number(input.min || 0))) {
-            alert('Kapasitas di bawah jumlah tiket terpakai.');
-            return;
-        }
-
-        inputs.forEach(input => {
-            input.value = String(value);
-        });
-        refresh();
-    });
-
-    capacity.addEventListener('input', refresh);
-    inputs.forEach(input => input.addEventListener('input', refresh));
-
-    form.addEventListener('submit', function (event) {
-        const max = Number(capacity.value);
-        const invalid = !Number.isInteger(max) || max < 1 ||
-            inputs.some(input => {
-                const value = Number(input.value);
-                return !Number.isInteger(value) ||
-                    value < Number(input.min || 0) ||
-                    value > max;
-            });
-
-        if (invalid) {
-            event.preventDefault();
-            alert('Periksa kuota setiap sesi sebelum menyimpan.');
-        }
-    });
-
-    refresh();
-});
-</script>
-@endpush
