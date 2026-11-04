@@ -37,6 +37,36 @@ Route::prefix('pengunjung/web-auth')->name('pengunjung.web-auth.')->group(functi
     });
 
 
+// Halaman login pengunjung fungsional; tidak menyentuh UI event milik Daffa.
+Route::get('/pengunjung/login', function (Request $request) {
+    $next = (string) $request->query('next', '/events');
+    $allowedPaths = [
+        '/events',
+        '/events/detail',
+        '/event/futsal/pesan-tiket',
+        '/event/futsal/pesan-tiket-luar',
+        '/activity-reguler',
+    ];
+
+    // Hanya izinkan tujuan internal yang dikenal; cegah open redirect.
+    $path = parse_url($next, PHP_URL_PATH);
+    if (!str_starts_with($next, '/')
+        || str_starts_with($next, '//')
+        || str_contains($next, '\\')
+        || preg_match('/[\x00-\x1F\x7F]/', $next)
+        || !is_string($path)
+        || !in_array($path, $allowedPaths, true)) {
+        $next = '/events';
+    }
+
+    if (\Illuminate\Support\Facades\Auth::guard('web')->check()) {
+        return redirect($next);
+    }
+
+    return view('pengunjung.login', ['next' => $next]);
+})->name('pengunjung.login');
+
+
 /* Frontend pengunjung SI-GORAY */
 Route::get('/', function (Request $request) {
     $events = collect();
