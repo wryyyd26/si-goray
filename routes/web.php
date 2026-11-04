@@ -3,50 +3,127 @@
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Admin\EventController as AdminEventController;
 use App\Http\Controllers\Admin\RegularSlotController;
+use App\Http\Controllers\Admin\ArGuideController;
+use App\Http\Controllers\ArGuidePublicController;
+use App\Http\Controllers\Api\EventController as ApiEventController;
+use App\Http\Controllers\Web\EventPageController;
 
+/* Frontend pengunjung SI-GORAY */
+Route::get('/', function (Request $request) {
+    $events = collect();
 
-/*
-|--------------------------------------------------------------------------
-| Frontend Pengunjung SI-GORAY
-|--------------------------------------------------------------------------
-*/
-
-// ROUTE USER
-Route::get('/', function () {
-    return view('home');
+    try {
+        $response = app(ApiEventController::class)->index($request);
+        $payload = $response->getData(true);
+        if ($response->getStatusCode() === 200 && ($payload['success'] ?? false) === true) {
+            $events = collect($payload['data'] ?? [])->take(3)->map(function (array $event) {
+                return (object) [
+                    'id' => $event['id'] ?? '',
+                    'nama_event' => $event['title'] ?? 'Event',
+                    'gambar' => $event['image_url'] ?? $event['image'] ?? '',
+                    'deskripsi' => $event['description'] ?? '',
+                    'category' => $event['category'] ?? 'Event',
+                    'remaining' => (int) ($event['remaining'] ?? 0),
+                    'total' => (int) ($event['total'] ?? 0),
+                    'price' => $event['price'] ?? 'Harga belum tersedia',
+                ];
+            });
+        }
+    } catch (\Throwable $e) {
+        report($e);
+    }
+    return view('home', compact('events'));
 })->name('home');
 
-Route::get(
-    '/events/detail',
-    [\App\Http\Controllers\Web\EventPageController::class, 'show']
-)->name('events.show');
+Route::view('/activity-reguler', 'activity-reguler')->name('activity.reguler');
 
-Route::get(
-    '/event/futsal/pesan-tiket',
-    [\App\Http\Controllers\Web\EventPageController::class, 'formWarga']
-)->name('events.pesan-tiket');
+// Harus di atas /events/{id}; gunakan query ?event=UUID milik backend.
+Route::get('/events/detail', [EventPageController::class, 'show'])->name('events.show');
+Route::get('/events/{id}', function (string $id) {
+    abort_unless(\Illuminate\Support\Str::isUuid($id), 404);
+    return redirect()->route('events.show', ['event' => $id]);
+})->whereUuid('id')->name('events.show.legacy');
 
-Route::get(
-    '/event/futsal/pesan-tiket-luar',
-    [\App\Http\Controllers\Web\EventPageController::class, 'formLuar']
-)->name('events.pesan-tiket-luar');
+Route::get('/event/futsal/pesan-tiket', [EventPageController::class, 'formWarga'])->name('events.pesan-tiket');
+Route::get('/event/futsal/pesan-tiket-luar', [EventPageController::class, 'formLuar'])->name('events.pesan-tiket-luar');
+Route::get('/events/{id}/pesan-tiket-luar', function (string $id) {
+    abort_unless(\Illuminate\Support\Str::isUuid($id), 404);
+    return redirect()->route('events.pesan-tiket-luar', ['event' => $id]);
+})->whereUuid('id')->name('events.pesan-tiket-luar.legacy');
 
-// FORM WARGA KOTA
+// Catatan: POST berikut baru mengisi session; booking database harus lewat BookingService.
+// Simpan data pemesan warga.
 Route::post('/event/futsal/pesan-tiket', function (Request $request) {
     $data = $request->validate([
+        'event_id' => ['required', 'uuid'],
         'nama_lengkap' => ['required', 'string', 'max:255'],
         'nik' => ['required', 'digits:16'],
+        'tanggal_lahir' => ['required', 'date', 'before_or_equal:today'],
         'email' => ['required', 'email', 'max:255'],
         'nomor_hp' => ['required', 'string', 'max:20'],
     ]);
 
-    $request->session()->put('detail_pemesanan', $data);
+    $response = app(\App\Http\Controllers\Api\EventController::class)->index($request);
+
+    if ($response->getStatusCode() !== 200) {
+        return back()->withInput()
+            ->with('error', 'API event tidak dapat diakses.');
+    }
+
+    $payload = $response->getData(true);
+
+    $event = collect($payload['data'] ?? [])->first(
+        fn ($item) => (string) ($item['id'] ?? '') === (string) $data['event_id']
+    );
+
+    if (!$event) {
+        return back()->withInput()
+            ->with('error', 'Event tidak ditemukan.');
+    }
+
+    if ((int) ($event['remaining'] ?? 0) <= 0) {
+        return back()->withInput()
+            ->with('error', 'Maaf, tiket event ini sudah habis.');
+    }
+
+    $schedule = $event['schedules'][0] ?? [];
+
+    $image = $event['image_url'] ?? $event['image'] ?? '';
+
+    if (str_starts_with($image, 'http://localhost:8000/')) {
+        $image = str_replace(
+            'http://localhost:8000/',
+            url('/') . '/',
+            $image
+        );
+    }
+
+    $request->session()->put('detail_pemesanan', [
+        'event_id' => $event['id'],
+        'event_title' => $event['title'] ?? 'Event',
+        'event_description' => $event['description'] ?? '',
+        'event_image' => $image,
+        'event_date' => $schedule['date'] ?? 'Jadwal belum tersedia',
+        'event_time' => $schedule['start_time'] ?? 'Waktu belum tersedia',
+        'event_location' => $event['location'] ?? 'GOR A. Yani, Kota Mojokerto',
+        'nama_lengkap' => $data['nama_lengkap'],
+        'nik' => $data['nik'],
+        'tanggal_lahir' => $data['tanggal_lahir'],
+        'email' => $data['email'],
+        'nomor_hp' => $data['nomor_hp'],
+        'subtotal' => 0,
+        'biaya_layanan' => 0,
+        'total_pembayaran' => 0,
+    ]);
 
     return redirect()->route('events.detail-warga');
 })->name('events.pesan-tiket.simpan');
 
+
+// Halaman detail pemesanan warga.
 Route::get('/event/futsal/detail-pemesanan-warga', function () {
     abort_unless(session()->has('detail_pemesanan'), 403);
 
@@ -54,20 +131,103 @@ Route::get('/event/futsal/detail-pemesanan-warga', function () {
 })->name('events.detail-warga');
 
 
+/*
+|--------------------------------------------------------------------------
+| FORM PEMESANAN TIKET LUAR KOTA
+|--------------------------------------------------------------------------
+*/
+
 // FORM WARGA LUAR KOTA
 Route::post('/event/futsal/pesan-tiket-luar', function (Request $request) {
+
     $data = $request->validate([
+        'event_id' => ['required', 'uuid'],
         'nama_lengkap' => ['required', 'string', 'max:255'],
         'nik' => ['required', 'digits:16'],
+        'tanggal_lahir' => ['required', 'date', 'before_or_equal:today'],
         'alamat_ktp' => ['required', 'string', 'max:1000'],
         'email' => ['required', 'email', 'max:255'],
         'nomor_hp' => ['required', 'string', 'max:20'],
     ]);
 
-    $request->session()->put('detail_pemesanan', $data);
+    $response = app(\App\Http\Controllers\Api\EventController::class)->index($request);
+
+    if ($response->getStatusCode() !== 200) {
+        return back()->withInput()->with(
+            'error',
+            'API event tidak dapat diakses.'
+        );
+    }
+
+    $payload = $response->getData(true);
+
+    $event = collect($payload['data'] ?? [])->first(
+        fn ($item) => (string) ($item['id'] ?? '') === (string) $data['event_id']
+    );
+
+    if (!$event) {
+        return back()->withInput()->with(
+            'error',
+            'Event tidak ditemukan.'
+        );
+    }
+
+    if ((int) ($event['remaining'] ?? 0) <= 0) {
+        return back()->withInput()->with(
+            'error',
+            'Tiket event sudah habis.'
+        );
+    }
+
+    $schedule = $event['schedules'][0] ?? [];
+
+    $image = $event['image_url'] ?? $event['image'] ?? '';
+
+    $image = str_replace(
+        'http://localhost:8000/',
+        url('/') . '/',
+        $image
+    );
+
+    // Ambil harga numerik dari data event API.
+// Ambil harga numerik dari API.
+$harga = (float) ($event['price_amount'] ?? 0);
+
+// Biaya layanan.
+$biayaLayanan = 1000;
+
+// Hitung total pembayaran.
+$total = $harga + $biayaLayanan;
+
+$request->session()->put('detail_pemesanan', [
+    'event_id' => $event['id'],
+    'event_title' => $event['title'] ?? 'Event',
+    'event_description' => $event['description'] ?? '',
+    'event_image' => $image,
+    'event_date' => $schedule['date'] ?? 'Jadwal belum tersedia',
+    'event_time' => $schedule['start_time'] ?? 'Waktu belum tersedia',
+    'event_location' => $event['location'] ?? 'GOR A. Yani, Kota Mojokerto',
+
+    // Simpan harga numerik dari database/API.
+    'event_price' => $event['price'] ?? 'Harga belum tersedia',
+    'event_price_amount' => $harga,
+
+    'nama_lengkap' => $data['nama_lengkap'],
+    'nik' => $data['nik'],
+    'alamat_ktp' => $data['alamat_ktp'],
+    'email' => $data['email'],
+    'nomor_hp' => $data['nomor_hp'],
+
+    'subtotal' => $harga,
+    'biaya_layanan' => $biayaLayanan,
+    'total_pembayaran' => $total,
+    'jenis_pemesan' => 'luar-kota',
+]);
 
     return redirect()->route('events.detail-luar');
+
 })->name('events.pesan-tiket-luar.simpan');
+
 
 Route::get('/event/futsal/detail-pemesanan-luar', function () {
     abort_unless(session()->has('detail_pemesanan'), 403);
@@ -77,63 +237,51 @@ Route::get('/event/futsal/detail-pemesanan-luar', function () {
 
 
 
+
 Route::get('/events', function (Request $request) {
     $search = trim((string) $request->query('q', ''));
+    $category = trim((string) $request->query('category', 'Semua'));
 
     try {
-$response = app(
-    \App\Http\Controllers\Api\EventController::class
-)->index($request);
-
-if ($response->getStatusCode() !== 200) {
-    throw new \RuntimeException(
-        'Gagal mengambil data event.'
-    );
-}
-
-$payload = $response->getData(true);
-
-
-        if (
-            !is_array($payload) ||
-            !($payload['success'] ?? false)
-        ) {
-            throw new \RuntimeException(
-                'Format respons API event tidak sesuai.'
+        $response = app(ApiEventController::class)->index($request);
+        if ($response->getStatusCode() !== 200) {
+            throw new \RuntimeException('Gagal mengambil data event.');
+        }
+        $payload = $response->getData(true);
+        if (($payload['success'] ?? null) !== true || !is_array($payload['data'] ?? null)) {
+            throw new \RuntimeException('Format data event tidak sesuai.');
+        }
+        $events = collect($payload['data'])->map(function (array $event) {
+            return [
+                'id' => $event['id'] ?? '',
+                'title' => $event['title'] ?? 'Event',
+                'description' => $event['description'] ?? '',
+                'image' => $event['image_url'] ?? $event['image'] ?? 'images/events/futsal.jpg',
+                'category' => $event['category'] ?? 'Event',
+                'remaining' => (int) ($event['remaining'] ?? 0),
+                'total' => (int) ($event['total'] ?? 0),
+                'price' => $event['price'] ?? null,
+                'price_amount' => $event['price_amount'] ?? null,
+            ];
+        });
+        if ($search !== '') {
+            $events = $events->filter(fn (array $event) =>
+                str_contains(mb_strtolower($event['title']), mb_strtolower($search))
             );
         }
-
-        $events = collect($payload['data'] ?? [])
-            ->map(function ($event) {
-                return [
-                    'id' => $event['id'] ?? '',
-                    'title' => $event['title'] ?? 'Event',
-                    'description' => $event['description'] ?? '',
-                    'image' => $event['image']
-                        ?? $event['image']
-                        ?? 'images/events/futsal.jpg',
-                    'category' => $event['category'] ?? 'Event',
-                    'remaining' => (int) ($event['remaining'] ?? 0),
-                    'total' => (int) ($event['total'] ?? 0),
-                    'price' => (float) ($event['price'] ?? 0),
-                ];
-            });
-
+        if ($category !== '' && $category !== 'Semua') {
+            $events = $events->filter(fn (array $event) => $event['category'] === $category);
+        }
         return view('events', [
-            'events' => $events,
-            'selectedCategory' => 'Semua',
+            'events' => $events->values(),
+            'selectedCategory' => $category ?: 'Semua',
             'search' => $search,
         ]);
-   } catch (\Throwable $exception) {
-    report($exception);
-
-    return response(
-        'Penyebab error: ' . $exception->getMessage(),
-        503
-    );
-}
+    } catch (\Throwable $e) {
+        report($e);
+        return response('Daftar event sementara tidak tersedia.', 503);
+    }
 })->name('events.index');
-
 
 Route::get('/about', function () {
     return view('about');
@@ -152,9 +300,11 @@ Route::get('/pembayaran/luar-kota', function () {
         return redirect()->route('events.pesan-tiket-luar');
     }
 
-    $subtotal = 25000;
-    $biayaLayanan = 1000;
-    $total = $subtotal + $biayaLayanan;
+   $subtotal = (float) ($detail['subtotal'] ?? $detail['event_price_amount'] ?? 0);
+
+$biayaLayanan = (float) ($detail['biaya_layanan'] ?? 1000);
+
+$total = $subtotal + $biayaLayanan;
 
     return view('pembayaran', [
         'detail' => $detail,
@@ -224,6 +374,52 @@ Route::post('/pembayaran/konfirmasi', function (Request $request) {
     );
 })->name('pembayaran.konfirmasi');
 
+Route::post('/pembayaran/midtrans', function (Request $request) {
+
+    $bookingId = session('booking_id');
+
+    if (!$bookingId) {
+        return back()->with(
+            'error',
+            'Booking belum tersedia.'
+        );
+    }
+
+    $response = Http::withToken(session('token'))
+        ->post(
+            url("/api/bookings/{$bookingId}/payment")
+        );
+
+    if (!$response->successful()) {
+        return back()->with(
+            'error',
+            'Gagal membuat transaksi.'
+        );
+    }
+
+    $snapToken = data_get(
+        $response->json(),
+        'data.snap_token'
+    );
+
+    session([
+        'snap_token' => $snapToken,
+    ]);
+
+    return back();
+
+})->name('pembayaran.midtrans');
+
+// Panduan publik SI-GORAY
+Route::prefix('panduan-ar')
+    ->name('guides.')
+    ->group(function () {
+        Route::get('/', [ArGuidePublicController::class, 'index'])
+            ->name('index');
+
+        Route::get('/{slug}', [ArGuidePublicController::class, 'show'])
+            ->name('show');
+    });
 
 
 /*

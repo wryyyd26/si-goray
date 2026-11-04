@@ -9,10 +9,10 @@
     <section class="about-hero">
         <div class="about-container about-hero-content">
             <div class="about-hero-text">
-                <span class="about-label">TENTANG SI-GORAY</span>
-                <h1>Kenali SI-GORAY Lebih Dekat</h1>
+                <span class="about-label">TENTANG MAJA-TIX</span>
+                <h1>Kenali MAJA-TIX Lebih Dekat</h1>
                 <p>
-                    SI-GORAY adalah platform resmi untuk pembelian e-ticket dan reservasi fasilitas di GOR A. Yani, Kota Mojokerto. Kami hadir untuk memberikan akses kegiatan olahraga, seni, dan budaya yang cepat, aman, dan transparan dalam satu genggaman.
+                    MAJA-TIX adalah platform resmi untuk pembelian e-ticket dan reservasi fasilitas di GOR Seni Majapahit, Kota Mojokerto. Kami hadir untuk memberikan akses kegiatan olahraga, seni, dan budaya yang cepat, aman, dan transparan dalam satu genggaman.
                 </p>
                 <a href="/events" class="about-button">
                     Jelajahi Event
@@ -22,7 +22,7 @@
             <div class="about-hero-image">
                 <img
                     src="{{ asset('images/about-event.jpg') }}"
-                    alt="Kegiatan event SI-GORAY">
+                    alt="Kegiatan event MAJA-TIX">
             </div>
         </div>
     </section>
@@ -33,14 +33,14 @@
             <div class="about-section-image">
                 <img
                     src="{{ asset('images/about-platform.jpg') }}"
-                    alt="Platform digital SI-GORAY">
+                    alt="Platform digital MAJA-TIX">
             </div>
 
             <div class="about-section-text">
-                <span class="about-label">SI-GORAY</span>
+                <span class="about-label">MAJA-TIX</span>
                 <h2>Satu Platform untuk Berbagai Event</h2>
                 <p>
-                    SI-GORAY hadir sebagai sarana digital untuk
+                    MAJA-TIX hadir sebagai sarana digital untuk
                     menghubungkan penyelenggara event dengan masyarakat.
                     Melalui platform ini, pengguna dapat melihat
                     informasi kegiatan, mengetahui detail event,
@@ -103,7 +103,7 @@
         <div class="about-container">
             <h2>Temukan Event Favoritmu</h2>
             <p>
-                Mulai jelajahi berbagai kegiatan menarik bersama SI-GORAY.
+                Mulai jelajahi berbagai kegiatan menarik bersama MAJA-TIX.
             </p>
             <a href="/events" class="about-button">
                 Lihat Semua Event
