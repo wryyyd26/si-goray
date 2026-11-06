@@ -153,8 +153,8 @@
             <div class="ticket-bottom">
 
                 <img
-                    src="{{ asset('storage/images/Logo-Si-goray.png') }}"
-                    alt="Logo SI-GORAY"
+                    src="{{ asset('storage/images/Logo-Maja-tix.png') }}"
+                    alt="Logo Maja-tix"
                     class="ticket-brand-logo"
                 >
 
