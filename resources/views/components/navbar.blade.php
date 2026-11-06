@@ -232,38 +232,28 @@
                     class="account-dropdown"
                     id="account-dropdown">
 
+                    @auth('web')
+                    <div class="account-dropdown-header">
+                        <strong>Akun Pengunjung</strong>
+                        <small>{{ auth('web')->user()->no_hp_email }}</small>
+                    </div>
+                    <form id="visitor-navbar-logout-form" method="POST" action="{{ route('pengunjung.web-auth.logout') }}">
+                        @csrf
+                        <button type="submit" class="account-dropdown-item" style="width:100%;text-align:left;border:0;background:transparent;cursor:pointer;">
+                            <span class="material-symbols-rounded">logout</span>
+                            <span><strong>Logout</strong><small>Keluar dari akun pengunjung</small></span>
+                        </button>
+                    </form>
+                    @else
                     <div class="account-dropdown-header">
                         <strong>Selamat datang!</strong>
-                        <small>Silakan pilih menu akun Anda.</small>
+                        <small>Masuk atau daftar menggunakan OTP email.</small>
                     </div>
-
-                    <a
-                        href="{{ url('/register') }}"
-                        class="account-dropdown-item">
-
-                        <span class="material-symbols-rounded">
-                            person_add
-                        </span>
-
-                        <span>
-                            <strong>Daftar</strong>
-                            <small>Buat akun baru</small>
-                        </span>
+                    <a href="{{ route('pengunjung.login', ['next' => request()->getRequestUri()]) }}" class="account-dropdown-item">
+                        <span class="material-symbols-rounded">login</span>
+                        <span><strong>Login / Daftar</strong><small>Verifikasi menggunakan email</small></span>
                     </a>
-
-                    <a
-                        href="{{ url('/login') }}"
-                        class="account-dropdown-item">
-
-                        <span class="material-symbols-rounded">
-                            login
-                        </span>
-
-                        <span>
-                            <strong>Login</strong>
-                            <small>Masuk ke akun Anda</small>
-                        </span>
-                    </a>
+                    @endauth
 
                 </div>
             </div>
@@ -414,6 +404,29 @@
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeDropdowns();
+            }
+        });
+
+        // Logout pengunjung: kirim POST + CSRF, tanpa memengaruhi session Admin.
+        const visitorLogoutForm = document.getElementById('visitor-navbar-logout-form');
+        visitorLogoutForm?.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const button = visitorLogoutForm.querySelector('button[type="submit"]');
+            if (button) button.disabled = true;
+            try {
+                const response = await fetch(visitorLogoutForm.action, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': visitorLogoutForm.querySelector('input[name="_token"]').value
+                    }
+                });
+                if (!response.ok) throw new Error('Logout gagal. Silakan coba lagi.');
+                window.location.assign(@json(route('home')));
+            } catch (error) {
+                if (button) button.disabled = false;
+                alert(error.message);
             }
         });
 

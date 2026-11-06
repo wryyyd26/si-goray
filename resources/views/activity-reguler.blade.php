@@ -22,6 +22,13 @@
             </div>
         </div>
 
+        @if (session('error'))
+            <div class="regular-notice" role="alert">{{ session('error') }}</div>
+        @endif
+        @if ($errors->any())
+            <div class="regular-notice" role="alert">{{ $errors->first() }}</div>
+        @endif
+
         <section class="regular-calendar-card" aria-labelledby="regular-calendar-title">
             <div class="regular-calendar-top">
                 <div>
@@ -89,20 +96,27 @@
         <p class="regular-subtitle">Lengkapi identitas untuk melanjutkan reservasi.</p>
         <div class="regular-selected" id="resident-booking-summary"></div>
 
-        <form class="regular-form" id="regular-resident-form">
+        <form class="regular-form" id="regular-resident-form" method="POST" action="{{ route('reguler.booking.store') }}">
+            @csrf
+            <input type="hidden" name="regular_slot_id" class="selected-regular-slot-id" value="">
+            <input type="hidden" name="kategori" value="warga">
             <div class="regular-form-group">
                 <label for="resident-nik">NIK</label>
                 <input id="resident-nik" name="nik" inputmode="numeric" pattern="[0-9]{16}" minlength="16" maxlength="16" placeholder="Masukkan 16 digit NIK" required>
             </div>
             <div class="regular-form-group">
+                <label for="resident-tanggal-lahir">Tanggal lahir</label>
+                <input type="date" id="resident-tanggal-lahir" name="tanggal_lahir" max="{{ now()->toDateString() }}" required>
+            </div>
+            <div class="regular-form-group">
                 <label for="resident-name">Nama lengkap</label>
-                <input id="resident-name" name="nama" autocomplete="name" placeholder="Nama sesuai identitas" required>
+                <input id="resident-name" name="nama_lengkap" autocomplete="name" placeholder="Nama sesuai identitas" required>
             </div>
             <div class="regular-form-group">
                 <label for="resident-address">Alamat</label>
                 <textarea id="resident-address" name="alamat" rows="3" placeholder="Alamat sesuai identitas" required></textarea>
             </div>
-            <div class="regular-notice">Formulir tampilan sudah disiapkan. Pengiriman booking menunggu endpoint backend.</div>
+            <div class="regular-notice">Pemesanan akan divalidasi oleh sistem berdasarkan NIK, tanggal lahir, dan kuota sesi.</div>
             <div class="regular-actions">
                 <button type="button" class="regular-btn secondary" id="resident-back">Kembali</button>
                 <button type="submit" class="regular-btn primary">Lanjutkan</button>
@@ -120,20 +134,27 @@
         <p class="regular-subtitle">Lengkapi identitas dan asal daerah Anda.</p>
         <div class="regular-selected" id="nonresident-booking-summary"></div>
 
-        <form class="regular-form" id="regular-nonresident-form">
+        <form class="regular-form" id="regular-nonresident-form" method="POST" action="{{ route('reguler.booking.store') }}">
+            @csrf
+            <input type="hidden" name="regular_slot_id" class="selected-regular-slot-id" value="">
+            <input type="hidden" name="kategori" value="luar">
             <div class="regular-form-group">
                 <label for="nonresident-nik">NIK</label>
                 <input id="nonresident-nik" name="nik" inputmode="numeric" pattern="[0-9]{16}" minlength="16" maxlength="16" placeholder="Masukkan 16 digit NIK" required>
             </div>
             <div class="regular-form-group">
+                <label for="nonresident-tanggal-lahir">Tanggal lahir</label>
+                <input type="date" id="nonresident-tanggal-lahir" name="tanggal_lahir" max="{{ now()->toDateString() }}" required>
+            </div>
+            <div class="regular-form-group">
                 <label for="nonresident-name">Nama lengkap</label>
-                <input id="nonresident-name" name="nama" autocomplete="name" placeholder="Nama sesuai identitas" required>
+                <input id="nonresident-name" name="nama_lengkap" autocomplete="name" placeholder="Nama sesuai identitas" required>
             </div>
             <div class="regular-form-group">
                 <label for="nonresident-origin">Kota/Kabupaten asal</label>
                 <input id="nonresident-origin" name="asal" placeholder="Contoh: Kabupaten Mojokerto" required>
             </div>
-            <div class="regular-notice">Formulir tampilan sudah disiapkan. Pengiriman booking menunggu endpoint backend.</div>
+            <div class="regular-notice">Pemesanan akan divalidasi oleh sistem berdasarkan NIK, tanggal lahir, dan kuota sesi.</div>
             <div class="regular-actions">
                 <button type="button" class="regular-btn secondary" id="nonresident-back">Kembali</button>
                 <button type="submit" class="regular-btn primary">Lanjutkan</button>
@@ -144,8 +165,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Sesuaikan URL ini jika alamat server API berubah.
-    const REGULAR_SLOTS_API = 'http://192.168.37.199:8000/api/reguler/slots';
+    // Gunakan origin aplikasi Laravel, bukan IP lokal pengembang.
+    const REGULAR_SLOTS_API = @json(url('/api/reguler/slots'));
+    const REGULAR_LOGIN_URL = @json(route('pengunjung.login', ['next' => '/activity-reguler']));
+    const VISITOR_AUTHENTICATED = @json(\Illuminate\Support\Facades\Auth::guard('web')->check());
+    const PENDING_SLOT_KEY = 'sigoray.reguler.pending-slot';
 
     const SESSION_DEFINITIONS = [
         { number: 1, start: '08:00', label: '08.00–10.00' },
@@ -163,12 +187,47 @@ document.addEventListener('DOMContentLoaded', function () {
     ];
 
     let slots = [];
+    let slotsRequestNumber = 0;
     let selectedDate = null;
     let selectedSlot = null;
     let calendarCursor = new Date();
     calendarCursor.setDate(1);
 
     const getElement = id => document.getElementById(id);
+    // Simpan hanya slot/tanggal/kategori, tidak menyimpan NIK atau tanggal lahir.
+    function savePendingSelection(slot, date, category = null) {
+        const id = String(idOf(slot) ?? '');
+        if (!/^[0-9a-fA-F-]{36}$/.test(id)) return;
+        try {
+            sessionStorage.setItem(PENDING_SLOT_KEY, JSON.stringify({ slotId: id, date, category }));
+        } catch (_) { /* Mode privat mungkin menolak sessionStorage. */ }
+    }
+
+    function readPendingSelection() {
+        if (!VISITOR_AUTHENTICATED) return null;
+        try {
+            const parsed = JSON.parse(sessionStorage.getItem(PENDING_SLOT_KEY) || 'null');
+            if (!parsed || !/^[0-9a-fA-F-]{36}$/.test(String(parsed.slotId)) ||
+                !/^20\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(String(parsed.date))) {
+                sessionStorage.removeItem(PENDING_SLOT_KEY);
+                return null;
+            }
+            return parsed;
+        } catch (_) {
+            try { sessionStorage.removeItem(PENDING_SLOT_KEY); } catch (_) {}
+            return null;
+        }
+    }
+
+    function clearPendingSelection() {
+        try { sessionStorage.removeItem(PENDING_SLOT_KEY); } catch (_) {}
+    }
+
+    const pendingSelection = readPendingSelection();
+    if (pendingSelection) {
+        const [year, month] = pendingSelection.date.split('-').map(Number);
+        calendarCursor = new Date(year, month - 1, 1);
+    }
     const openModal = id => {
         const modal = getElement(id);
         if (!modal) return;
@@ -202,8 +261,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const dateOf = slot => valueOf(slot, ['tanggal', 'date', 'slot_date', 'booking_date']);
-    const totalOf = slot => numberOf(valueOf(slot, ['total_kuota', 'kuota_total', 'total_quota', 'quota', 'total'], 0));
-    const remainingOf = slot => numberOf(valueOf(slot, ['sisa_kuota', 'kuota_tersisa', 'remaining_quota', 'remaining', 'available_quota'], 0));
+    const totalOf = slot => numberOf(valueOf(slot, ['quota', 'total_kuota', 'kuota_total', 'total_quota', 'total'], 0));
+    const remainingOf = slot => numberOf(valueOf(slot, ['available', 'sisa_kuota', 'kuota_tersisa', 'remaining_quota', 'remaining', 'available_quota'], 0));
     const idOf = slot => valueOf(slot, ['id', 'regular_slot_id', 'uuid']);
 
     function isActive(slot) {
@@ -236,30 +295,59 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function loadRegularSlots() {
+        const requestNumber = ++slotsRequestNumber;
+        const year = calendarCursor.getFullYear();
+        const month = calendarCursor.getMonth() + 1;
         const grid = getElement('regular-calendar-grid');
+        const message = getElement('calendar-message');
+        const url = new URL(REGULAR_SLOTS_API, window.location.origin);
+        url.searchParams.set('month', String(month));
+        url.searchParams.set('year', String(year));
+
+        // Jangan tampilkan sesi dari bulan yang sebelumnya dipilih.
+        selectedDate = null;
+        selectedSlot = null;
+        getElement('regular-session-section').hidden = true;
+        closeAllModals();
+        getElement('calendar-month-label').textContent =
+            calendarCursor.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
         grid.innerHTML = '<div class="regular-notice regular-grid-message">Mengambil jadwal dan kuota...</div>';
+        message.textContent = 'Mengambil jadwal Activity Reguler...';
 
         try {
-            const response = await fetch(REGULAR_SLOTS_API, {
+            const response = await fetch(url.toString(), {
                 headers: { 'Accept': 'application/json' }
             });
-
             if (!response.ok) {
                 throw new Error('Server mengembalikan HTTP ' + response.status);
             }
 
             const payload = await response.json();
+            // Jika pengguna cepat berpindah bulan, abaikan respons bulan lama.
+            if (requestNumber !== slotsRequestNumber) return;
+
             slots = extractRecords(payload);
-
             renderCalendar();
-
-            if (!slots.length) {
-                getElement('calendar-message').textContent =
-                    'Belum ada jadwal Activity Reguler yang tersedia.';
+            if (pendingSelection &&
+                pendingSelection.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)) {
+                const matching = slots.find(slot => String(idOf(slot)) === pendingSelection.slotId &&
+                    String(dateOf(slot)).slice(0, 10) === pendingSelection.date && isActive(slot));
+                clearPendingSelection();
+                if (matching) {
+                    const daySlots = slots.filter(slot => String(dateOf(slot)).slice(0, 10) === pendingSelection.date);
+                    chooseDate(pendingSelection.date, daySlots, pendingSelection.slotId, pendingSelection.category);
+                } else {
+                    message.textContent = 'Sesi sebelumnya tidak tersedia lagi. Silakan pilih sesi lain.';
+                }
             }
+            message.textContent = slots.length
+                ? 'Pilih tanggal dan sesi yang masih tersedia.'
+                : 'Belum ada jadwal Activity Reguler yang tersedia untuk bulan ini.';
         } catch (error) {
+            if (requestNumber !== slotsRequestNumber) return;
+            slots = [];
             grid.innerHTML = '<div class="regular-notice regular-grid-message">Jadwal belum dapat dimuat. Periksa koneksi API atau format respons endpoint.</div>';
-            getElement('calendar-message').textContent = error.message;
+            message.textContent = error.message;
         }
     }
 
@@ -338,7 +426,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function chooseDate(date, daySlots) {
+    function chooseDate(date, daySlots, restoreSlotId = null, restoreCategory = null) {
         selectedDate = date;
         selectedSlot = null;
 
@@ -349,6 +437,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const grid = getElement('regular-session-grid');
         grid.innerHTML = '';
 
+        let restoreButton = null;
         SESSION_DEFINITIONS.forEach(session => {
             const slot = daySlots.find(item => {
                 const number = Number(valueOf(item, ['sesi', 'session', 'session_number', 'nomor_sesi'], 0));
@@ -378,7 +467,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (available) {
                 button.addEventListener('click', () => {
+                    if (!VISITOR_AUTHENTICATED) {
+                        savePendingSelection(slot, date);
+                        window.location.assign(REGULAR_LOGIN_URL);
+                        return;
+                    }
                     selectedSlot = slot;
+                    document.querySelectorAll('.selected-regular-slot-id').forEach(input => {
+                        input.value = String(idOf(slot) ?? '');
+                    });
 
                     getElement('selected-session-label').textContent =
                         `${formatDate(date)} • Sesi ${session.number} (${session.label})`;
@@ -393,8 +490,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
 
+            if (restoreSlotId && String(idOf(slot)) === String(restoreSlotId) && available) {
+                restoreButton = button;
+            }
             grid.appendChild(button);
         });
+
+        if (restoreButton) {
+            restoreButton.click();
+            if (restoreCategory === 'warga' || restoreCategory === 'luar') {
+                closeModal('modal-regular-identity');
+                openModal(restoreCategory === 'warga'
+                    ? 'modal-regular-resident-form'
+                    : 'modal-regular-nonresident-form');
+            }
+        }
 
         getElement('regular-session-section').scrollIntoView({
             behavior: 'smooth',
@@ -404,12 +514,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     getElement('calendar-prev').addEventListener('click', () => {
         calendarCursor.setMonth(calendarCursor.getMonth() - 1);
-        renderCalendar();
+        loadRegularSlots();
     });
 
     getElement('calendar-next').addEventListener('click', () => {
         calendarCursor.setMonth(calendarCursor.getMonth() + 1);
-        renderCalendar();
+        loadRegularSlots();
     });
 
     getElement('regular-is-resident').addEventListener('click', () => {
@@ -454,8 +564,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     ['regular-resident-form', 'regular-nonresident-form'].forEach(id => {
         getElement(id).addEventListener('submit', event => {
-            event.preventDefault();
-            alert('Tampilan formulir sudah siap. Integrasi penyimpanan booking menunggu endpoint backend.');
+            if (!VISITOR_AUTHENTICATED) {
+                event.preventDefault();
+                if (selectedSlot) savePendingSelection(selectedSlot, selectedDate,
+                    id === 'regular-resident-form' ? 'warga' : 'luar');
+                window.location.assign(REGULAR_LOGIN_URL);
+                return;
+            }
+            if (!selectedSlot || !idOf(selectedSlot)) {
+                event.preventDefault();
+                alert('Silakan pilih kembali sesi reguler yang tersedia.');
+            }
         });
     });
 

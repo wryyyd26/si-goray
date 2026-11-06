@@ -24,7 +24,7 @@
         <button id="visitor-submit" type="submit" style="padding:12px 20px;cursor:pointer;">Kirim Kode OTP</button>
     </form>
 
-    <p><a href="{{ route('events.index') }}">Kembali ke daftar event</a></p>
+    <p><a href="{{ $next }}">Kembali ke halaman sebelumnya</a></p>
 </main>
 <script src="{{ asset('js/pengunjung-login.js') }}" defer></script>
 @endsection

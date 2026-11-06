@@ -112,7 +112,7 @@ $gambarEvent = 'http://192.168.37.199:8000/'
                 @endif
 
                 <form
-                    action="{{ route('events.pesan-tiket-luar.simpan') }}"
+                    action="{{ route('events.booking.submit.luar') }}"
                     method="POST">
                     @csrf
 
@@ -120,6 +120,23 @@ $gambarEvent = 'http://192.168.37.199:8000/'
                         type="hidden"
                         name="event_id"
                         value="{{ $eventId }}">
+                    {{-- Pilih jadwal secara eksplisit; tidak otomatis memesan schedules[0]. --}}
+                    <div class="form-group">
+                        <label for="event_schedule_id">Jadwal Event</label>
+                        <select id="event_schedule_id" name="event_schedule_id" required>
+                            <option value="">-- Pilih jadwal --</option>
+                            @foreach (($event['schedules'] ?? []) as $pilihanJadwal)
+                                @php
+                                    $sisaJadwal = (int) ($pilihanJadwal['remaining'] ?? 0);
+                                    $akhirJadwal = \Illuminate\Support\Carbon::parse(($pilihanJadwal['date'] ?? '1970-01-01').' '.($pilihanJadwal['end_time'] ?? '00:00'), config('app.timezone'));
+                                    $tidakTersedia = $sisaJadwal <= 0 || $akhirJadwal->lte(now());
+                                @endphp
+                                <option value="{{ $pilihanJadwal['id'] ?? '' }}" @selected(old('event_schedule_id') === ($pilihanJadwal['id'] ?? null)) @disabled($tidakTersedia)>
+                                    {{ $pilihanJadwal['date'] ?? '' }} | {{ $pilihanJadwal['start_time'] ?? '' }}â€“{{ $pilihanJadwal['end_time'] ?? '' }} WIB (Sisa {{ $sisaJadwal }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
                     {{-- NAMA LENGKAP --}}
                     <div class="form-group">

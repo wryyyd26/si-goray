@@ -46,6 +46,9 @@ Route::get('/pengunjung/login', function (Request $request) {
         '/event/futsal/pesan-tiket',
         '/event/futsal/pesan-tiket-luar',
         '/activity-reguler',
+        '/',
+        '/about',
+        '/contact',
     ];
 
     // Hanya izinkan tujuan internal yang dikenal; cegah open redirect.
@@ -103,8 +106,8 @@ Route::get('/events/{id}', function (string $id) {
     return redirect()->route('events.show', ['event' => $id]);
 })->whereUuid('id')->name('events.show.legacy');
 
-Route::get('/event/futsal/pesan-tiket', [EventPageController::class, 'formWarga'])->name('events.pesan-tiket');
-Route::get('/event/futsal/pesan-tiket-luar', [EventPageController::class, 'formLuar'])->name('events.pesan-tiket-luar');
+Route::get('/event/futsal/pesan-tiket', [EventPageController::class, 'formWarga'])->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)->name('events.pesan-tiket');
+Route::get('/event/futsal/pesan-tiket-luar', [EventPageController::class, 'formLuar'])->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)->name('events.pesan-tiket-luar');
 Route::get('/events/{id}/pesan-tiket-luar', function (string $id) {
     abort_unless(\Illuminate\Support\Str::isUuid($id), 404);
     return redirect()->route('events.pesan-tiket-luar', ['event' => $id]);
@@ -176,7 +179,7 @@ Route::post('/event/futsal/pesan-tiket', function (Request $request) {
     ]);
 
     return redirect()->route('events.detail-warga');
-})->name('events.pesan-tiket.simpan');
+})->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)->name('events.pesan-tiket.simpan');
 
 
 // Halaman detail pemesanan warga.
@@ -282,7 +285,7 @@ $request->session()->put('detail_pemesanan', [
 
     return redirect()->route('events.detail-luar');
 
-})->name('events.pesan-tiket-luar.simpan');
+})->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)->name('events.pesan-tiket-luar.simpan');
 
 
 Route::get('/event/futsal/detail-pemesanan-luar', function () {
@@ -702,3 +705,47 @@ Route::delete(
     ])->name('events.update');
 
 });
+
+// Adapter fungsional form Daffa -> identitas -> BookingService (status tetap DRAFT).
+Route::post('/pengunjung/form-booking/warga', [\App\Http\Controllers\Web\EventFormBookingController::class, 'storeWarga'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->name('events.booking.submit.warga');
+Route::post('/pengunjung/form-booking/luar', [\App\Http\Controllers\Web\EventFormBookingController::class, 'storeLuar'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->name('events.booking.submit.luar');
+Route::get('/pengunjung/booking/{booking}/draft', [\App\Http\Controllers\Web\EventFormBookingController::class, 'draft'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->whereUuid('booking')->name('events.booking.draft');
+// SI-GORAY: bridge form booking reguler (session web).
+Route::post('/pengunjung/form-booking/reguler', [\App\Http\Controllers\Web\RegularFormBookingController::class, 'store'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->name('reguler.booking.store');
+Route::get('/pengunjung/booking-reguler/{booking}', [\App\Http\Controllers\Web\RegularFormBookingController::class, 'draft'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->name('reguler.booking.draft');
+
+// SI-GORAY: Konfirmasi gratis booking REGULER (session web, CSRF, kepemilikan di controller+service).
+Route::post('/pengunjung/booking-reguler/{booking}/confirm-free', [\App\Http\Controllers\Web\RegularFreeConfirmationController::class, 'store'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->whereUuid('booking')
+    ->name('reguler.booking.confirm-free');
+
+// SI-GORAY: gambar QR reguler aman, dibaca dari QR_TICKETS (bukan generate tiket baru).
+Route::get('/pengunjung/booking-reguler/{booking}/qr.svg', [\App\Http\Controllers\Web\RegularQrImageController::class, 'show'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->whereUuid('booking')->name('reguler.booking.qr-image');
+
+
+// SI-GORAY: checkout Midtrans untuk sesi web pengunjung (bukan API Sanctum).
+Route::get('/pengunjung/booking/{booking}/payment', [\App\Http\Controllers\Web\WebBookingPaymentController::class, 'show'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->whereUuid('booking')->name('booking.payment.show');
+Route::post('/pengunjung/booking/{booking}/payment', [\App\Http\Controllers\Web\WebBookingPaymentController::class, 'start'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->whereUuid('booking')->name('booking.payment.start');
+Route::post('/pengunjung/booking/{booking}/confirm-event-free', [\App\Http\Controllers\Web\EventFreeConfirmationController::class, 'store'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->whereUuid('booking')->name('events.booking.confirm-free');
+Route::get('/pengunjung/booking/{booking}/qr.svg', [\App\Http\Controllers\Web\EventQrImageController::class, 'show'])
+    ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
+    ->whereUuid('booking')->name('events.booking.qr-image');
