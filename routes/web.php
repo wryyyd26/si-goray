@@ -345,6 +345,10 @@ Route::get('/events', function (Request $request) {
 Route::get('/about', function () {
     return view('about');
 })->name('about');
+Route::post('/contact', [\App\Http\Controllers\Web\ContactMessageController::class, 'store'])->middleware('throttle:5,1')->name('contact.submit');
+
+
+Route::post('/contact', [\App\Http\Controllers\Web\ContactMessageController::class, 'store'])->middleware('throttle:5,1')->name('contact.submit');
 
 Route::get('/contact', function () {
     return view('contact');

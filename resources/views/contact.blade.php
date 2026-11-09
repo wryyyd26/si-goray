@@ -73,7 +73,20 @@
         Isi formulir berikut dan sampaikan pesanmu kepada kami.
     </p>
 
-    <form action="#" method="POST" class="contact-form">
+    @if (session('success'))
+    <p role="status" style="color:#047857;font-weight:600;margin-bottom:16px;">{{ session('success') }}</p>
+@endif
+@if ($errors->any())
+    <div role="alert" style="color:#b91c1c;margin-bottom:16px;">
+        <strong>Periksa formulir:</strong>
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+<form action="{{ route('contact.submit') }}" method="POST" class="contact-form">
         @csrf
 
         <div class="form-group">
