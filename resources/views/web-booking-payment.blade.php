@@ -37,6 +37,10 @@
                     @csrf
                     <button class="payment-button" type="submit">Bayar menggunakan Midtrans</button>
                 </form>
+        <form method="POST" action="{{ route('booking.payment.sync', ['booking' => $booking->id]) }}">
+            @csrf
+            <button type="submit" class="payment-button">Periksa Status Pembayaran di Midtrans</button>
+        </form>
                 <p>Booking hanya berubah menjadi CONFIRMED setelah pembayaran diverifikasi backend.</p>
                 <p><a href="{{ $draftUrl }}">Kembali dan lihat status tiket</a></p>
             </div>

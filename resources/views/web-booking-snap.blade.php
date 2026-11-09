@@ -11,6 +11,10 @@
         <p>Booking: {{ $booking->id }}</p>
         <button type="button" id="open-snap" class="payment-button">Buka pembayaran Midtrans</button>
         <p id="snap-message" role="status">Jika popup tidak terbuka, klik tombol pembayaran di atas.</p>
+        <form method="POST" action="{{ route('booking.payment.sync', ['booking' => $booking->id]) }}">
+            @csrf
+            <button type="submit" class="payment-button">Periksa Status Pembayaran di Midtrans</button>
+        </form>
         <p><a href="{{ $draftUrl }}">Lihat status booking</a></p>
         <p><a href="{{ $paymentUrl }}">Kembali ke ringkasan pembayaran</a></p>
         <p><small>Penutupan popup atau pesan sukses dari browser tidak otomatis mengonfirmasi tiket. Status akan diperbarui setelah notifikasi terverifikasi oleh server.</small></p>
@@ -22,6 +26,7 @@
 (function () {
     const token = @json($snapToken);
     const draftUrl = @json($draftUrl);
+    const syncForm = document.querySelector('form[action*="/payment/sync"]');
     const button = document.getElementById('open-snap');
     const message = document.getElementById('snap-message');
     button.addEventListener('click', function () {
@@ -30,7 +35,7 @@
             return;
         }
         window.snap.pay(token, {
-            onSuccess: function () { window.location.assign(draftUrl); },
+            onSuccess: function () { syncForm.submit(); },
             onPending: function () { window.location.assign(draftUrl); },
             onError: function () { message.textContent = 'Pembayaran belum berhasil. Periksa status booking sebelum mencoba lagi.'; },
             onClose: function () { message.textContent = 'Jendela ditutup. Status booking tidak berubah sampai gateway mengonfirmasi pembayaran.'; }

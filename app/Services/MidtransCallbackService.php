@@ -75,7 +75,26 @@ class MidtransCallbackService
             );
         }
 
-        $orderId = $payload['order_id'];
+        return $this->processGatewayStatus($payload['order_id'], $payload);
+    }
+
+    /**
+     * Sinkronisasi tanpa callback. Order ID harus berasal dari payment milik user
+     * yang sudah lolos otorisasi pada WebBookingPaymentController.
+     * Tidak memalsukan signature ataupun membuat audit callback palsu.
+     */
+    public function reconcile(string $orderId): array
+    {
+        return $this->processGatewayStatus($orderId, null);
+    }
+
+    private function processGatewayStatus(string $orderId, ?array $payload): array
+    {
+        $serverKey = config('midtrans.server_key');
+
+        if (!is_string($serverKey) || $serverKey === '') {
+            throw new RuntimeException('Konfigurasi Midtrans tidak tersedia.');
+        }
 
         $exists = PaymentTransaction::query()
             ->where('kode_bayar', $orderId)
@@ -109,14 +128,11 @@ class MidtransCallbackService
             (string) ($gateway->gross_amount ?? '')
         );
 
-        $callbackAmount = $this->amount(
-            $payload['gross_amount']
-        );
-
-        if ($gatewayAmount !== $callbackAmount) {
-            throw new InvalidArgumentException(
-                'Nominal notifikasi tidak sesuai.'
-            );
+        if ($payload !== null) {
+            $callbackAmount = $this->amount($payload['gross_amount']);
+            if ($gatewayAmount !== $callbackAmount) {
+                throw new InvalidArgumentException('Nominal notifikasi tidak sesuai.');
+            }
         }
 
         $status = (string) ($gateway->transaction_status ?? '');
@@ -169,16 +185,18 @@ class MidtransCallbackService
             /*
              * Simpan payload untuk audit, tetapi jangan menyimpan signature.
              */
-            $safePayload = $payload;
-            unset($safePayload['signature_key']);
+            if ($payload !== null) {
+                $safePayload = $payload;
+                unset($safePayload['signature_key']);
 
-            PaymentGatewayCallback::query()->create([
-                'transaction_id' => $payment->id,
-                'status_callback' => $status,
-                'signature_valid' => true,
-                'raw_payload' => $safePayload,
-                'received_at' => now(),
-            ]);
+                PaymentGatewayCallback::query()->create([
+                    'transaction_id' => $payment->id,
+                    'status_callback' => $status,
+                    'signature_valid' => true,
+                    'raw_payload' => $safePayload,
+                    'received_at' => now(),
+                ]);
+            }
 
             /*
              * Callback berulang untuk status yang sama.

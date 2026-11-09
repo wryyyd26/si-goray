@@ -753,3 +753,10 @@ Route::post('/pengunjung/booking/{booking}/confirm-event-free', [\App\Http\Contr
 Route::get('/pengunjung/booking/{booking}/qr.svg', [\App\Http\Controllers\Web\EventQrImageController::class, 'show'])
     ->middleware(\App\Http\Middleware\EnsureVisitorBookingLogin::class)
     ->whereUuid('booking')->name('events.booking.qr-image');
+
+
+// Rekonsiliasi server-side pembayaran dari sesi web pengunjung (CSRF + throttling).
+Route::post('/pengunjung/booking/{booking}/payment/sync',
+    [\App\Http\Controllers\Web\WebPaymentReconciliationController::class, 'sync'])
+    ->middleware([\App\Http\Middleware\EnsureVisitorBookingLogin::class, 'throttle:3,1'])
+    ->whereUuid('booking')->name('booking.payment.sync');
