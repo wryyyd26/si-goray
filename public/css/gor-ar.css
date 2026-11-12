@@ -1,0 +1,422 @@
+
+/* SI-GORAY - GOR 3D & AR */
+
+
+/* ====================================
+   PREMIUM BACKGROUND - GOR AR
+==================================== */
+
+.gor-ar-page {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    overflow: hidden;
+
+    padding: 55px 24px 90px;
+
+    background:
+        radial-gradient(
+            ellipse at 12% 16%,
+            rgba(130, 195, 245, 0.40) 0%,
+            transparent 42%
+        ),
+        radial-gradient(
+            ellipse at 88% 24%,
+            rgba(170, 215, 255, 0.48) 0%,
+            transparent 40%
+        ),
+        radial-gradient(
+            ellipse at 48% 90%,
+            rgba(120, 190, 235, 0.24) 0%,
+            transparent 48%
+        ),
+        linear-gradient(
+            145deg,
+            #edf7ff 0%,
+            #dceefb 45%,
+            #c7e2f5 100%
+        );
+
+    font-family: 'Poppins', sans-serif;
+    color: #172237;
+}
+
+/* EFEK CAHAYA LEMBUT */
+
+.gor-ar-page::before {
+    content: "";
+    position: absolute;
+
+    top: -180px;
+    right: -130px;
+
+    width: 520px;
+    height: 520px;
+
+    background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.65) 0%,
+        rgba(255, 255, 255, 0) 70%
+    );
+
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* EFEK GLOW BAGIAN BAWAH */
+
+.gor-ar-page::after {
+    content: "";
+    position: absolute;
+
+    bottom: -220px;
+    left: -150px;
+
+    width: 600px;
+    height: 600px;
+
+    background: radial-gradient(
+        circle,
+        rgba(111, 185, 238, 0.23) 0%,
+        transparent 70%
+    );
+
+    pointer-events: none;
+    z-index: -1;
+}
+
+
+.gor-ar-page * {
+    box-sizing: border-box;
+}
+
+.gor-ar-container {
+    max-width: 1120px;
+    margin: auto;
+}
+
+/* HEADER */
+
+.gor-ar-heading {
+    margin-bottom: 30px;
+}
+
+.gor-ar-back {
+    display: inline-block;
+    margin-bottom: 26px;
+    font-size: 13px;
+    color: #415b76;
+    text-decoration: none;
+}
+
+.gor-ar-kicker {
+    display: block;
+    margin-bottom: 10px;
+    color: #496b8c;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+.gor-ar-heading h1 {
+    margin: 0 0 12px;
+    font-size: 34px;
+    font-weight: 700;
+}
+
+.gor-ar-heading p {
+    max-width: 630px;
+    color: #526477;
+    line-height: 1.8;
+    font-size: 14px;
+}
+
+/* MAIN CARD */
+
+.gor-ar-card {
+    position: relative;
+
+    padding: 28px;
+    border-radius: 22px;
+
+    background: rgba(255, 255, 255, 0.58);
+
+    border: 1px solid rgba(255, 255, 255, 0.85);
+
+    box-shadow:
+        0 12px 35px rgba(39, 88, 132, 0.08),
+        0 3px 10px rgba(39, 88, 132, 0.03);
+
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.gor-ar-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.gor-ar-card-header h2 {
+    font-size: 20px;
+    margin: 0 0 5px;
+}
+
+.gor-ar-card-header p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.gor-ar-indicator {
+    padding: 8px 14px;
+    border-radius: 30px;
+    background: #e5f1ff;
+    color: #245a86;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* 3D VIEWER */
+
+.gor-ar-viewer {
+    position: relative;
+    width: 100%;
+    height: 500px;
+
+    overflow: hidden;
+    border-radius: 18px;
+
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            #f8fcff 0%,
+            #e6f2fb 52%,
+            #d2e5f4 100%
+        );
+
+    border: 1px solid rgba(185, 211, 232, 0.75);
+
+    box-shadow:
+        inset 0 2px 12px rgba(80, 125, 160, 0.04);
+}
+
+.gor-ar-viewer canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.gor-ar-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: #526477;
+    text-align: center;
+    background: #e9f3fb;
+    z-index: 2;
+    font-size: 14px;
+}
+
+/* TOOLBAR */
+
+.gor-ar-toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.gor-ar-toolbar button {
+    min-height: 44px;
+    padding: 11px 24px;
+    background: #172237;
+    color: white;
+    border: 1px solid #172237;
+    border-radius: 9px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.gor-ar-toolbar button:hover {
+    background: #293e58;
+}
+
+.gor-ar-toolbar button:focus-visible,
+.gor-ar-back:focus-visible {
+    outline: 3px solid #4b83bd;
+    outline-offset: 3px;
+}
+
+/* OVERRIDE ARBUTTON DEFAULT PLACEMENT */
+
+#gor-ar-button-container > button {
+    position: static !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    min-width: 165px;
+    height: auto !important;
+    opacity: 1 !important;
+    border-radius: 9px !important;
+    background: #172237 !important;
+    color: #ffffff !important;
+}
+
+.gor-ar-unavailable {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+    text-align: center;
+}
+
+.gor-ar-status {
+    margin: 18px 0 0;
+    font-size: 13px;
+    color: #64748b;
+    text-align: center;
+    line-height: 1.7;
+}
+
+/* GUIDE SECTION */
+
+.gor-ar-guide {
+    margin-top: 35px;
+}
+
+.gor-ar-guide h2 {
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+.gor-ar-guide-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.gor-ar-guide-item {
+    padding: 25px 22px;
+    background: rgba(255,255,255,0.45);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: 14px;
+}
+
+.gor-ar-guide-item .material-symbols-rounded {
+    font-size: 30px;
+    color: #245a86;
+    margin-bottom: 15px;
+}
+
+.gor-ar-guide-item h3 {
+    font-size: 16px;
+    margin: 0 0 9px;
+}
+
+.gor-ar-guide-item p {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.7;
+    margin: 0;
+}
+
+
+/* PREMIUM HEADER */
+
+.gor-ar-heading {
+    position: relative;
+    margin-bottom: 38px;
+}
+
+.gor-ar-heading h1 {
+    margin: 12px 0 14px;
+
+    font-size: clamp(26px, 3vw, 38px);
+    font-weight: 700;
+
+    color: #142a43;
+    letter-spacing: -0.7px;
+    line-height: 1.3;
+}
+
+.gor-ar-heading p {
+    max-width: 650px;
+
+    color: #536b80;
+    font-size: 14px;
+    line-height: 1.9;
+}
+
+.gor-ar-label {
+    display: inline-block;
+
+    padding: 8px 15px;
+    border-radius: 30px;
+
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+
+    color: #376891;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+    .gor-ar-heading h1 {
+        font-size: 27px;
+    }
+
+    .gor-ar-viewer {
+        height: 370px;
+    }
+
+    .gor-ar-guide-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .gor-ar-page {
+        padding: 24px 14px 50px;
+    }
+
+    .gor-ar-card {
+        padding: 14px;
+    }
+
+    .gor-ar-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .gor-ar-viewer {
+        height: 320px;
+    }
+
+    .gor-ar-heading h1 {
+        font-size: 24px;
+    }
+
+    .gor-ar-toolbar {
+        flex-direction: column;
+    }
+
+    .gor-ar-toolbar > button,
+    #gor-ar-button-container,
+    #gor-ar-button-container > button {
+        width: 100% !important;
+    }
+}

@@ -14,28 +14,18 @@ class GateAuthService
     }
 
     /**
-     * Login petugas menggunakan OTP.
-     *
-     * OTP dan token diproses dalam satu transaksi
-     * agar keduanya tetap konsisten.
+     * Verifikasi OTP petugas dan terbitkan token dalam transaksi yang sama.
+     * Kegagalan verifikasi dikembalikan dari closure agar pencatatan
+     * percobaan OTP salah tetap ter-commit.
      */
-    public function login(
-        User $user,
-        string $kodeOtp
-    ): string {
-        $result = DB::transaction(function () use (
-            $user,
-            $kodeOtp
-        ) {
-            // Kunci akun agar dua login bersamaan
-            // diproses secara berurutan.
-            $user = User::query()
+    public function login(User $user, string $kodeOtp): string
+    {
+        $result = DB::transaction(function () use ($user, $kodeOtp): array {
+            $lockedUser = User::query()
                 ->lockForUpdate()
                 ->findOrFail($user->id);
 
-            // Pastikan user terkait dengan
-            // petugas gerbang yang masih aktif.
-            $petugas = $user->petugasGerbang;
+            $petugas = $lockedUser->petugasGerbang;
 
             if (!$petugas || !$petugas->aktif) {
                 return [
@@ -44,29 +34,20 @@ class GateAuthService
                 ];
             }
 
-            // Verifikasi OTP.
-            // OtpService mencatat percobaan gagal.
             $valid = $this->otpService->verify(
-                $user,
+                $lockedUser,
                 'LOGIN_PETUGAS',
                 $kodeOtp
             );
 
             if (!$valid) {
-                // Jangan lempar exception di sini.
-                // Percobaan OTP salah harus di-COMMIT.
                 return [
                     'success' => false,
                     'reason' => 'OTP_TIDAK_VALID',
                 ];
             }
 
-            // Penerbitan token berlangsung dalam
-            // transaksi yang sama dengan verifikasi OTP.
-            //
-            // Jika createToken() melempar exception,
-            // transaksi rollback dan OTP tidak habis.
-            $token = $user->createToken(
+            $token = $lockedUser->createToken(
                 'gate-access',
                 ['gate:scan'],
                 now()->addHours(8)
@@ -78,15 +59,14 @@ class GateAuthService
             ];
         });
 
-        // Exception hanya untuk kegagalan login biasa.
-        // Dilempar sesudah transaksi COMMIT agar
-        // percobaan OTP salah tidak dibatalkan.
         if (!$result['success']) {
-            throw new RuntimeException(
-                $result['reason'] === 'OTP_TIDAK_VALID'
-                    ? 'OTP tidak valid atau sudah kedaluwarsa.'
-                    : 'Akun bukan petugas gerbang aktif.'
-            );
+            $message = match ($result['reason']) {
+                'PETUGAS_TIDAK_AKTIF' => 'Akun bukan petugas gerbang aktif.',
+                'OTP_TIDAK_VALID' => 'OTP tidak valid atau sudah kedaluwarsa.',
+                default => 'Autentikasi petugas gagal.',
+            };
+
+            throw new RuntimeException($message);
         }
 
         return $result['token'];
