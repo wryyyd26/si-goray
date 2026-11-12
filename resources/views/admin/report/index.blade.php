@@ -16,12 +16,12 @@
             </div>
 
             <div class="report-export-actions">
-                <button type="button" class="report-export-btn excel" disabled title="Ekspor Excel belum diaktifkan">
+                <button type="button" class="report-export-btn excel" data-report-export="excel" data-export-url="{{ route('admin.report.export', ['format' => 'excel']) }}">
                     <span class="material-symbols-rounded">table_view</span>
                     Ekspor Excel
                 </button>
 
-                <button type="button" class="report-export-btn pdf" disabled title="Ekspor PDF belum diaktifkan">
+                <button type="button" class="report-export-btn pdf" data-report-export="pdf" data-export-url="{{ route('admin.report.export', ['format' => 'pdf']) }}">
                     <span class="material-symbols-rounded">picture_as_pdf</span>
                     Ekspor PDF
                 </button>
@@ -229,9 +229,58 @@
                 Laporan menampilkan data dari database SI-GORAY. Registrasi dihitung berdasarkan tanggal pembuatan akun,
                 tiket digunakan berdasarkan waktu pemindaian gerbang yang berhasil, dan pembayaran berdasarkan
                 tanggal transaksi dibuat (bukan tanggal penyelesaian pembayaran).
-                Tombol ekspor Excel dan PDF belum diaktifkan.
+                File Excel dan PDF mengikuti filter laporan yang dipilih.
             </span>
         </p>
 
     </div>
+
+<script>
+(() => {
+    const form = document.querySelector('.report-filter-form');
+    const buttons = document.querySelectorAll('[data-report-export]');
+    if (!form || !buttons.length) return;
+
+    for (const button of buttons) {
+        button.addEventListener('click', async () => {
+            if (!form.reportValidity()) return;
+            const params = new URLSearchParams(new FormData(form));
+            const url = button.dataset.exportUrl + '?' + params.toString();
+            buttons.forEach(b => { b.disabled = true; });
+            try {
+                const response = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) {
+                    let message = 'Gagal mengekspor laporan.';
+                    try {
+                        const data = await response.json();
+                        message = data.message || Object.values(data.errors || {}).flat().join(' ') || message;
+                    } catch (_) {}
+                    window.alert(message);
+                    return;
+                }
+                const disposition = response.headers.get('Content-Disposition') || '';
+                const filenameMatch = disposition.match(/filename\*?=(?:UTF-8''|\")?([^\";]+)/i);
+                const filename = filenameMatch
+                    ? decodeURIComponent(filenameMatch[1].replace(/^\"|\"$/g, '').trim())
+                    : `laporan-sigoray.${button.dataset.reportExport === 'excel' ? 'xlsx' : 'pdf'}`;
+                const objectUrl = URL.createObjectURL(await response.blob());
+                const anchor = document.createElement('a');
+                anchor.href = objectUrl;
+                anchor.download = filename;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+            } catch (_) {
+                window.alert('Tidak dapat terhubung ke server untuk mengekspor laporan.');
+            } finally {
+                buttons.forEach(b => { b.disabled = false; });
+            }
+        });
+    }
+})();
+</script>
 @endsection

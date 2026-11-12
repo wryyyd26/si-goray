@@ -189,6 +189,8 @@ Route::get('/event/futsal/detail-pemesanan-warga', function () {
     return view('events.detail-pemesanan-warga');
 })->name('events.detail-warga');
 
+//dropdown pesanan saya
+Route::get('/pesanan-saya', [\App\Http\Controllers\Web\PengunjungPesananController::class, 'index'])->name('pengunjung.pesanan.index');
 
 /*
 |--------------------------------------------------------------------------
@@ -474,15 +476,9 @@ Route::post('/pembayaran/midtrans', function (Request $request) {
 })->name('pembayaran.midtrans');
 
 // Panduan publik SI-GORAY
-Route::prefix('panduan-ar')
-    ->name('guides.')
-    ->group(function () {
-        Route::get('/', [ArGuidePublicController::class, 'index'])
-            ->name('index');
-
-        Route::get('/{slug}', [ArGuidePublicController::class, 'show'])
-            ->name('show');
-    });
+Route::get('/panduan-ar', function () {
+    return view('ar.index');
+})->name('guides.index');
 
 
 /*
@@ -671,10 +667,23 @@ Route::delete(
     |--------------------------------------------------------------------------
     */
 
+    // Notifikasi Admin SI-GORAY (session admin, bukan user Sanctum).
+    Route::get('/notifications/feed', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'feed'])
+        ->name('notifications.feed');
+    Route::get('/notifications', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'index'])
+        ->name('notifications.index');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'readAll'])
+        ->name('notifications.read-all');
+    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Admin\AdminNotificationController::class, 'read'])
+        ->whereUuid('notification')->name('notifications.read');
    Route::get('/reports', [
     \App\Http\Controllers\Admin\AdminReportController::class,
     'index'
 ])->name('report.index');
+
+    Route::get('/reports/export/{format}', [\App\Http\Controllers\Admin\AdminReportController::class, 'export'])
+        ->whereIn('format', ['excel', 'pdf'])
+        ->name('report.export');
 
 
     /*
@@ -760,3 +769,6 @@ Route::post('/pengunjung/booking/{booking}/payment/sync',
     [\App\Http\Controllers\Web\WebPaymentReconciliationController::class, 'sync'])
     ->middleware([\App\Http\Middleware\EnsureVisitorBookingLogin::class, 'throttle:3,1'])
     ->whereUuid('booking')->name('booking.payment.sync');
+
+// Notifikasi pengunjung; tidak mengubah group route Admin.
+require __DIR__ . '/visitor_notifications.php';

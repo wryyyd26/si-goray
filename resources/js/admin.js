@@ -897,10 +897,9 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 /* =====================================================
-   NOTIFICATION DROPDOWN - DUMMY DATA
-   Tahap 1: UI dan interaksi
+   NOTIFICATION DROPDOWN - DATA LARAVEL SI-GORAY
+   Tidak mengubah CSS / markup desain Lutfin.
 ===================================================== */
-
 document.addEventListener("DOMContentLoaded", function () {
     const wrapper = document.getElementById("notificationWrapper");
     const toggle = document.getElementById("notificationToggle");
@@ -909,73 +908,40 @@ document.addEventListener("DOMContentLoaded", function () {
     const summaryElement = document.getElementById("notificationSummary");
     const listElement = document.getElementById("notificationList");
     const markAllButton = document.getElementById("notificationMarkAll");
+    if (!wrapper || !toggle || !dropdown || !countElement || !summaryElement || !listElement || !markAllButton) return;
 
-    if (
-        !wrapper ||
-        !toggle ||
-        !dropdown ||
-        !countElement ||
-        !summaryElement ||
-        !listElement ||
-        !markAllButton
-    ) {
-        return;
+    const csrf = wrapper.dataset.csrf;
+    const feedUrl = wrapper.dataset.feedUrl;
+    const readUrlTemplate = wrapper.dataset.readUrl;
+    const readAllUrl = wrapper.dataset.readAllUrl;
+    const seeAllUrl = wrapper.dataset.seeAllUrl;
+    const seeAll = dropdown.querySelector('.notification-see-all');
+    if (seeAll) seeAll.href = seeAllUrl;
+    let notifications = [];
+
+    async function requestJson(url, method = "GET") {
+        const response = await fetch(url, {
+            method,
+            credentials: "same-origin",
+            headers: {
+                "Accept": "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+                ...(method !== "GET" ? {"X-CSRF-TOKEN": csrf} : {}),
+            },
+        });
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                throw new Error("Sesi Admin sudah berakhir. Silakan login kembali.");
+            }
+            throw new Error("Tidak dapat mengambil data notifikasi.");
+        }
+        return response.json();
     }
 
-    // Data contoh untuk menguji UI sebelum backend tersedia.
-    const notifications = [
-        {
-            id: 1,
-            icon: "receipt_long",
-            title: "Pemesanan baru",
-            message: "Pemesanan BKG-0125 telah dibuat.",
-            time: "Baru saja",
-            url: "#",
-            isRead: false,
-        },
-        {
-            id: 2,
-            icon: "payments",
-            title: "Pembayaran berhasil",
-            message: "Pembayaran tiket telah dikonfirmasi.",
-            time: "5 menit lalu",
-            url: "#",
-            isRead: false,
-        },
-        {
-            id: 3,
-            icon: "qr_code_scanner",
-            title: "Tiket telah digunakan",
-            message: "QR tiket pengunjung telah dipindai.",
-            time: "15 menit lalu",
-            url: "#",
-            isRead: false,
-        },
-        {
-            id: 4,
-            icon: "event",
-            title: "Informasi event",
-            message: "Periksa jadwal event yang akan berlangsung.",
-            time: "1 jam lalu",
-            url: "#",
-            isRead: true,
-        },
-    ];
-
-    function getUnreadCount() {
-        return notifications.filter(function (item) {
-            return !item.isRead;
-        }).length;
-    }
-
-    function updateSummary() {
-        const unread = getUnreadCount();
-
-        countElement.textContent = unread > 99 ? "99+" : unread;
+    function updateSummary(unread) {
+        countElement.textContent = unread > 99 ? "99+" : String(unread);
         countElement.hidden = unread === 0;
-
         summaryElement.textContent = unread + " belum dibaca";
-
         markAllButton.disabled = unread === 0;
         markAllButton.style.opacity = unread === 0 ? "0.5" : "1";
         markAllButton.style.cursor = unread === 0 ? "default" : "pointer";
@@ -983,141 +949,110 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function renderNotifications() {
         listElement.replaceChildren();
-
         if (notifications.length === 0) {
             const empty = document.createElement("div");
             empty.className = "notification-empty";
-
-            const icon = document.createElement("span");
-            icon.className = "material-symbols-rounded";
-            icon.textContent = "notifications_off";
-
-            const message = document.createElement("p");
-            message.textContent = "Belum ada notifikasi.";
-
-            empty.append(icon, message);
+            const text = document.createElement("p");
+            text.textContent = "Belum ada notifikasi.";
+            empty.appendChild(text);
             listElement.appendChild(empty);
-
-            updateSummary();
             return;
         }
-
         notifications.forEach(function (item) {
             const row = document.createElement("div");
-            row.className = "notification-item";
-
-            if (!item.isRead) {
-                row.classList.add("is-unread");
-            }
-
+            row.className = "notification-item" + (item.isRead ? "" : " is-unread");
             row.tabIndex = 0;
             row.setAttribute("role", "link");
             row.setAttribute("aria-label", item.title + ". " + item.message);
-
             const iconBox = document.createElement("div");
             iconBox.className = "notification-item-icon";
-
             const icon = document.createElement("span");
             icon.className = "material-symbols-rounded";
             icon.textContent = item.icon;
-
             iconBox.appendChild(icon);
-
             const content = document.createElement("div");
             content.className = "notification-item-content";
-
             const title = document.createElement("h4");
             title.className = "notification-item-title";
             title.textContent = item.title;
-
             const message = document.createElement("p");
             message.className = "notification-item-message";
             message.textContent = item.message;
-
             const time = document.createElement("span");
             time.className = "notification-item-time";
             time.textContent = item.time;
-
             content.append(title, message, time);
             row.append(iconBox, content);
-
             if (!item.isRead) {
                 const indicator = document.createElement("span");
                 indicator.className = "notification-unread-indicator";
-                indicator.setAttribute("aria-label", "Belum dibaca");
                 row.appendChild(indicator);
             }
-
-            function openNotification() {
-                item.isRead = true;
-                updateSummary();
-                renderNotifications();
-
-                // Navigasi hanya dilakukan jika URL sudah ditentukan.
-                if (item.url && item.url !== "#") {
-                    window.location.href = item.url;
+            async function openNotification() {
+                try {
+                    await requestJson(readUrlTemplate.replace("__ID__", encodeURIComponent(item.id)), "POST");
+                    window.location.assign(item.url);
+                } catch (error) {
+                    summaryElement.textContent = error.message;
                 }
             }
-
             row.addEventListener("click", openNotification);
-
             row.addEventListener("keydown", function (event) {
                 if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     openNotification();
                 }
             });
-
             listElement.appendChild(row);
         });
-
-        updateSummary();
     }
 
-    function openDropdown() {
-        dropdown.hidden = false;
-        toggle.setAttribute("aria-expanded", "true");
+    async function refreshNotifications() {
+        try {
+            const data = await requestJson(feedUrl);
+            notifications = data.notifications || [];
+            updateSummary(data.unread_count || 0);
+            renderNotifications();
+        } catch (error) {
+            summaryElement.textContent = error.message;
+            if (notifications.length === 0) {
+                listElement.textContent = "Notifikasi tidak dapat dimuat.";
+            }
+        }
     }
-
     function closeDropdown() {
         dropdown.hidden = true;
         toggle.setAttribute("aria-expanded", "false");
     }
-
     toggle.addEventListener("click", function (event) {
         event.stopPropagation();
-
-        if (dropdown.hidden) {
-            openDropdown();
-        } else {
-            closeDropdown();
-        }
+        dropdown.hidden = !dropdown.hidden;
+        toggle.setAttribute("aria-expanded", String(!dropdown.hidden));
+        if (!dropdown.hidden) refreshNotifications();
     });
-
-    dropdown.addEventListener("click", function (event) {
-        event.stopPropagation();
+    dropdown.addEventListener("click", event => event.stopPropagation());
+    document.addEventListener("click", event => {
+        if (!wrapper.contains(event.target)) closeDropdown();
     });
-
-    document.addEventListener("click", function (event) {
-        if (!wrapper.contains(event.target)) {
-            closeDropdown();
-        }
-    });
-
-    document.addEventListener("keydown", function (event) {
+    document.addEventListener("keydown", event => {
         if (event.key === "Escape" && !dropdown.hidden) {
             closeDropdown();
             toggle.focus();
         }
     });
-
-    markAllButton.addEventListener("click", function () {
-        notifications.forEach(function (item) {
-            item.isRead = true;
-        });
-
-        renderNotifications();
+    markAllButton.addEventListener("click", async function () {
+        if (markAllButton.disabled) return;
+        markAllButton.disabled = true;
+        try {
+            await requestJson(readAllUrl, "POST");
+            await refreshNotifications();
+        } catch (error) {
+            summaryElement.textContent = error.message;
+            markAllButton.disabled = false;
+        }
     });
-
-    renderNotifications();
+    refreshNotifications();
+    window.setInterval(() => {
+        if (!document.hidden) refreshNotifications();
+    }, 30000);
 });

@@ -228,7 +228,12 @@
                     </button>
 
                     {{-- Notification --}}
-                    <div class="notification-wrapper" id="notificationWrapper">
+                    <div class="notification-wrapper" id="notificationWrapper"
+                        data-feed-url="{{ route('admin.notifications.feed') }}"
+                        data-read-url="{{ route('admin.notifications.read', ['notification' => '__ID__']) }}"
+                        data-read-all-url="{{ route('admin.notifications.read-all') }}"
+                        data-see-all-url="{{ route('admin.notifications.index') }}"
+                        data-csrf="{{ csrf_token() }}">
 
                         <button class="icon-button notification-button" id="notificationToggle" type="button"
                             title="Notifikasi" aria-label="Buka notifikasi" aria-haspopup="true" aria-expanded="false"
@@ -236,7 +241,7 @@
 
                             <span class="material-symbols-rounded">notifications</span>
 
-                            <span class="notification-count" id="notificationCount">3</span>
+                            <span class="notification-count" id="notificationCount" hidden>0</span>
                         </button>
 
                         {{-- Dropdown Notifikasi --}}
@@ -246,7 +251,7 @@
                             <div class="notification-header">
                                 <div>
                                     <h3>Notifikasi</h3>
-                                    <p id="notificationSummary">3 belum dibaca</p>
+                                    <p id="notificationSummary">Memuat notifikasi...</p>
                                 </div>
 
                                 <button type="button" class="notification-mark-all" id="notificationMarkAll">

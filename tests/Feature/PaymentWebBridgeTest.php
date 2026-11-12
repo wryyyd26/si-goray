@@ -67,7 +67,7 @@ class PaymentWebBridgeTest extends TestCase
         $booking = $this->booking();
         $this->actingAs($booking->user, 'web')
             ->get(route('booking.payment.show', ['booking' => $booking->id]))
-            ->assertOk()->assertSee('10.000')->assertSee('Bayar menggunakan Midtrans');
+            ->assertOk()->assertSee('10.000')->assertSee('Lanjutkan ke Pembayaran');
     }
 
     public function test_orang_lain_dilarang_melihat_checkout(): void

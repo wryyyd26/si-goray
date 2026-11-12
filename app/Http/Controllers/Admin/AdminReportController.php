@@ -3,27 +3,26 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AdminReportController extends Controller
 {
+    private const HEADINGS = [
+        'Tanggal', 'Kode', 'Jenis', 'Status registrasi',
+        'Status tiket', 'Metode pembayaran', 'Status pembayaran',
+    ];
+
     public function index(Request $request)
     {
-        $validated = $request->validate([
-            'tanggal_mulai' => ['nullable', 'date_format:Y-m-d'],
-            'tanggal_akhir' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:tanggal_mulai'],
-            'jenis' => ['nullable', 'in:semua,registrasi,tiket,pembayaran'],
-        ]);
-
-        $tanggalMulai = $validated['tanggal_mulai']
-            ?? now()->startOfMonth()->toDateString();
-
-        $tanggalAkhir = $validated['tanggal_akhir']
-            ?? now()->toDateString();
-
-        $jenis = $validated['jenis'] ?? 'semua';
+        [$tanggalMulai, $tanggalAkhir, $jenis] = $this->filters($request);
 
         $mulai = Carbon::parse($tanggalMulai)->startOfDay();
         $akhir = Carbon::parse($tanggalAkhir)->endOfDay();
@@ -34,6 +33,99 @@ class AdminReportController extends Controller
             ])->withInput();
         }
 
+        [$laporan, $ringkasan] = $this->buildReport($mulai, $akhir, $jenis);
+
+        return view('admin.report.index', compact(
+            'tanggalMulai',
+            'tanggalAkhir',
+            'jenis',
+            'ringkasan',
+            'laporan'
+        ));
+    }
+
+    /** Dipanggil tombol Ekspor Excel / Ekspor PDF di halaman laporan. */
+    public function export(Request $request, string $format)
+    {
+        [$tanggalMulai, $tanggalAkhir, $jenis] = $this->filters($request);
+
+        [$laporan] = $this->buildReport(
+            Carbon::parse($tanggalMulai)->startOfDay(),
+            Carbon::parse($tanggalAkhir)->endOfDay(),
+            $jenis
+        );
+
+        if ($laporan->isEmpty()) {
+            $message = 'Tidak ada data untuk diekspor pada filter ini.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $message], 422)
+                : back()->with('error', $message);
+        }
+
+        $rows = $laporan->map(fn (array $r) => [
+            Carbon::parse($r['tanggal'])->format('d/m/Y H:i'),
+            $r['kode'],
+            ucfirst($r['jenis']),
+            $r['status_registrasi'],
+            $r['status_tiket'],
+            $r['metode_pembayaran'],
+            $r['status_pembayaran'],
+        ])->values();
+
+        $filename = "laporan-{$tanggalMulai}-sd-{$tanggalAkhir}-{$jenis}";
+
+        if ($format === 'excel') {
+            return Excel::download(
+                new class($rows, self::HEADINGS) implements FromCollection, WithHeadings, ShouldAutoSize {
+                    public function __construct(private Collection $rows, private array $headings) {}
+
+                    public function collection(): Collection
+                    {
+                        return $this->rows;
+                    }
+
+                    public function headings(): array
+                    {
+                        return $this->headings;
+                    }
+                },
+                $filename . '.xlsx'
+            );
+        }
+
+        return Pdf::loadView('admin.report.pdf', [
+            'rows' => $rows,
+            'headings' => self::HEADINGS,
+            'tanggalMulai' => $tanggalMulai,
+            'tanggalAkhir' => $tanggalAkhir,
+            'jenis' => $jenis,
+            'generatedAt' => now(),
+        ])->setPaper('a4', 'landscape')->download($filename . '.pdf');
+    }
+
+    /** Validasi filter, dipakai bersama oleh index() dan export(). */
+    private function filters(Request $request): array
+    {
+        $validated = $request->validate([
+            'tanggal_mulai' => ['nullable', 'date_format:Y-m-d'],
+            'tanggal_akhir' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:tanggal_mulai'],
+            'jenis' => ['nullable', 'in:semua,registrasi,tiket,pembayaran'],
+        ]);
+
+        return [
+            $validated['tanggal_mulai'] ?? now()->startOfMonth()->toDateString(),
+            $validated['tanggal_akhir'] ?? now()->toDateString(),
+            $validated['jenis'] ?? 'semua',
+        ];
+    }
+
+    /**
+     * Isinya sama dengan logika index() sebelumnya, hanya dipindah ke sini
+     * supaya data di layar dan data di file ekspor selalu sama.
+     */
+    private function buildReport(Carbon $mulai, Carbon $akhir, string $jenis): array
+    {
         $laporan = collect();
 
         $ringkasan = [
@@ -128,16 +220,6 @@ class AdminReportController extends Controller
             }
         }
 
-        $laporan = $laporan
-            ->sortByDesc('tanggal')
-            ->values();
-
-        return view('admin.report.index', compact(
-            'tanggalMulai',
-            'tanggalAkhir',
-            'jenis',
-            'ringkasan',
-            'laporan'
-        ));
+        return [$laporan->sortByDesc('tanggal')->values(), $ringkasan];
     }
 }
