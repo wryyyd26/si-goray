@@ -35,7 +35,7 @@
                 <p>Setelah melanjutkan, kamu bisa memilih metode yang tersedia pada jendela Midtrans (termasuk QRIS atau transfer bank jika aktif).</p>
                 <form method="POST" action="{{ route('booking.payment.start', ['booking' => $booking->id]) }}">
                     @csrf
-                    <button class="payment-button" type="submit">Bayar menggunakan Midtrans</button>
+                    <button class="payment-button" type="submit">Lanjutkan ke Pembayaran</button>
                 </form>
         <form method="POST" action="{{ route('booking.payment.sync', ['booking' => $booking->id]) }}">
             @csrf
