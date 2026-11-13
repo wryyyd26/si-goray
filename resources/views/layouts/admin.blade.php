@@ -9,7 +9,7 @@
 
     <title>
         @yield('title', 'Admin Panel')
-        - SI-GORAY
+        - MAJA-TIX
     </title>
 
     {{-- Google Font --}}
@@ -20,7 +20,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     {{-- Favicon --}}
-    <link rel="icon" href="{{ asset('images/Logo-Si-goray.png') }}" type="image/png">
+    <link rel="icon" href="{{ asset('images/Logo-Maja-tix.png') }}" type="image/png">
 
     {{-- Material Symbols --}}
     <link rel="stylesheet"
@@ -51,7 +51,7 @@
                 <a href="{{ route('admin.dashboard') }}" class="brand">
 
                     <div class="brand-logo-custom">
-                        <img src="{{ asset('images/Logo-Si-goray.png') }}" alt="Logo SI-GORAY">
+                        <img src="{{ asset('images/Logo-Maja-tix.png') }}" alt="Logo MAJA-TIX">
                     </div>
                 </a>
 
@@ -141,6 +141,17 @@
                     </span>
 
                     <span>Kelola User</span>
+                </a>
+
+                {{-- Kelola Petugas Gerbang --}}
+                <a href="#"
+                    class="menu-item {{ request()->routeIs('admin.petugas-gerbang.*') ? 'active' : '' }}">
+
+                    <span class="material-symbols-rounded">
+                        badge
+                    </span>
+
+                    <span>Kelola Petugas Gerbang</span>
                 </a>
 
 

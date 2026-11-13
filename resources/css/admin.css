@@ -6395,6 +6395,1279 @@ DETAIL RESPONSIVE - MOBILE
 }
 
 /* =========================================================
+   MAJA-TIX - KELOLA PETUGAS GERBANG
+========================================================= */
+
+.officer-page {
+    width: 100%;
+    min-width: 0;
+}
+
+/* HEADER */
+
+.officer-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.officer-page-header h1 {
+    margin: 0 0 6px;
+    color: var(--text);
+    font-size: 26px;
+    line-height: 1.3;
+    font-weight: 700;
+}
+
+.officer-page-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* BUTTON */
+
+.officer-btn-primary,
+.officer-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 17px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.officer-btn-primary {
+    color: #fff;
+    background: var(--primary);
+    border: 1px solid var(--primary);
+}
+
+.officer-btn-primary:hover:not(:disabled) {
+    filter: brightness(0.93);
+    transform: translateY(-1px);
+}
+
+.officer-btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.officer-btn-secondary {
+    color: var(--text);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+}
+
+.officer-btn-secondary:hover {
+    background: var(--bg);
+}
+
+.officer-btn-primary .material-symbols-rounded,
+.officer-btn-secondary .material-symbols-rounded {
+    font-size: 19px;
+}
+
+/* STATISTICS */
+.officer-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.officer-stat-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    min-height: 105px;
+    padding: 19px 20px;
+    box-sizing: border-box;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.officer-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgb(23 32 51 / 7%);
+}
+
+.officer-stat-content {
+    min-width: 0;
+}
+
+.officer-stat-content span {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.officer-stat-content h2 {
+    margin: 0 0 5px;
+    color: var(--text);
+    font-size: 25px;
+    line-height: 1;
+    font-weight: 700;
+}
+
+.officer-stat-content small {
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.officer-stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 12px;
+    background: rgba(215, 25, 32, 0.1);
+    color: var(--primary);
+}
+
+.officer-stat-icon .material-symbols-rounded {
+    font-size: 23px;
+}
+
+.officer-stat-icon.is-active {
+    color: #16a36a;
+    background: rgba(22, 163, 106, 0.11);
+}
+
+.officer-stat-icon.is-inactive {
+    color: #d18b28;
+    background: rgba(209, 139, 40, 0.12);
+}
+
+/* TABLE CARD */
+
+.officer-table-card {
+    width: 100%;
+    overflow: hidden;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(23, 32, 51, 0.04);
+}
+
+.officer-table-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.officer-table-header h3 {
+    margin: 0 0 5px;
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.officer-table-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* TOOLBAR */
+
+.officer-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 24px;
+}
+
+.officer-search {
+    position: relative;
+    width: min(100%, 360px);
+}
+
+.officer-search .material-symbols-rounded {
+    position: absolute;
+    top: 50%;
+    left: 13px;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 20px;
+    pointer-events: none;
+}
+
+.officer-search input,
+.officer-filter,
+.officer-form-group input {
+    width: 100%;
+    height: 42px;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.officer-search input {
+    padding: 0 14px 0 41px;
+}
+
+.officer-filter {
+    width: 165px;
+    padding: 0 12px;
+    cursor: pointer;
+}
+
+.officer-search input::placeholder,
+.officer-form-group input::placeholder {
+    color: var(--text-secondary);
+}
+
+.officer-search input:focus,
+.officer-filter:focus,
+.officer-form-group input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.1);
+}
+
+/* TABLE */
+
+.officer-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.officer-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.officer-table th {
+    padding: 13px 18px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.officer-table td {
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+}
+
+.officer-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.officer-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.officer-table tbody tr:hover {
+    background: var(--bg);
+}
+
+.officer-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.officer-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 50%;
+    background: rgba(215, 25, 32, 0.1);
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* STATUS */
+
+.officer-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.officer-status > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.officer-status.active {
+    color: #15945f;
+    background: rgba(22, 163, 106, 0.1);
+}
+
+.officer-status.active > span {
+    background: #16a36a;
+}
+
+.officer-status.inactive {
+    color: #c18424;
+    background: rgba(209, 139, 40, 0.12);
+}
+
+.officer-status.inactive > span {
+    background: #d18b28;
+}
+
+/* ACTIONS */
+
+.officer-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.officer-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 33px;
+    height: 33px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.officer-action-btn:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: rgba(215, 25, 32, 0.06);
+}
+
+.officer-action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.officer-action-btn:hover:not(:disabled) {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: rgba(215, 25, 32, 0.06);
+}
+
+.officer-toggle-btn:hover:not(:disabled) {
+    color: #d18b28;
+    border-color: #d18b28;
+}
+
+/* =====================================================
+   MAJA-TIX - CONFIRMATION DIALOG PETUGAS GERBANG
+===================================================== */
+
+.officer-confirm-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+
+    width: min(440px, calc(100vw - 32px));
+    max-width: 440px;
+    max-height: calc(100vh - 40px);
+
+    padding: 0;
+    overflow: visible;
+
+    border: 1px solid var(--border);
+    border-radius: 20px;
+
+    background: var(--card-bg);
+    color: var(--text);
+
+    box-shadow: 0 24px 70px rgb(0 0 0 / 22%);
+
+    /* Menghindari posisi kiri atas akibat reset global */
+    box-sizing: border-box;
+}
+
+.officer-confirm-dialog[open] {
+    display: block;
+    animation: officerDialogEnter 220ms ease-out;
+}
+
+/* BACKDROP */
+
+.officer-confirm-dialog::backdrop {
+    background: rgb(15 23 42 / 58%);
+    backdrop-filter: blur(4px);
+    animation: officerBackdropEnter 200ms ease-out;
+}
+
+/* CONTENT */
+
+.officer-confirm-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    padding: 34px 30px 28px;
+
+    text-align: center;
+}
+
+/* ICON */
+
+.officer-confirm-icon {
+    width: 68px;
+    height: 68px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 22px;
+
+    border-radius: 20px;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.officer-confirm-icon .material-symbols-rounded {
+    font-size: 34px;
+}
+
+/* ICON AKTIFKAN */
+
+.officer-confirm-icon.activate {
+    background: rgb(22 163 74 / 12%);
+    color: #16a34a;
+}
+
+/* ICON NONAKTIFKAN */
+
+.officer-confirm-icon.deactivate {
+    background: rgb(220 38 38 / 12%);
+    color: #dc2626;
+}
+
+/* INFORMASI */
+
+.officer-confirm-info {
+    width: 100%;
+}
+
+.officer-confirm-info h3,
+.officer-confirm-dialog h3 {
+    margin: 0;
+
+    color: var(--text);
+
+    font-size: 19px;
+    font-weight: 750;
+    line-height: 1.4;
+}
+
+.officer-confirm-info p,
+.officer-confirm-dialog p {
+    margin: 10px 0 0;
+
+    color: var(--text-secondary);
+
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+/* ACTION BUTTONS */
+
+.officer-confirm-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    gap: 10px;
+
+    margin-top: 28px;
+}
+
+.officer-confirm-actions button {
+    min-height: 44px;
+    flex: 1;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 16px;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+}
+
+/* BATAL */
+
+.officer-confirm-cancel {
+    background: var(--bg) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+.officer-confirm-cancel:hover {
+    background: var(--border) !important;
+    transform: translateY(-2px);
+}
+
+.officer-confirm-cancel:active {
+    transform: translateY(0);
+}
+
+/* TOMBOL AKTIFKAN */
+
+.officer-confirm-submit.activate {
+    background: #16a34a;
+    color: #ffffff;
+}
+
+.officer-confirm-submit.activate:hover {
+    background: #15803d;
+    box-shadow: 0 5px 14px rgb(22 163 74 / 22%);
+    transform: translateY(-2px);
+}
+
+/* TOMBOL NONAKTIFKAN */
+
+.officer-confirm-submit.deactivate {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.officer-confirm-submit.deactivate:hover {
+    background: #b91c1c;
+    box-shadow: 0 5px 14px rgb(220 38 38 / 22%);
+    transform: translateY(-2px);
+}
+
+.officer-confirm-submit:active {
+    transform: translateY(0);
+}
+
+/* FOCUS ACCESSIBILITY */
+
+.officer-confirm-actions button:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 3px;
+}
+
+/* ANIMATION */
+
+@keyframes officerDialogEnter {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes officerBackdropEnter {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* RESPONSIVE TABLET & MOBILE */
+
+@media (max-width: 576px) {
+    .officer-confirm-dialog {
+        width: calc(100vw - 28px);
+        border-radius: 16px;
+    }
+
+    .officer-confirm-content {
+        padding: 28px 20px 22px;
+    }
+
+    .officer-confirm-icon {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 18px;
+        border-radius: 17px;
+    }
+
+    .officer-confirm-info h3 {
+        font-size: 17px;
+    }
+
+    .officer-confirm-info p {
+        font-size: 12px;
+    }
+
+    .officer-confirm-actions {
+        gap: 8px;
+        margin-top: 24px;
+    }
+
+    .officer-confirm-actions button {
+        min-height: 42px;
+        padding: 0 10px;
+        font-size: 11px;
+    }
+}
+
+/* REDUCE MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+    .officer-confirm-dialog[open],
+    .officer-confirm-dialog::backdrop {
+        animation: none;
+    }
+
+    .officer-confirm-actions button,
+    .officer-confirm-icon {
+        transition: none;
+    }
+}
+
+/* EDIT MODAL */
+
+#officerEditModal {
+    z-index: 1000;
+}
+
+#officerEditModal .officer-form-group input {
+    padding: 0 13px;
+}
+
+.officer-action-btn .material-symbols-rounded {
+    font-size: 18px;
+}
+
+/* EMPTY STATE & FOOTER */
+.officer-empty {
+    padding: 0 !important;
+    background: var(--card-bg);
+}
+
+.officer-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 280px;
+    padding: 32px 20px;
+    text-align: center;
+}
+
+.officer-empty-icon {
+    display: grid;
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 16px;
+    background: rgb(215 25 32 / 9%);
+    color: var(--primary);
+}
+
+.officer-empty-icon .material-symbols-rounded {
+    font-size: 30px;
+    line-height: 1;
+}
+
+.officer-empty-state h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+body.dark .officer-empty-icon {
+    background: rgb(215 25 32 / 17%);
+    color: #ff777c;
+}
+
+.officer-table-footer {
+    padding: 15px 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+/* MODAL */
+
+.officer-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 20, 30, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.2s ease,
+        visibility 0.2s ease;
+}
+
+.officer-modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.officer-modal {
+    width: 100%;
+    max-width: 520px;
+    max-height: min(90vh, 760px);
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    transform: translateY(12px);
+    transition: transform 0.2s ease;
+}
+
+.officer-modal-overlay.show .officer-modal {
+    transform: translateY(0);
+}
+
+.officer-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.officer-modal-header h2 {
+    margin: 0 0 6px;
+    color: var(--text);
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.officer-modal-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.officer-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.officer-modal-close:hover {
+    color: var(--text);
+}
+
+.officer-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 22px 24px;
+}
+
+.officer-form-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+}
+
+.officer-form-notice .material-symbols-rounded {
+    color: var(--primary);
+    font-size: 20px;
+}
+
+.officer-form-notice p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.officer-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.officer-form-group label {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.officer-form-group input {
+    padding: 0 13px;
+}
+
+.officer-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px 22px;
+    border-top: 1px solid var(--border);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+    .officer-stats {
+        gap: 12px;
+    }
+
+    .officer-stat-card {
+        padding: 15px;
+    }
+
+    .officer-table-toolbar {
+        padding: 14px 18px;
+    }
+}
+
+@media (max-width: 640px) {
+    .officer-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .officer-page-header h1 {
+        font-size: 22px;
+    }
+
+    .officer-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .officer-table-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .officer-search,
+    .officer-filter {
+        width: 100%;
+    }
+
+    .officer-table-header {
+        padding: 17px 18px;
+    }
+
+    .officer-modal-overlay {
+        align-items: flex-end;
+        padding: 10px;
+    }
+
+    .officer-modal {
+        max-height: 92vh;
+        border-radius: 16px 16px 12px 12px;
+    }
+
+    .officer-modal-header,
+    .officer-modal-body {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .officer-modal-footer {
+        padding: 15px 18px 18px;
+    }
+}
+
+/* =========================================================
+   MAJA-TIX - DETAIL PETUGAS GERBANG
+========================================================= */
+
+.officer-detail-page {
+    width: 100%;
+    min-width: 0;
+}
+
+/* HEADER */
+
+.officer-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.officer-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 17px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.18s ease;
+}
+
+.officer-back-link:hover {
+    color: var(--primary);
+}
+
+.officer-back-link .material-symbols-rounded {
+    font-size: 19px;
+}
+
+.officer-detail-header h1 {
+    margin: 0 0 6px;
+    color: var(--text);
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.officer-detail-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.officer-detail-id {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* PROFILE */
+
+.officer-profile-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 25px;
+    margin-bottom: 22px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+}
+
+.officer-profile-main {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+}
+
+.officer-profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 65px;
+    height: 65px;
+    flex: 0 0 65px;
+    border-radius: 16px;
+    background: rgba(215, 25, 32, 0.1);
+    color: var(--primary);
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.officer-profile-identity h2 {
+    margin: 0 0 5px;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.officer-profile-identity p {
+    margin: 0 0 10px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.officer-profile-description {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 20px;
+    border-left: 1px solid var(--border);
+}
+
+.officer-profile-description > .material-symbols-rounded {
+    color: var(--primary);
+    font-size: 25px;
+}
+
+.officer-profile-description strong,
+.officer-profile-description small {
+    display: block;
+}
+
+.officer-profile-description strong {
+    color: var(--text);
+    font-size: 12px;
+}
+
+.officer-profile-description small {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+/* DETAIL GRID */
+
+.officer-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.officer-detail-card {
+    min-width: 0;
+    padding: 22px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+}
+
+.officer-detail-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+}
+
+.officer-detail-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 10px;
+    background: rgba(215, 25, 32, 0.1);
+    color: var(--primary);
+}
+
+.officer-detail-card-icon .material-symbols-rounded {
+    font-size: 21px;
+}
+
+.officer-detail-card-header h3 {
+    margin: 0 0 4px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.officer-detail-card-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.officer-detail-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.officer-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.officer-detail-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.officer-detail-item > span {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.officer-detail-item > strong {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.officer-detail-value-active {
+    color: #16a36a !important;
+}
+
+.officer-detail-value-inactive {
+    color: #d18b28 !important;
+}
+
+/* ACCESS INFO */
+
+.officer-access-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--bg);
+}
+
+.officer-access-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 10px;
+    background: rgba(215, 25, 32, 0.1);
+    color: var(--primary);
+}
+
+.officer-access-icon .material-symbols-rounded {
+    font-size: 21px;
+}
+
+.officer-access-info h3 {
+    margin: 0 0 7px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.officer-access-info p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+    .officer-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .officer-detail-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .officer-detail-header h1 {
+        font-size: 22px;
+    }
+
+    .officer-profile-card {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 19px;
+    }
+
+    .officer-profile-description {
+        width: 100%;
+        padding: 15px 0 0;
+        border-left: none;
+        border-top: 1px solid var(--border);
+    }
+
+    .officer-detail-card {
+        padding: 18px;
+    }
+
+    .officer-detail-item {
+        gap: 10px;
+    }
+}
+
+/* =========================================================
    LAPORAN ADMIN
 ========================================================= */
 

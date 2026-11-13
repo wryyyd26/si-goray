@@ -15,13 +15,26 @@
                 </p>
             </div>
 
+            @php
+                $exportUrl = fn(string $format) => \Illuminate\Support\Facades\Route::has('admin.report.export')
+                    ? route('admin.report.export', [
+                        'format' => $format,
+                        'tanggal_mulai' => $tanggalMulai,
+                        'tanggal_akhir' => $tanggalAkhir,
+                        'jenis' => $jenis,
+                    ])
+                    : '';
+            @endphp
+
             <div class="report-export-actions">
-                <button type="button" class="report-export-btn excel" disabled title="Ekspor Excel belum diaktifkan">
+                <button type="button" class="report-export-btn excel" data-export-url="{{ $exportUrl('excel') }}"
+                    title="Ekspor Excel sesuai filter saat ini">
                     <span class="material-symbols-rounded">table_view</span>
                     Ekspor Excel
                 </button>
 
-                <button type="button" class="report-export-btn pdf" disabled title="Ekspor PDF belum diaktifkan">
+                <button type="button" class="report-export-btn pdf" data-export-url="{{ $exportUrl('pdf') }}"
+                    title="Ekspor PDF sesuai filter saat ini">
                     <span class="material-symbols-rounded">picture_as_pdf</span>
                     Ekspor PDF
                 </button>
@@ -51,14 +64,14 @@
 
                 <div class="report-field">
                     <label for="tanggal_mulai">Tanggal Mulai</label>
-                    <input type="date" id="tanggal_mulai" name="tanggal_mulai" value="{{ old('tanggal_mulai', $tanggalMulai) }}"
-                        required>
+                    <input type="date" id="tanggal_mulai" name="tanggal_mulai"
+                        value="{{ old('tanggal_mulai', $tanggalMulai) }}" required>
                 </div>
 
                 <div class="report-field">
                     <label for="tanggal_akhir">Tanggal Akhir</label>
-                    <input type="date" id="tanggal_akhir" name="tanggal_akhir" value="{{ old('tanggal_akhir', $tanggalAkhir) }}"
-                        required>
+                    <input type="date" id="tanggal_akhir" name="tanggal_akhir"
+                        value="{{ old('tanggal_akhir', $tanggalAkhir) }}" required>
                 </div>
 
                 <div class="report-field">
@@ -188,7 +201,8 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="report-status {{ $item['status_tiket'] === 'Sudah Digunakan' ? 'success' : 'neutral' }}">
+                                    <span
+                                        class="report-status {{ $item['status_tiket'] === 'Sudah Digunakan' ? 'success' : 'neutral' }}">
                                         {{ $item['status_tiket'] }}
                                     </span>
                                 </td>

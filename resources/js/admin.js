@@ -63,7 +63,20 @@ function initCharts() {
         lineChart = new Chart(ctxLine, {
             type: "line",
             data: {
-                labels: booking.labels || ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
+                labels: booking.labels || [
+                    "Jan",
+                    "Feb",
+                    "Mar",
+                    "Apr",
+                    "Mei",
+                    "Jun",
+                    "Jul",
+                    "Agu",
+                    "Sep",
+                    "Okt",
+                    "Nov",
+                    "Des",
+                ],
                 datasets: [
                     {
                         label: "Reguler",
@@ -118,7 +131,11 @@ function initCharts() {
                 labels: ["Selesai", "Menunggu", "Ditolak"],
                 datasets: [
                     {
-                        data: [payment.success || 0, payment.pending || 0, payment.failed || 0],
+                        data: [
+                            payment.success || 0,
+                            payment.pending || 0,
+                            payment.failed || 0,
+                        ],
                         backgroundColor: [
                             colors.success,
                             colors.warning,
@@ -697,6 +714,416 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+/* =========================================================
+    MAJA-TIX - KELOLA PETUGAS GERBANG
+    Modal, Edit, Status, Search, dan Filter
+    Frontend Preview - Dummy Data
+========================================================= */
+
+(() => {
+    function initOfficerPage() {
+        const modal = document.getElementById("officerModal");
+        const editModal = document.getElementById("officerEditModal");
+
+        const openButton = document.getElementById("openOfficerModal");
+        const closeButton = document.getElementById("closeOfficerModal");
+        const cancelButton = document.getElementById("cancelOfficerModal");
+
+        const closeEditButton = document.getElementById(
+            "closeOfficerEditModal",
+        );
+        const cancelEditButton = document.getElementById(
+            "cancelOfficerEditModal",
+        );
+        const saveEditButton = document.getElementById("saveOfficerEdit");
+
+        const searchInput = document.getElementById("officerSearch");
+        const statusFilter = document.getElementById("officerStatusFilter");
+        const tableBody = document.getElementById("officerTableBody");
+        const emptyState = document.getElementById("officerEmptyState");
+
+        if (!modal || !tableBody) return;
+
+        const editFields = {
+            id: document.getElementById("editOfficerId"),
+            name: document.getElementById("editOfficerName"),
+            username: document.getElementById("editOfficerUsername"),
+            email: document.getElementById("editOfficerEmail"),
+            phone: document.getElementById("editOfficerPhone"),
+        };
+
+        const totalCount = document.getElementById("officerTotalCount");
+        const activeCount = document.getElementById("officerActiveCount");
+        const inactiveCount = document.getElementById("officerInactiveCount");
+        const tableSummary = document.getElementById("officerTableSummary");
+
+        /* -----------------------------------------
+           MODAL TAMBAH
+        ----------------------------------------- */
+
+        function openModal(target) {
+            target.classList.add("show");
+            target.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+
+            const firstInput = target.querySelector(
+                "input:not([type='hidden'])",
+            );
+
+            if (firstInput) {
+                setTimeout(() => firstInput.focus(), 100);
+            }
+        }
+
+        function closeModal(target) {
+            target.classList.remove("show");
+            target.setAttribute("aria-hidden", "true");
+
+            const anotherModalOpen =
+                modal.classList.contains("show") ||
+                editModal?.classList.contains("show");
+
+            if (!anotherModalOpen) {
+                document.body.style.overflow = "";
+            }
+        }
+
+        openButton?.addEventListener("click", () => openModal(modal));
+        closeButton?.addEventListener("click", () => closeModal(modal));
+        cancelButton?.addEventListener("click", () => closeModal(modal));
+
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) closeModal(modal);
+        });
+
+        /* -----------------------------------------
+           MODAL EDIT
+        ----------------------------------------- */
+
+        function openEditModal(button) {
+            editFields.id.value = button.dataset.id;
+            editFields.name.value = button.dataset.name;
+            editFields.username.value = button.dataset.username;
+            editFields.email.value = button.dataset.email;
+            editFields.phone.value = button.dataset.phone;
+
+            openModal(editModal);
+        }
+
+        function closeEditModal() {
+            closeModal(editModal);
+        }
+
+        closeEditButton?.addEventListener("click", closeEditModal);
+        cancelEditButton?.addEventListener("click", closeEditModal);
+
+        editModal?.addEventListener("click", (event) => {
+            if (event.target === editModal) closeEditModal();
+        });
+
+        /* -----------------------------------------
+           SIMPAN EDIT - DUMMY
+        ----------------------------------------- */
+
+        saveEditButton?.addEventListener("click", () => {
+            const id = editFields.id.value;
+            const name = editFields.name.value.trim();
+            const username = editFields.username.value.trim();
+            const email = editFields.email.value.trim();
+            const phone = editFields.phone.value.trim();
+
+            if (!name || !username || !email || !phone) {
+                alert("Semua kolom harus diisi.");
+                return;
+            }
+
+            if (!editFields.email.checkValidity()) {
+                alert("Format email tidak valid.");
+                editFields.email.focus();
+                return;
+            }
+
+            const row = tableBody.querySelector(
+                `tr.officer-row[data-id="${CSS.escape(id)}"]`,
+            );
+
+            if (!row) return;
+
+            row.querySelector(".officer-name").textContent = name;
+            row.querySelector(".officer-username").textContent = `@${username}`;
+            row.querySelector(".officer-email").textContent = email;
+            row.querySelector(".officer-phone").textContent = phone;
+
+            const avatar = row.querySelector(".officer-avatar");
+            if (avatar) {
+                avatar.textContent = name.charAt(0).toUpperCase();
+            }
+
+            const editButton = row.querySelector(".officer-edit-btn");
+
+            if (editButton) {
+                editButton.dataset.name = name;
+                editButton.dataset.username = username;
+                editButton.dataset.email = email;
+                editButton.dataset.phone = phone;
+            }
+
+            closeEditModal();
+            filterOfficers();
+        });
+
+        /* -----------------------------------------
+           AKTIF / NONAKTIF
+        ----------------------------------------- */
+
+        function updateOfficerStatus(row, isActive) {
+            row.dataset.status = isActive ? "active" : "inactive";
+
+            const statusElement = row.querySelector(".officer-status");
+
+            if (statusElement) {
+                statusElement.classList.toggle("active", isActive);
+                statusElement.classList.toggle("inactive", !isActive);
+
+                statusElement.innerHTML = `
+                    <span></span>
+                    ${isActive ? "Aktif" : "Nonaktif"}
+                `;
+            }
+
+            const toggleButton = row.querySelector(".officer-toggle-btn");
+
+            if (toggleButton) {
+                const title = isActive ? "Nonaktifkan akun" : "Aktifkan akun";
+
+                toggleButton.title = title;
+                toggleButton.setAttribute("aria-label", title);
+
+                toggleButton.innerHTML = `
+                    <span class="material-symbols-rounded">
+                        ${isActive ? "person_off" : "person_check"}
+                    </span>
+                `;
+            }
+
+            updateStatistics();
+            filterOfficers();
+        }
+
+        /* -----------------------------------------
+        CUSTOM CONFIRMATION PETUGAS
+        ----------------------------------------- */
+
+        const officerStatusDialog = document.getElementById(
+            "officerStatusDialog",
+        );
+
+        const officerConfirmIcon =
+            document.getElementById("officerConfirmIcon");
+
+        const officerConfirmTitle = document.getElementById(
+            "officerConfirmTitle",
+        );
+
+        const officerConfirmDescription = document.getElementById(
+            "officerConfirmDescription",
+        );
+
+        const officerConfirmCancel = document.getElementById(
+            "officerConfirmCancel",
+        );
+
+        const officerConfirmSubmit = document.getElementById(
+            "officerConfirmSubmit",
+        );
+
+        let pendingOfficerRow = null;
+        let pendingOfficerStatus = null;
+
+        function openOfficerStatusDialog(row, nextStatus, officerName) {
+            if (!officerStatusDialog) return;
+
+            pendingOfficerRow = row;
+            pendingOfficerStatus = nextStatus;
+
+            if (nextStatus) {
+                officerConfirmIcon.className = "officer-confirm-icon activate";
+
+                officerConfirmIcon.innerHTML = `
+            <span class="material-symbols-rounded">
+                person_check
+            </span>
+        `;
+
+                officerConfirmTitle.textContent = "Aktifkan Petugas?";
+
+                officerConfirmDescription.textContent = `Apakah kamu yakin ingin mengaktifkan kembali akun ${officerName}?`;
+
+                officerConfirmSubmit.textContent = "Ya, Aktifkan";
+
+                officerConfirmSubmit.className =
+                    "officer-confirm-submit activate";
+            } else {
+                officerConfirmIcon.className =
+                    "officer-confirm-icon deactivate";
+
+                officerConfirmIcon.innerHTML = `
+            <span class="material-symbols-rounded">
+                person_off
+            </span>
+        `;
+
+                officerConfirmTitle.textContent = "Nonaktifkan Petugas?";
+
+                officerConfirmDescription.textContent = `Apakah kamu yakin ingin menonaktifkan akun ${officerName}?`;
+
+                officerConfirmSubmit.textContent = "Ya, Nonaktifkan";
+
+                officerConfirmSubmit.className =
+                    "officer-confirm-submit deactivate";
+            }
+
+            officerStatusDialog.showModal();
+        }
+
+        /* Tombol Batal */
+        officerConfirmCancel.addEventListener("click", () => {
+            officerStatusDialog.close();
+        });
+
+        /* Klik tombol konfirmasi */
+        officerConfirmSubmit.addEventListener("click", () => {
+            if (!pendingOfficerRow || pendingOfficerStatus === null) {
+                return;
+            }
+
+            updateOfficerStatus(pendingOfficerRow, pendingOfficerStatus);
+
+            officerStatusDialog.close();
+        });
+
+        /* Klik area luar dialog */
+        officerStatusDialog.addEventListener("click", (event) => {
+            if (event.target === officerStatusDialog) {
+                officerStatusDialog.close();
+            }
+        });
+
+        /* Bersihkan data setelah dialog ditutup */
+        officerStatusDialog.addEventListener("close", () => {
+            pendingOfficerRow = null;
+            pendingOfficerStatus = null;
+        });
+
+        /* -----------------------------------------
+        EVENT LISTENER TABEL PETUGAS
+        ----------------------------------------- */
+
+        tableBody.addEventListener("click", (event) => {
+            const editButton = event.target.closest(".officer-edit-btn");
+            const toggleButton = event.target.closest(".officer-toggle-btn");
+
+            if (editButton) {
+                openEditModal(editButton);
+                return;
+            }
+
+            if (toggleButton) {
+                const row = toggleButton.closest(".officer-row");
+                if (!row) return;
+
+                const isCurrentlyActive = row.dataset.status === "active";
+                const nextStatus = !isCurrentlyActive;
+
+                const officerName =
+                    row.querySelector(".officer-name")?.textContent.trim() ||
+                    "Petugas";
+
+                openOfficerStatusDialog(row, nextStatus, officerName);
+            }
+        });
+
+        /* -----------------------------------------
+           STATISTIK
+        ----------------------------------------- */
+
+        function updateStatistics() {
+            const rows = [...tableBody.querySelectorAll("tr.officer-row")];
+
+            const total = rows.length;
+            const active = rows.filter(
+                (row) => row.dataset.status === "active",
+            ).length;
+            const inactive = total - active;
+
+            if (totalCount) totalCount.textContent = total;
+            if (activeCount) activeCount.textContent = active;
+            if (inactiveCount) inactiveCount.textContent = inactive;
+
+            if (tableSummary) {
+                tableSummary.textContent = `Menampilkan ${total} petugas`;
+            }
+        }
+
+        /* -----------------------------------------
+           SEARCH DAN FILTER
+        ----------------------------------------- */
+
+        function filterOfficers() {
+            const keyword = searchInput?.value.trim().toLowerCase() || "";
+            const selectedStatus = statusFilter?.value || "all";
+
+            const rows = tableBody.querySelectorAll("tr.officer-row");
+            let visibleCount = 0;
+
+            rows.forEach((row) => {
+                const rowText = row.textContent.toLowerCase();
+                const rowStatus = row.dataset.status;
+
+                const matchesKeyword = rowText.includes(keyword);
+                const matchesStatus =
+                    selectedStatus === "all" || rowStatus === selectedStatus;
+
+                const isVisible = matchesKeyword && matchesStatus;
+
+                row.style.display = isVisible ? "" : "none";
+
+                if (isVisible) visibleCount++;
+            });
+
+            if (emptyState) {
+                emptyState.style.display = visibleCount === 0 ? "" : "none";
+            }
+        }
+
+        searchInput?.addEventListener("input", filterOfficers);
+        statusFilter?.addEventListener("change", filterOfficers);
+
+        /* -----------------------------------------
+        ESCAPE
+        ----------------------------------------- */
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+
+            if (editModal?.classList.contains("show")) {
+                closeEditModal();
+            } else if (modal.classList.contains("show")) {
+                closeModal(modal);
+            }
+        });
+
+        updateStatistics();
+        filterOfficers();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initOfficerPage);
+    } else {
+        initOfficerPage();
+    }
+})();
+
 /* =====================================================
    GLOBAL SEARCH - SI-GORAY ADMIN
    Tahap 1: UI dan interaksi
@@ -1121,3 +1548,55 @@ document.addEventListener("DOMContentLoaded", function () {
 
     renderNotifications();
 });
+
+// LAPORAN
+document
+    .querySelectorAll(".report-export-btn[data-export-url]")
+    .forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const url = btn.dataset.exportUrl;
+            if (!url) {
+                alert("Endpoint ekspor belum tersedia.");
+                return;
+            }
+
+            btn.disabled = true;
+            try {
+                const res = await fetch(url, {
+                    credentials: "same-origin",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        Accept: "application/json, */*;q=0.8",
+                    },
+                });
+
+                if (!res.ok) {
+                    let message = "Gagal mengekspor laporan.";
+                    try {
+                        message = (await res.json()).message || message;
+                    } catch {}
+                    throw new Error(message);
+                }
+
+                const blob = await res.blob();
+                const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(
+                    res.headers.get("Content-Disposition") || "",
+                );
+                const ext = btn.classList.contains("pdf") ? "pdf" : "xlsx";
+                const link = Object.assign(document.createElement("a"), {
+                    href: URL.createObjectURL(blob),
+                    download: match
+                        ? decodeURIComponent(match[1])
+                        : `laporan.${ext}`,
+                });
+                document.body.append(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    });
